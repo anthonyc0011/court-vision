@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: court-vision-api
+    runtime: python
+    rootDir: quiz_web_backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    plan: free
+
+  - type: web
+    name: court-vision-web
+    runtime: static
+    rootDir: quiz_web_frontend
+    buildCommand: printf 'window.COURT_VISION_API_BASE = "%s";\n' "$COURT_VISION_API_BASE" > config.js
+    staticPublishPath: .
+    plan: free
+    envVars:
+      - key: COURT_VISION_API_BASE
+        sync: false

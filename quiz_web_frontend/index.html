@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Court Vision Web</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body data-theme="Arena Blue">
+  <main class="app-shell">
+    <section id="homeScreen" class="screen active">
+      <section class="hero-card">
+        <p class="eyebrow">Playable Web Build</p>
+        <h1>Court Vision</h1>
+        <p class="subtitle">Play the NBA college quiz in your browser with headshots, daily challenge, profiles, and leaderboard support.</p>
+        <div class="hero-ribbon">
+          <span class="ribbon-chip">Headshots</span>
+          <span class="ribbon-chip">Daily Challenge</span>
+          <span class="ribbon-chip">Leaderboard</span>
+        </div>
+      </section>
+
+      <section class="grid">
+        <article class="panel">
+          <h2>Game Setup</h2>
+          <label for="username">Username</label>
+          <input id="username" placeholder="Enter username" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
+
+          <label for="theme">Theme</label>
+          <select id="theme">
+            <option>Arena Blue</option>
+            <option>Classic Gold</option>
+            <option>Emerald Court</option>
+            <option>Midnight Heat</option>
+          </select>
+
+          <label for="gameMode">Mode</label>
+          <select id="gameMode">
+            <option value="Practice">Practice</option>
+            <option value="Timed">Timed</option>
+            <option value="Hard">Hard</option>
+            <option value="Learning">Learning</option>
+          </select>
+
+          <label for="questionCount">Quiz Length</label>
+          <select id="questionCount">
+            <option value="10">10</option>
+            <option value="25" selected>25</option>
+            <option value="50">50</option>
+          </select>
+
+          <label for="conferenceFilter">Conference</label>
+          <select id="conferenceFilter">
+            <option value="All">All</option>
+          </select>
+
+          <label for="answerMode">Answer Style</label>
+          <select id="answerMode">
+            <option value="typed">Typed</option>
+            <option value="multiple-choice">Multiple Choice</option>
+          </select>
+
+          <label class="checkbox-row">
+            <input type="checkbox" id="showHeadshots" checked />
+            <span>Show Headshots</span>
+          </label>
+
+          <label class="checkbox-row">
+            <input type="checkbox" id="twoPlayerMode" />
+            <span>2-Player Local</span>
+          </label>
+
+          <div id="twoPlayerFields" class="two-player-fields hidden">
+            <label for="playerOneName">Player 1 Name</label>
+            <input id="playerOneName" placeholder="Player 1" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
+            <label for="playerTwoName">Player 2 Name</label>
+            <input id="playerTwoName" placeholder="Player 2" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
+          </div>
+
+          <label class="checkbox-row">
+            <input type="checkbox" id="dailyMode" />
+            <span>Daily Challenge</span>
+          </label>
+
+          <div class="hero-actions">
+            <button id="startQuiz">Start Game</button>
+            <button id="saveProfile">Save Profile</button>
+            <button id="loadLeaderboard">View Leaderboard</button>
+          </div>
+        </article>
+
+        <article class="panel">
+          <h2>Profile And Progress</h2>
+          <div id="profileSummary" class="scroll-box compact-box">Profile summary will appear here.</div>
+          <h2 class="subsection">Daily Challenge</h2>
+          <div id="dailyOutput" class="scroll-box compact-box">Press Start Game with Daily Challenge enabled to use today’s set.</div>
+          <h2 class="subsection">Leaderboard</h2>
+          <div id="leaderboardOutput" class="scroll-box compact-box">Leaderboard not loaded yet.</div>
+        </article>
+      </section>
+    </section>
+
+    <section id="quizScreen" class="screen">
+      <section class="hud-card">
+        <div class="hud-top">
+          <div class="chip-row">
+            <span id="modeChip" class="chip chip-blue">Practice</span>
+            <span id="scoreChip" class="chip chip-gold">Score 0</span>
+          </div>
+          <div id="timerLabel" class="timer">00:00</div>
+        </div>
+        <div class="hud-sub">
+          <span id="progressText">Question 1 of 10</span>
+          <span id="streakText">Current Streak: 0</span>
+        </div>
+        <div id="twoPlayerBanner" class="hud-sub hud-turn hidden">
+          <span id="turnText">Player 1's Turn</span>
+          <span id="matchupText">Player 1 0 - 0 Player 2</span>
+        </div>
+        <div class="hud-sub hud-meta">
+          <span id="achievementText">Achievements: none yet</span>
+          <span id="rankText">XP 0 | Rank Rookie</span>
+        </div>
+      </section>
+
+      <section class="progress-panel">
+        <div id="progressBar" class="progress-bar"></div>
+      </section>
+
+      <section class="quiz-layout">
+        <article class="question-panel">
+          <p class="question-kicker">College Guessing Challenge</p>
+          <div class="media-row">
+            <div class="media-card">
+              <img id="headshotImage" alt="Player headshot" />
+              <div id="headshotFallback" class="media-fallback">No Headshot</div>
+            </div>
+            <div class="logo-card">
+              <img id="logoImage" alt="School logo" />
+              <div id="logoFallback" class="logo-fallback"></div>
+            </div>
+          </div>
+          <h2 id="questionText" class="question-text"></h2>
+          <p id="feedbackText" class="feedback-text"></p>
+        </article>
+
+        <article class="answer-panel">
+          <label class="answer-label" for="typedAnswer">Make your pick</label>
+          <input id="typedAnswer" class="answer-input" placeholder="Type the college name" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
+          <div id="multipleChoiceGrid" class="multiple-choice-grid"></div>
+          <div class="button-row">
+            <button id="submitAnswer">Submit</button>
+            <button id="showHint" class="secondary-button">Hint</button>
+            <button id="skipQuestion" class="secondary-button">Skip</button>
+            <button id="quitToHome" class="secondary-button">Home</button>
+          </div>
+        </article>
+      </section>
+    </section>
+
+    <section id="endScreen" class="screen">
+      <section class="hero-card">
+        <p class="eyebrow">Run Complete</p>
+        <h1 id="endTitle">Final Scoreboard</h1>
+        <div class="hero-ribbon">
+          <span class="ribbon-chip">Postgame Recap</span>
+          <span class="ribbon-chip">Leaderboard Ready</span>
+          <span class="ribbon-chip">Play Again</span>
+        </div>
+        <p id="endSummary" class="subtitle large-copy"></p>
+        <div id="rewardSummary" class="scroll-box compact-box">Rewards and achievements will appear here.</div>
+        <div id="missedSummary" class="scroll-box compact-box"></div>
+        <div class="hero-actions">
+          <button id="playAgain">Play Again</button>
+          <button id="playMissedOnly">Play Missed Only</button>
+          <button id="submitLeaderboard">Submit Leaderboard</button>
+          <button id="returnHome">Return Home</button>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script src="./config.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
