@@ -1,4 +1,5 @@
 import json
+import os
 import re
 import sqlite3
 import time
@@ -10,14 +11,24 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+try:
+    import psycopg
+    from psycopg.rows import dict_row
+except ImportError:  # pragma: no cover - local sqlite mode works without psycopg
+    psycopg = None
+    dict_row = None
+
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 DATA_FILE = BASE_DIR / "ALL_NBA_PLAYERS_with_headshots.xlsx"
 DB_PATH = BASE_DIR / "quiz_web_backend" / "quiz_web.db"
 HEADSHOT_DIR = BASE_DIR / "headshots"
 LOGO_DIR = BASE_DIR / "school_logos"
+DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
+USING_POSTGRES = DATABASE_URL.startswith("postgres")
 
-DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+if not USING_POSTGRES:
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 HEADSHOT_DIR.mkdir(parents=True, exist_ok=True)
 LOGO_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -101,34 +112,67 @@ def build_question_payload(row, df: pd.DataFrame):
 
 
 def get_conn():
+    if USING_POSTGRES:
+        if psycopg is None:
+            raise RuntimeError("DATABASE_URL is set, but psycopg is not installed.")
+        return psycopg.connect(DATABASE_URL, row_factory=dict_row)
+
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
 
+def as_bool(value: bool):
+    return value if USING_POSTGRES else (1 if value else 0)
+
+
 def init_db():
     with get_conn() as conn:
-        conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS leaderboard_entries (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT NOT NULL,
-                score INTEGER NOT NULL,
-                accuracy REAL NOT NULL,
-                mode TEXT NOT NULL,
-                run_date TEXT NOT NULL,
-                daily INTEGER NOT NULL DEFAULT 0
+        if USING_POSTGRES:
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS leaderboard_entries (
+                    id BIGSERIAL PRIMARY KEY,
+                    username TEXT NOT NULL,
+                    score INTEGER NOT NULL,
+                    accuracy DOUBLE PRECISION NOT NULL,
+                    mode TEXT NOT NULL,
+                    run_date TEXT NOT NULL,
+                    daily BOOLEAN NOT NULL DEFAULT FALSE
+                )
+                """
             )
-            """
-        )
-        conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS profiles (
-                username TEXT PRIMARY KEY,
-                payload TEXT NOT NULL
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS profiles (
+                    username TEXT PRIMARY KEY,
+                    payload TEXT NOT NULL
+                )
+                """
             )
-            """
-        )
+        else:
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS leaderboard_entries (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT NOT NULL,
+                    score INTEGER NOT NULL,
+                    accuracy REAL NOT NULL,
+                    mode TEXT NOT NULL,
+                    run_date TEXT NOT NULL,
+                    daily INTEGER NOT NULL DEFAULT 0
+                )
+                """
+            )
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS profiles (
+                    username TEXT PRIMARY KEY,
+                    payload TEXT NOT NULL
+                )
+                """
+            )
+        conn.commit()
 
 
 class LeaderboardEntry(BaseModel):
@@ -222,35 +266,63 @@ def check_answer(payload: AnswerCheckRequest):
 @app.get("/api/leaderboard")
 def leaderboard(limit: int = 20):
     with get_conn() as conn:
-        rows = conn.execute(
-            """
-            SELECT username, score, accuracy, mode, run_date, daily
-            FROM leaderboard_entries
-            ORDER BY score DESC, accuracy DESC, id ASC
-            LIMIT ?
-            """,
-            (limit,),
-        ).fetchall()
+        if USING_POSTGRES:
+            rows = conn.execute(
+                """
+                SELECT username, score, accuracy, mode, run_date, daily
+                FROM leaderboard_entries
+                ORDER BY score DESC, accuracy DESC, id ASC
+                LIMIT %s
+                """,
+                (limit,),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                """
+                SELECT username, score, accuracy, mode, run_date, daily
+                FROM leaderboard_entries
+                ORDER BY score DESC, accuracy DESC, id ASC
+                LIMIT ?
+                """,
+                (limit,),
+            ).fetchall()
     return {"entries": [dict(row) for row in rows]}
 
 
 @app.post("/api/leaderboard")
 def post_leaderboard(entry: LeaderboardEntry):
     with get_conn() as conn:
-        conn.execute(
-            """
-            INSERT INTO leaderboard_entries (username, score, accuracy, mode, run_date, daily)
-            VALUES (?, ?, ?, ?, ?, ?)
-            """,
-            (
-                entry.username.strip() or "Guest",
-                entry.score,
-                entry.accuracy,
-                entry.mode,
-                time.strftime("%Y-%m-%d"),
-                1 if entry.daily else 0,
-            ),
-        )
+        if USING_POSTGRES:
+            conn.execute(
+                """
+                INSERT INTO leaderboard_entries (username, score, accuracy, mode, run_date, daily)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                """,
+                (
+                    entry.username.strip() or "Guest",
+                    entry.score,
+                    entry.accuracy,
+                    entry.mode,
+                    time.strftime("%Y-%m-%d"),
+                    as_bool(entry.daily),
+                ),
+            )
+        else:
+            conn.execute(
+                """
+                INSERT INTO leaderboard_entries (username, score, accuracy, mode, run_date, daily)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    entry.username.strip() or "Guest",
+                    entry.score,
+                    entry.accuracy,
+                    entry.mode,
+                    time.strftime("%Y-%m-%d"),
+                    as_bool(entry.daily),
+                ),
+            )
+        conn.commit()
     return {"saved": True}
 
 
@@ -269,13 +341,23 @@ def profiles():
 def post_profile(profile: ProfilePayload):
     payload = {"theme": profile.theme, "settings": profile.settings or {}}
     with get_conn() as conn:
-        conn.execute(
-            """
-            INSERT INTO profiles (username, payload) VALUES (?, ?)
-            ON CONFLICT(username) DO UPDATE SET payload=excluded.payload
-            """,
-            (profile.username.strip() or "Guest", json.dumps(payload)),
-        )
+        if USING_POSTGRES:
+            conn.execute(
+                """
+                INSERT INTO profiles (username, payload) VALUES (%s, %s)
+                ON CONFLICT(username) DO UPDATE SET payload=excluded.payload
+                """,
+                (profile.username.strip() or "Guest", json.dumps(payload)),
+            )
+        else:
+            conn.execute(
+                """
+                INSERT INTO profiles (username, payload) VALUES (?, ?)
+                ON CONFLICT(username) DO UPDATE SET payload=excluded.payload
+                """,
+                (profile.username.strip() or "Guest", json.dumps(payload)),
+            )
+        conn.commit()
     return {"saved": True}
 
 

@@ -22,11 +22,18 @@ How the frontend finds the API:
 Recommended public deployment:
 - Backend: Render Web Service
 - Frontend: Render Static Site
+- Database: Render Postgres
 
 Render backend settings:
 - Root directory: `quiz_web_backend`
 - Build command: `pip install -r requirements.txt`
 - Start command: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+- Environment variable:
+  - `DATABASE_URL=<Render Postgres internal/external connection string>`
+
+Backend database behavior:
+- Local development falls back to SQLite automatically.
+- Production switches to PostgreSQL whenever `DATABASE_URL` is set.
 
 Render frontend settings:
 - Root directory: `quiz_web_frontend`
@@ -39,15 +46,31 @@ Render frontend settings:
 
 Suggested go-live checklist:
 1. Push the repo to GitHub.
-2. Deploy the backend first and copy its public URL.
-3. Deploy the frontend and set `COURT_VISION_API_BASE` to the backend URL plus `/api`.
-4. Test:
+2. Create a Render Postgres database named `court-vision-db`.
+3. Attach its connection string to the backend as `DATABASE_URL`.
+4. Deploy the backend and copy its public URL.
+5. Deploy the frontend and set `COURT_VISION_API_BASE` to the backend URL plus `/api`.
+6. Test:
    - `/api/health`
    - loading quiz questions
    - leaderboard reads/writes
    - profile saves
    - headshots and school logos
-5. Add your custom domain after both services work.
+7. Add your custom domain after both services work.
+
+Custom domain steps on Render:
+1. Open your Render service.
+2. Go to `Settings` -> `Custom Domains`.
+3. Add your domain, such as `play.yourdomain.com`.
+4. Copy the DNS record Render gives you.
+5. Add that record where your domain is hosted.
+6. Wait for Render to verify SSL and DNS.
+
+Recommended domain setup:
+- Frontend custom domain:
+  - `play.yourdomain.com`
+- Optional backend custom domain:
+  - `api.yourdomain.com`
 
 What is ready:
 - leaderboard API
