@@ -743,7 +743,7 @@ async function saveProfile() {
 }
 
 async function loadLeaderboard() {
-  const data = await fetchJson("/leaderboard");
+  const data = await fetchJson("/leaderboard?limit=5");
   const lines = data.entries.map((entry, index) =>
     `${index + 1}. ${entry.username} | Score ${entry.score} | Accuracy ${entry.accuracy}% | ${entry.mode} | ${entry.run_date}${entry.daily ? " | Daily" : ""}`
   );
