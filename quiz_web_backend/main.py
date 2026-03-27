@@ -17,6 +17,10 @@ DB_PATH = BASE_DIR / "quiz_web_backend" / "quiz_web.db"
 HEADSHOT_DIR = BASE_DIR / "headshots"
 LOGO_DIR = BASE_DIR / "school_logos"
 
+DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+HEADSHOT_DIR.mkdir(parents=True, exist_ok=True)
+LOGO_DIR.mkdir(parents=True, exist_ok=True)
+
 app = FastAPI(title="NBA Quiz Web API")
 app.add_middleware(
     CORSMiddleware,
