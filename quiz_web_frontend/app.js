@@ -38,6 +38,8 @@ const state = {
   twoPlayer: false,
   mode: "Practice",
   answerMode: "typed",
+  hintLimit: 0,
+  hintsUsed: 0,
   hintStage: 0,
   missedQuestions: [],
   currentQuestionAttempts: 0,
@@ -99,6 +101,7 @@ const els = {
   typedAnswer: document.getElementById("typedAnswer"),
   multipleChoiceGrid: document.getElementById("multipleChoiceGrid"),
   showHint: document.getElementById("showHint"),
+  toastPopup: document.getElementById("toastPopup"),
   endTitle: document.getElementById("endTitle"),
   endSummary: document.getElementById("endSummary"),
   rewardSummary: document.getElementById("rewardSummary"),
@@ -129,6 +132,15 @@ function getRequestedQuestionCount() {
 
   const parsed = Number(selectedValue || 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 10;
+}
+
+function getHintLimitForSelection() {
+  const selectedValue = els.questionCount.value;
+  if (selectedValue === "10") return 2;
+  if (selectedValue === "25") return 5;
+  if (selectedValue === "50") return 10;
+  if (selectedValue === "all") return 20;
+  return 2;
 }
 
 function getDefaultProgress() {
@@ -286,6 +298,16 @@ function updateTwoPlayerHud() {
   els.matchupText.textContent = `${state.playerNames[0]} ${state.playerScores[state.playerNames[0]]} - ${state.playerScores[state.playerNames[1]]} ${state.playerNames[1]}`;
 }
 
+function showToast(message) {
+  if (!els.toastPopup) return;
+  window.clearTimeout(state.toastTimerId);
+  els.toastPopup.textContent = message;
+  els.toastPopup.classList.add("visible");
+  state.toastTimerId = window.setTimeout(() => {
+    els.toastPopup.classList.remove("visible");
+  }, 1800);
+}
+
 function unlockAchievements(summary) {
   const earned = [];
   const existing = new Set(state.profile.achievements);
@@ -387,9 +409,16 @@ function getCurrentQuestion() {
 }
 
 function updateHintAvailability() {
-  const disabled = state.mode === "Hard" || state.submitted || state.twoPlayer;
+  const multipleChoiceLocked = state.answerMode === "multiple-choice";
+  const noHintsMode = state.mode === "Hard" || state.twoPlayer;
+  const outOfHints = state.hintsUsed >= state.hintLimit;
+  const disabled = state.submitted || noHintsMode || outOfHints;
+
   els.showHint.disabled = disabled;
   els.showHint.classList.toggle("hidden", state.twoPlayer);
+  els.showHint.classList.toggle("hint-locked", multipleChoiceLocked || outOfHints);
+  const remaining = Math.max(state.hintLimit - state.hintsUsed, 0);
+  els.showHint.textContent = `Hint (${remaining})`;
 }
 
 function setFeedback(text, color = "var(--muted)") {
@@ -528,25 +557,50 @@ function skipQuestion() {
 }
 
 function showHint() {
-  if (state.submitted || state.mode === "Hard") return;
+  if (state.answerMode === "multiple-choice") {
+    showToast("No hints during multiple choice mode.");
+    return;
+  }
+  if (state.twoPlayer) {
+    showToast("No hints during 2-player mode.");
+    return;
+  }
+  if (state.mode === "Hard") {
+    showToast("No hints during Hard mode.");
+    return;
+  }
+  if (state.submitted) return;
+  if (state.hintsUsed >= state.hintLimit) {
+    showToast("You have used all your hints for this quiz.");
+    updateHintAvailability();
+    return;
+  }
+  if (state.hintStage >= 3) {
+    showToast("No more hints are available for this question.");
+    return;
+  }
   const question = getCurrentQuestion();
   if (!question) return;
   const answer = question.college;
   const words = answer.split(" ");
 
+  state.hintsUsed += 1;
+
   if (state.hintStage === 0) {
     setFeedback(`Hint: first letters ${words.map((word) => word[0]).join(" ")}`, "var(--gold)");
     state.hintStage = 1;
+    updateHintAvailability();
     return;
   }
   if (state.hintStage === 1) {
     setFeedback(`Hint: word lengths ${words.map((word) => word.length).join(" - ")}`, "var(--gold)");
     state.hintStage = 2;
+    updateHintAvailability();
     return;
   }
   setFeedback(`Final hint: conference ${question.conference}`, "var(--gold)");
   state.hintStage = 3;
-  els.showHint.disabled = true;
+  updateHintAvailability();
 }
 
 function nextQuestion() {
@@ -651,6 +705,8 @@ async function startQuiz(customQuestions = null) {
   state.results = [];
   state.missedQuestions = [];
   state.submitted = false;
+  state.hintLimit = getHintLimitForSelection();
+  state.hintsUsed = 0;
   state.hintStage = 0;
   els.modeChip.textContent = state.twoPlayer ? "2-Player Local" : (state.daily ? `${state.mode} • Daily` : state.mode);
   els.endTitle.textContent = state.daily ? "Daily Challenge Recap" : "Final Scoreboard";
