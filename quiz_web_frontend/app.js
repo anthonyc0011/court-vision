@@ -121,6 +121,16 @@ function getDefaultSettings() {
   };
 }
 
+function getRequestedQuestionCount() {
+  const selectedValue = els.questionCount.value;
+  if (selectedValue === "all") {
+    return null;
+  }
+
+  const parsed = Number(selectedValue || 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 10;
+}
+
 function getDefaultProgress() {
   return {
     xp: 0,
@@ -602,7 +612,7 @@ async function fetchQuizData(customQuestions = null) {
   const data = await fetchJson("/quiz", {
     method: "POST",
     body: JSON.stringify({
-      count: Number(els.questionCount.value || 10),
+      count: getRequestedQuestionCount(),
       daily: els.dailyMode.checked,
       mode: els.gameMode.value,
       conference: els.conferenceFilter.value,

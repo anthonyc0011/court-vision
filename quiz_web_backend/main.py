@@ -1,5 +1,6 @@
 import json
 import os
+import random
 import re
 import sqlite3
 import time
@@ -61,6 +62,15 @@ def load_dataframe():
     df["College / Last School"] = df["College / Last School"].fillna("None")
     df = df[df["College / Last School"].str.lower() != "none"].copy()
     return df
+
+
+def choose_random_records(df: pd.DataFrame, count: int | None = None) -> list[dict]:
+    records = df.to_dict("records")
+    randomizer = random.SystemRandom()
+    randomizer.shuffle(records)
+    if count is None:
+        return records
+    return records[: min(count, len(records))]
 
 
 def build_choices(df: pd.DataFrame, correct_college: str) -> list[str]:
@@ -190,7 +200,7 @@ class ProfilePayload(BaseModel):
 
 
 class QuizRequest(BaseModel):
-    count: int = 10
+    count: int | None = 10
     daily: bool = False
     date: str | None = None
     mode: str = "Practice"
@@ -213,9 +223,9 @@ def health():
 
 
 @app.get("/api/players")
-def players(count: int = 10):
+def players(count: int | None = 10):
     df = load_dataframe()
-    sample = df.sample(n=min(count, len(df))).to_dict("records")
+    sample = choose_random_records(df, count)
     return {"players": [build_question_payload(row, df) for row in sample]}
 
 
@@ -227,12 +237,13 @@ def meta():
 
 
 @app.get("/api/daily-challenge")
-def daily_challenge(count: int = 10, date: str | None = None):
+def daily_challenge(count: int | None = 10, date: str | None = None):
     df = load_dataframe()
     if date is None:
         date = time.strftime("%Y-%m-%d")
     seed = int(date.replace("-", ""))
-    sample = df.sample(n=min(count, len(df)), random_state=seed).to_dict("records")
+    effective_count = len(df) if count is None else min(count, len(df))
+    sample = df.sample(n=effective_count, random_state=seed).to_dict("records")
     return {
         "date": date,
         "players": [build_question_payload(row, df) for row in sample],
@@ -246,13 +257,13 @@ def quiz(payload: QuizRequest):
         df = df[df["Conference"] == payload.conference].copy()
     if df.empty:
         df = load_dataframe()
-    count = min(payload.count, len(df))
+    count = len(df) if payload.count is None else min(payload.count, len(df))
     if payload.daily:
         date = payload.date or time.strftime("%Y-%m-%d")
         seed = int(date.replace("-", ""))
         sample = df.sample(n=count, random_state=seed).to_dict("records")
         return {"date": date, "questions": [build_question_payload(row, df) for row in sample]}
-    sample = df.sample(n=count).to_dict("records")
+    sample = choose_random_records(df, count)
     return {"questions": [build_question_payload(row, df) for row in sample]}
 
 
