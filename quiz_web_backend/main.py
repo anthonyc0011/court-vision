@@ -413,7 +413,14 @@ def create_online_match(payload: OnlineMatchCreateRequest):
         "conference": payload.conference,
         "created_at": time.time(),
     }
-    return {"room_code": room_code, "player_name": username}
+    return {
+        "room_code": room_code,
+        "player_name": username,
+        "answer_mode": payload.answer_mode,
+        "show_headshots": payload.show_headshots,
+        "question_count": payload.count,
+        "conference": payload.conference,
+    }
 
 
 @app.post("/api/online-match/join")
@@ -429,7 +436,15 @@ def join_online_match(payload: OnlineMatchJoinRequest):
 
     room["players"][1] = username
     room["scores"].setdefault(username, 0)
-    return {"room_code": room["room_code"], "player_name": username, "host": players[0]}
+    return {
+        "room_code": room["room_code"],
+        "player_name": username,
+        "host": players[0],
+        "answer_mode": room["answer_mode"],
+        "show_headshots": room["show_headshots"],
+        "question_count": room["question_count"],
+        "conference": room["conference"],
+    }
 
 
 async def handle_rematch_request(room: dict, username: str):
@@ -640,6 +655,10 @@ async def online_match_socket(websocket: WebSocket, room_code: str, username: st
             "opponent_name": opponent,
             "waiting": not room["started"],
             "scores": summarize_online_scores(room),
+            "answer_mode": room["answer_mode"],
+            "show_headshots": room["show_headshots"],
+            "question_count": room["question_count"],
+            "conference": room["conference"],
         },
     )
 

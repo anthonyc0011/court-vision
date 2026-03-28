@@ -59,6 +59,7 @@ const state = {
     scores: {},
     playerName: "",
     rematchRequested: false,
+    showHeadshots: true,
   },
   profile: {
     username: "Guest",
@@ -470,14 +471,16 @@ function renderProgress() {
 }
 
 function renderMedia(question) {
-  if (question.headshot && els.showHeadshots.checked) {
+  const showHeadshots = state.online.enabled ? state.online.showHeadshots : els.showHeadshots.checked;
+
+  if (question.headshot && showHeadshots) {
     els.headshotImage.src = `${API_ORIGIN}${question.headshot}`;
     els.headshotImage.classList.remove("hidden");
     els.headshotFallback.classList.add("hidden");
   } else {
     els.headshotImage.classList.add("hidden");
     els.headshotFallback.classList.remove("hidden");
-    els.headshotFallback.textContent = els.showHeadshots.checked ? "No Headshot" : "Headshots Off";
+    els.headshotFallback.textContent = showHeadshots ? "No Headshot" : "Headshots Off";
   }
 
   if (question.logo) {
@@ -954,8 +957,32 @@ function resetOnlineState() {
     scores: {},
     playerName: "",
     rematchRequested: false,
+    showHeadshots: true,
   };
   updateProfileSummary();
+}
+
+function applyOnlineMatchSettings(payload = {}) {
+  const hostAnswerMode = payload.answer_mode || state.answerMode || "typed";
+  const hostShowHeadshots =
+    typeof payload.show_headshots === "boolean" ? payload.show_headshots : state.online.showHeadshots;
+
+  state.answerMode = hostAnswerMode;
+  state.online.showHeadshots = hostShowHeadshots;
+  els.answerMode.value = hostAnswerMode;
+  els.showHeadshots.checked = hostShowHeadshots;
+
+  if (payload.question_count !== undefined && payload.question_count !== null) {
+    els.questionCount.value = String(payload.question_count);
+  }
+
+  if (payload.question_count === null) {
+    els.questionCount.value = "all";
+  }
+
+  if (payload.conference) {
+    els.conferenceFilter.value = payload.conference;
+  }
 }
 
 function prepareOnlineQuizState(totalQuestions, payload) {
@@ -963,7 +990,7 @@ function prepareOnlineQuizState(totalQuestions, payload) {
   state.twoPlayer = false;
   state.daily = false;
   state.mode = "Online 1v1";
-  state.answerMode = payload.answer_mode || els.answerMode.value;
+  applyOnlineMatchSettings(payload);
   state.currentIndex = payload.current_index ?? 0;
   state.questions = Array(totalQuestions).fill(null);
   state.results = Array(totalQuestions).fill(null);
@@ -1046,6 +1073,7 @@ function attachOnlineSocket(roomCode, username) {
       state.online.playerName = payload.player_name;
       state.online.opponentName = payload.opponent_name || "";
       state.online.scores = payload.scores || {};
+      applyOnlineMatchSettings(payload);
       renderOnlineWaiting();
       if (payload.waiting) {
         els.onlineStatus.textContent = `Match code ${payload.room_code} created. Share it with a friend.`;
@@ -1160,6 +1188,7 @@ async function startOnlineMatch() {
 
   state.online.roomCode = roomPayload.room_code;
   state.online.playerName = roomPayload.player_name || username;
+  applyOnlineMatchSettings(roomPayload);
   switchScreen(screens.quiz);
   renderOnlineWaiting();
   startTimer();
