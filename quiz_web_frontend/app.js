@@ -268,6 +268,21 @@ function getRankFromXp(xp) {
   return getRankInfoFromXp(xp).label;
 }
 
+function getRankIndexFromLabel(rankLabel) {
+  const normalized = String(rankLabel || "").trim();
+  if (!normalized) return null;
+
+  for (let baseIndex = 0; baseIndex < BASE_RANKS.length; baseIndex += 1) {
+    for (let subtierIndex = 0; subtierIndex < RANK_SUBTIERS.length; subtierIndex += 1) {
+      if (`${BASE_RANKS[baseIndex]} ${RANK_SUBTIERS[subtierIndex]}` === normalized) {
+        return baseIndex * 3 + subtierIndex;
+      }
+    }
+  }
+
+  return null;
+}
+
 function loadLocalState() {
   const savedSettings = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null") || getDefaultSettings();
   const savedProgress = JSON.parse(localStorage.getItem(PROGRESS_KEY) || "null") || getDefaultProgress();
@@ -285,13 +300,13 @@ function loadLocalState() {
     username: savedSettings.username || "Guest",
     theme: savedSettings.theme || "Arena Blue",
     xp: progress.xp || 0,
-    rank: getRankFromXp(progress.xp || 0),
+    rank: progress.rank || getRankFromXp(progress.xp || 0),
     achievements: progress.achievements || [],
     gamesPlayed: progress.gamesPlayed || 0,
     bestScore: progress.bestScore || 0,
     onlineWins: progress.onlineWins || 0,
     rankHistory: progress.rankHistory || [],
-    highestRankIndex: progress.highestRankIndex ?? getRankInfoFromXp(progress.xp || 0).rankIndex,
+    highestRankIndex: progress.highestRankIndex ?? getRankIndexFromLabel(progress.rank) ?? getRankInfoFromXp(progress.xp || 0).rankIndex,
     seasonTag: progress.seasonTag || currentSeason,
   };
 
@@ -449,18 +464,22 @@ function renderSeasonStatus() {
 
 function getProfileProgress(profile) {
   const nestedProgress = profile.progress && typeof profile.progress === "object" ? profile.progress : {};
+  const derivedXp = nestedProgress.xp ?? profile.xp ?? 0;
+  const derivedRank = nestedProgress.rank ?? profile.rank ?? getRankFromXp(derivedXp);
+  const derivedRankIndex =
+    nestedProgress.highestRankIndex ?? profile.highestRankIndex ?? getRankIndexFromLabel(derivedRank) ?? getRankInfoFromXp(derivedXp).rankIndex;
+
   return {
     ...getDefaultProgress(),
     ...nestedProgress,
-    xp: nestedProgress.xp ?? profile.xp ?? 0,
-    rank: nestedProgress.rank ?? profile.rank ?? getRankFromXp(nestedProgress.xp ?? profile.xp ?? 0),
+    xp: derivedXp,
+    rank: derivedRank,
     achievements: nestedProgress.achievements ?? profile.achievements ?? [],
     gamesPlayed: nestedProgress.gamesPlayed ?? profile.gamesPlayed ?? 0,
     bestScore: nestedProgress.bestScore ?? profile.bestScore ?? 0,
     onlineWins: nestedProgress.onlineWins ?? profile.onlineWins ?? 0,
     rankHistory: nestedProgress.rankHistory ?? profile.rankHistory ?? [],
-    highestRankIndex:
-      nestedProgress.highestRankIndex ?? profile.highestRankIndex ?? getRankInfoFromXp(nestedProgress.xp ?? profile.xp ?? 0).rankIndex,
+    highestRankIndex: derivedRankIndex,
     seasonTag: nestedProgress.seasonTag ?? profile.seasonTag ?? getCurrentSeasonTag(),
   };
 }
@@ -1538,8 +1557,8 @@ async function loadLeaderboard() {
       return {
         username: profile.username,
         xp: progress.xp || 0,
-        rank: getRankFromXp(progress.xp || 0),
-        rankIndex: getRankInfoFromXp(progress.xp || 0).rankIndex,
+        rank: progress.rank || getRankFromXp(progress.xp || 0),
+        rankIndex: progress.highestRankIndex ?? getRankIndexFromLabel(progress.rank) ?? getRankInfoFromXp(progress.xp || 0).rankIndex,
         bestScore: progress.bestScore || 0,
         achievements: (progress.achievements || []).length,
         onlineWins: progress.onlineWins || 0,
