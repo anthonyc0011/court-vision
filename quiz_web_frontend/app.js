@@ -264,7 +264,16 @@ async function fetchJson(path, options = {}) {
     ...options,
   });
   if (!response.ok) {
-    throw new Error(`Request failed: ${response.status}`);
+    let errorMessage = `Request failed: ${response.status}`;
+    try {
+      const payload = await response.json();
+      if (payload?.detail) {
+        errorMessage = payload.detail;
+      }
+    } catch (_error) {
+      // Keep the default message when the response is not JSON.
+    }
+    throw new Error(errorMessage);
   }
   return response.json();
 }
@@ -309,10 +318,11 @@ function toggleTwoPlayerFields() {
 function toggleOnlineFields() {
   els.onlineFields.classList.toggle("hidden", !els.onlineMode.checked);
   const joining = els.onlineAction.value === "join";
-  els.onlineCode.disabled = !joining;
+  els.onlineCode.disabled = false;
+  els.onlineCode.placeholder = joining ? "Enter code to join" : "Set your own match code or leave blank";
   els.onlineStatus.textContent = joining
     ? "Enter a match code from another player to join their game."
-    : "Create a room and share the match code with a friend.";
+    : "Create a room with your own code or leave it blank for a random one.";
 }
 
 function syncModeFields() {
@@ -1007,6 +1017,7 @@ async function startOnlineMatch() {
         method: "POST",
         body: JSON.stringify({
           username,
+          room_code: roomCode || null,
           count: getRequestedQuestionCount(),
           conference: els.conferenceFilter.value,
           answer_mode: els.answerMode.value,
@@ -1030,7 +1041,7 @@ async function startOnlineMatch() {
   } catch (error) {
     resetOnlineState();
     switchScreen(screens.home);
-    showToast(action === "join" ? "Could not join that match code." : "Could not create an online match.");
+    showToast(error?.message || (action === "join" ? "Could not join that match code." : "Could not create an online match."));
     return;
   }
 

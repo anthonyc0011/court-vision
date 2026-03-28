@@ -84,6 +84,13 @@ def generate_room_code(length: int = 6) -> str:
             return code
 
 
+def sanitize_room_code(raw_code: str | None) -> str:
+    if not raw_code:
+        return ""
+    cleaned = re.sub(r"[^A-Z0-9]", "", str(raw_code).upper())
+    return cleaned[:12]
+
+
 def build_choices(df: pd.DataFrame, correct_college: str) -> list[str]:
     colleges = sorted({str(item).strip() for item in df["College / Last School"].dropna().tolist()})
     wrong = [college for college in colleges if normalize_answer(college) != normalize_answer(correct_college)]
@@ -225,6 +232,7 @@ class AnswerCheckRequest(BaseModel):
 
 class OnlineMatchCreateRequest(BaseModel):
     username: str
+    room_code: str | None = None
     count: int | None = 10
     conference: str = "All"
     answer_mode: str = "typed"
@@ -379,7 +387,15 @@ def health():
 
 @app.post("/api/online-match/create")
 def create_online_match(payload: OnlineMatchCreateRequest):
-    room_code = generate_room_code()
+    requested_code = sanitize_room_code(payload.room_code)
+    if requested_code:
+        if len(requested_code) < 4:
+            raise HTTPException(status_code=400, detail="Match code must be at least 4 characters.")
+        if requested_code in ONLINE_MATCHES:
+            raise HTTPException(status_code=409, detail="That match code is already in use.")
+        room_code = requested_code
+    else:
+        room_code = generate_room_code()
     username = payload.username.strip() or "Host"
     ONLINE_MATCHES[room_code] = {
         "room_code": room_code,
