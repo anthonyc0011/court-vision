@@ -65,7 +65,7 @@ const state = {
     username: "Guest",
     theme: "Arena Blue",
     xp: 0,
-    rank: "Rookie",
+    rank: "Freshman",
     achievements: [],
     gamesPlayed: 0,
     bestScore: 0,
@@ -181,7 +181,7 @@ function getHintLimitForSelection() {
 function getDefaultProgress() {
   return {
     xp: 0,
-    rank: "Rookie",
+    rank: "Freshman",
     achievements: [],
     gamesPlayed: 0,
     bestScore: 0,
@@ -190,11 +190,15 @@ function getDefaultProgress() {
 }
 
 function getRankFromXp(xp) {
-  if (xp >= 1200) return "Legend";
-  if (xp >= 700) return "All-American";
-  if (xp >= 350) return "All-Conference";
-  if (xp >= 150) return "Starter";
-  return "Rookie";
+  if (xp >= 1800) return "Blue Blood";
+  if (xp >= 1400) return "All-American";
+  if (xp >= 1050) return "Tournament Hero";
+  if (xp >= 775) return "Conference Star";
+  if (xp >= 550) return "Captain";
+  if (xp >= 375) return "Senior";
+  if (xp >= 225) return "Junior";
+  if (xp >= 100) return "Sophomore";
+  return "Freshman";
 }
 
 function loadLocalState() {
@@ -204,7 +208,7 @@ function loadLocalState() {
     username: savedSettings.username || "Guest",
     theme: savedSettings.theme || "Arena Blue",
     xp: savedProgress.xp || 0,
-    rank: savedProgress.rank || getRankFromXp(savedProgress.xp || 0),
+    rank: getRankFromXp(savedProgress.xp || 0),
     achievements: savedProgress.achievements || [],
     gamesPlayed: savedProgress.gamesPlayed || 0,
     bestScore: savedProgress.bestScore || 0,
