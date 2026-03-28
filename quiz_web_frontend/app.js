@@ -1592,7 +1592,7 @@ async function loadLeaderboard() {
     remoteProfiles.push(localProfileEntry);
   }
 
-  const profiles = remoteProfiles
+  const mergedProfiles = remoteProfiles
     .map((profile) => {
       const progress = getProfileProgress(profile);
       return {
@@ -1605,6 +1605,29 @@ async function loadLeaderboard() {
         onlineWins: progress.onlineWins || 0,
       };
     })
+    .filter((profile) => String(profile.username || "").trim());
+
+  const dedupedProfiles = [];
+  const byUsername = new Map();
+
+  for (const profile of mergedProfiles) {
+    const key = String(profile.username).trim().toLowerCase();
+    const existing = byUsername.get(key);
+    if (
+      !existing ||
+      profile.rankIndex > existing.rankIndex ||
+      (profile.rankIndex === existing.rankIndex && profile.xp > existing.xp) ||
+      (profile.rankIndex === existing.rankIndex && profile.xp === existing.xp && profile.bestScore > existing.bestScore)
+    ) {
+      byUsername.set(key, profile);
+    }
+  }
+
+  for (const profile of byUsername.values()) {
+    dedupedProfiles.push(profile);
+  }
+
+  const profiles = dedupedProfiles
     .sort((a, b) => b.rankIndex - a.rankIndex || b.xp - a.xp || b.bestScore - a.bestScore || a.username.localeCompare(b.username))
     .slice(0, 5);
 
