@@ -1682,14 +1682,22 @@ async function populateMeta() {
   }
 }
 
-document.getElementById("startQuiz").addEventListener("click", () => startQuiz());
-document.getElementById("saveProfile").addEventListener("click", saveProfile);
-document.getElementById("loadLeaderboard").addEventListener("click", loadLeaderboard);
+document.getElementById("startQuiz").addEventListener("click", () => {
+  startQuiz().catch((error) => showToast(error?.message || "Could not start game."));
+});
+document.getElementById("saveProfile").addEventListener("click", () => {
+  saveProfile().then(() => showToast("Profile saved.")).catch((error) => showToast(error?.message || "Could not save profile."));
+});
+document.getElementById("loadLeaderboard").addEventListener("click", () => {
+  loadLeaderboard().then(() => showToast("Rankings refreshed.")).catch((error) => showToast(error?.message || "Could not refresh rankings."));
+});
 document.getElementById("submitAnswer").addEventListener("click", () => submitAnswer());
 document.getElementById("showHint").addEventListener("click", showHint);
 document.getElementById("skipQuestion").addEventListener("click", skipQuestion);
 document.getElementById("quitToHome").addEventListener("click", returnHome);
-document.getElementById("playAgain").addEventListener("click", () => startQuiz());
+document.getElementById("playAgain").addEventListener("click", () => {
+  startQuiz().catch((error) => showToast(error?.message || "Could not start game."));
+});
 document.getElementById("playMissedOnly").addEventListener("click", playMissedOnly);
 document.getElementById("submitLeaderboard").addEventListener("click", submitLeaderboard);
 document.getElementById("returnHome").addEventListener("click", returnHome);
