@@ -427,7 +427,6 @@ function formatRankHistory() {
 }
 
 function renderSeasonStatus() {
-  const season = state.profile.seasonTag || getCurrentSeasonTag();
   const rankInfo = getRankInfoFromXp(state.profile.xp);
   const nextTarget = rankInfo.nextThreshold;
   const xpToNext = nextTarget == null ? 0 : Math.max(nextTarget - state.profile.xp, 0);
@@ -435,17 +434,35 @@ function renderSeasonStatus() {
   els.dailyOutput.innerHTML = `
     <div class="daily-header">
       <div>
-        <p class="eyebrow">Season Ladder</p>
-        <div class="daily-status">${escapeHtml(season)} is live.</div>
+        <p class="eyebrow">Ranked Progress</p>
+        <div class="daily-status">Your current ladder standing is tracked here.</div>
       </div>
       <div class="profile-rank-badge">${escapeHtml(rankInfo.label)}</div>
     </div>
     <div class="daily-note">
       ${nextTarget == null
-        ? "You are at the top prestige tier. Keep winning to defend your spot on the ladder."
+        ? "You are at the top prestige tier. Keep winning to defend your spot on the ranked board."
         : `${xpToNext} XP until the next prestige step. Clean runs, no-hint games, and online wins are your biggest boosts.`}
     </div>
   `;
+}
+
+function getProfileProgress(profile) {
+  const nestedProgress = profile.progress && typeof profile.progress === "object" ? profile.progress : {};
+  return {
+    ...getDefaultProgress(),
+    ...nestedProgress,
+    xp: nestedProgress.xp ?? profile.xp ?? 0,
+    rank: nestedProgress.rank ?? profile.rank ?? getRankFromXp(nestedProgress.xp ?? profile.xp ?? 0),
+    achievements: nestedProgress.achievements ?? profile.achievements ?? [],
+    gamesPlayed: nestedProgress.gamesPlayed ?? profile.gamesPlayed ?? 0,
+    bestScore: nestedProgress.bestScore ?? profile.bestScore ?? 0,
+    onlineWins: nestedProgress.onlineWins ?? profile.onlineWins ?? 0,
+    rankHistory: nestedProgress.rankHistory ?? profile.rankHistory ?? [],
+    highestRankIndex:
+      nestedProgress.highestRankIndex ?? profile.highestRankIndex ?? getRankInfoFromXp(nestedProgress.xp ?? profile.xp ?? 0).rankIndex,
+    seasonTag: nestedProgress.seasonTag ?? profile.seasonTag ?? getCurrentSeasonTag(),
+  };
 }
 
 function updateProfileSummary() {
@@ -1515,31 +1532,31 @@ async function saveProfile(silent = false) {
 
 async function loadLeaderboard() {
   const data = await fetchJson("/profiles");
-  const currentSeason = state.profile.seasonTag || getCurrentSeasonTag();
   const profiles = (data.profiles || [])
     .map((profile) => {
-      const progress = { ...getDefaultProgress(), ...(profile.progress || {}) };
+      const progress = getProfileProgress(profile);
       return {
         username: profile.username,
-        xp: progress.seasonTag === currentSeason ? progress.xp || 0 : 0,
-        rank: progress.seasonTag === currentSeason ? getRankFromXp(progress.xp || 0) : "Freshman III",
+        xp: progress.xp || 0,
+        rank: getRankFromXp(progress.xp || 0),
+        rankIndex: getRankInfoFromXp(progress.xp || 0).rankIndex,
         bestScore: progress.bestScore || 0,
         achievements: (progress.achievements || []).length,
+        onlineWins: progress.onlineWins || 0,
       };
     })
-    .filter((profile) => profile.xp > 0)
-    .sort((a, b) => b.xp - a.xp || b.bestScore - a.bestScore || a.username.localeCompare(b.username))
+    .sort((a, b) => b.rankIndex - a.rankIndex || b.xp - a.xp || b.bestScore - a.bestScore || a.username.localeCompare(b.username))
     .slice(0, 5);
 
   if (!profiles.length) {
     els.leaderboardOutput.innerHTML = `
       <div class="leaderboard-header">
         <div>
-          <p class="eyebrow">Season Ladder</p>
+          <p class="eyebrow">Ranked Leaderboard</p>
           <div class="daily-status">No ranked players saved yet.</div>
         </div>
       </div>
-      <div class="leaderboard-empty">Save your profile after a run to appear on the ${escapeHtml(currentSeason)} ladder.</div>
+      <div class="leaderboard-empty">Save your profile after a run to appear on the ranked board.</div>
     `;
     return;
   }
@@ -1551,9 +1568,9 @@ async function loadLeaderboard() {
           <span class="leaderboard-place">${index + 1}</span>
           <div>
             <span class="leaderboard-name">${escapeHtml(entry.username)}</span>
-            <div class="leaderboard-meta">${escapeHtml(entry.rank)} • Best score ${entry.bestScore} • ${entry.achievements} achievements</div>
+            <div class="leaderboard-meta">${escapeHtml(entry.rank)} • ${entry.xp} XP • Best score ${entry.bestScore} • ${entry.onlineWins} online wins</div>
           </div>
-          <div class="leaderboard-score">${entry.xp} XP</div>
+          <div class="leaderboard-score">${escapeHtml(entry.rank)}</div>
         </div>
       `
     )
@@ -1562,8 +1579,8 @@ async function loadLeaderboard() {
   els.leaderboardOutput.innerHTML = `
     <div class="leaderboard-header">
       <div>
-        <p class="eyebrow">Season Ladder</p>
-        <div class="daily-status">${escapeHtml(currentSeason)} top 5 by season XP.</div>
+        <p class="eyebrow">Ranked Leaderboard</p>
+        <div class="daily-status">Top 5 players by rank and XP.</div>
       </div>
     </div>
     <div class="leaderboard-list">${rows}</div>
