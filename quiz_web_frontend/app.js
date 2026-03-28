@@ -300,13 +300,13 @@ function loadLocalState() {
     username: savedSettings.username || "Guest",
     theme: savedSettings.theme || "Arena Blue",
     xp: progress.xp || 0,
-    rank: progress.rank || getRankFromXp(progress.xp || 0),
+    rank: getRankFromXp(progress.xp || 0),
     achievements: progress.achievements || [],
     gamesPlayed: progress.gamesPlayed || 0,
     bestScore: progress.bestScore || 0,
     onlineWins: progress.onlineWins || 0,
     rankHistory: progress.rankHistory || [],
-    highestRankIndex: progress.highestRankIndex ?? getRankIndexFromLabel(progress.rank) ?? getRankInfoFromXp(progress.xp || 0).rankIndex,
+    highestRankIndex: progress.highestRankIndex ?? getRankInfoFromXp(progress.xp || 0).rankIndex,
     seasonTag: progress.seasonTag || currentSeason,
   };
 
@@ -465,9 +465,9 @@ function renderSeasonStatus() {
 function getProfileProgress(profile) {
   const nestedProgress = profile.progress && typeof profile.progress === "object" ? profile.progress : {};
   const derivedXp = nestedProgress.xp ?? profile.xp ?? 0;
-  const derivedRank = nestedProgress.rank ?? profile.rank ?? getRankFromXp(derivedXp);
+  const derivedRank = getRankFromXp(derivedXp);
   const derivedRankIndex =
-    nestedProgress.highestRankIndex ?? profile.highestRankIndex ?? getRankIndexFromLabel(derivedRank) ?? getRankInfoFromXp(derivedXp).rankIndex;
+    nestedProgress.highestRankIndex ?? profile.highestRankIndex ?? getRankInfoFromXp(derivedXp).rankIndex;
 
   return {
     ...getDefaultProgress(),
@@ -1511,6 +1511,11 @@ async function saveProfile(silent = false) {
   const username = els.username.value.trim() || "Guest";
   state.profile.username = username;
   state.profile.seasonTag = state.profile.seasonTag || getCurrentSeasonTag();
+  state.profile.rank = getRankFromXp(state.profile.xp);
+  state.profile.highestRankIndex = Math.max(
+    state.profile.highestRankIndex || 0,
+    getRankInfoFromXp(state.profile.xp).rankIndex
+  );
   saveLocalSettings();
   saveLocalProgress();
   await fetchJson("/profiles", {
