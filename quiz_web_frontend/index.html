@@ -79,6 +79,22 @@
           </div>
 
           <label class="checkbox-row">
+            <input type="checkbox" id="onlineMode" />
+            <span>Online 1v1</span>
+          </label>
+
+          <div id="onlineFields" class="two-player-fields hidden">
+            <label for="onlineAction">Online Match</label>
+            <select id="onlineAction">
+              <option value="create">Create Match</option>
+              <option value="join">Join Match</option>
+            </select>
+            <label for="onlineCode">Match Code</label>
+            <input id="onlineCode" placeholder="Enter code to join" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" />
+            <div id="onlineStatus" class="online-status">Create a room or join one with a match code.</div>
+          </div>
+
+          <label class="checkbox-row">
             <input type="checkbox" id="dailyMode" />
             <span>Daily Challenge</span>
           </label>

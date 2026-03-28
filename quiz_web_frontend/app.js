@@ -46,6 +46,17 @@ const state = {
   currentPlayerIndex: 0,
   playerNames: ["Player 1", "Player 2"],
   playerScores: { "Player 1": 0, "Player 2": 0 },
+  online: {
+    enabled: false,
+    action: "create",
+    roomCode: "",
+    socket: null,
+    waiting: false,
+    currentQuestion: null,
+    opponentName: "",
+    scores: {},
+    playerName: "",
+  },
   profile: {
     username: "Guest",
     theme: "Arena Blue",
@@ -76,6 +87,11 @@ const els = {
   twoPlayerFields: document.getElementById("twoPlayerFields"),
   playerOneName: document.getElementById("playerOneName"),
   playerTwoName: document.getElementById("playerTwoName"),
+  onlineMode: document.getElementById("onlineMode"),
+  onlineFields: document.getElementById("onlineFields"),
+  onlineAction: document.getElementById("onlineAction"),
+  onlineCode: document.getElementById("onlineCode"),
+  onlineStatus: document.getElementById("onlineStatus"),
   dailyMode: document.getElementById("dailyMode"),
   profileSummary: document.getElementById("profileSummary"),
   dailyOutput: document.getElementById("dailyOutput"),
@@ -118,8 +134,11 @@ function getDefaultSettings() {
     answerMode: "typed",
     showHeadshots: true,
     twoPlayerMode: false,
+    onlineMode: false,
+    onlineAction: "create",
     playerOneName: "Player 1",
     playerTwoName: "Player 2",
+    onlineCode: "",
     dailyMode: false,
   };
 }
@@ -183,10 +202,13 @@ function loadLocalState() {
   els.answerMode.value = savedSettings.answerMode || "typed";
   els.showHeadshots.checked = savedSettings.showHeadshots !== false;
   els.twoPlayerMode.checked = Boolean(savedSettings.twoPlayerMode);
+  els.onlineMode.checked = Boolean(savedSettings.onlineMode);
+  els.onlineAction.value = savedSettings.onlineAction || "create";
+  els.onlineCode.value = savedSettings.onlineCode || "";
   els.playerOneName.value = savedSettings.playerOneName || "Player 1";
   els.playerTwoName.value = savedSettings.playerTwoName || "Player 2";
   els.dailyMode.checked = Boolean(savedSettings.dailyMode);
-  toggleTwoPlayerFields();
+  syncModeFields();
 }
 
 function saveLocalSettings() {
@@ -199,8 +221,11 @@ function saveLocalSettings() {
     answerMode: els.answerMode.value,
     showHeadshots: els.showHeadshots.checked,
     twoPlayerMode: els.twoPlayerMode.checked,
+    onlineMode: els.onlineMode.checked,
+    onlineAction: els.onlineAction.value,
     playerOneName: els.playerOneName.value.trim() || "Player 1",
     playerTwoName: els.playerTwoName.value.trim() || "Player 2",
+    onlineCode: els.onlineCode.value.trim().toUpperCase(),
     dailyMode: els.dailyMode.checked,
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
@@ -265,7 +290,10 @@ function updateProfileSummary() {
     `Best Score: ${state.profile.bestScore}\n` +
     `Daily Wins: ${state.profile.dailyWins}\n` +
     `Achievements: ${state.profile.achievements.length ? state.profile.achievements.join(", ") : "None yet"}`;
-  if (state.twoPlayer) {
+  if (state.online.enabled) {
+    els.rankText.textContent = `Room ${state.online.roomCode || "----"} | Online 1v1`;
+    els.achievementText.textContent = "Hints disabled in online mode";
+  } else if (state.twoPlayer) {
     els.rankText.textContent = "2-Player Local Match";
     els.achievementText.textContent = "Hints disabled in versus mode";
   } else {
@@ -278,7 +306,30 @@ function toggleTwoPlayerFields() {
   els.twoPlayerFields.classList.toggle("hidden", !els.twoPlayerMode.checked);
 }
 
+function toggleOnlineFields() {
+  els.onlineFields.classList.toggle("hidden", !els.onlineMode.checked);
+  const joining = els.onlineAction.value === "join";
+  els.onlineCode.disabled = !joining;
+  els.onlineStatus.textContent = joining
+    ? "Enter a match code from another player to join their game."
+    : "Create a room and share the match code with a friend.";
+}
+
+function syncModeFields() {
+  if (els.onlineMode.checked) {
+    els.twoPlayerMode.checked = false;
+  }
+  if (els.twoPlayerMode.checked) {
+    els.onlineMode.checked = false;
+  }
+  toggleTwoPlayerFields();
+  toggleOnlineFields();
+}
+
 function getActivePlayerName() {
+  if (state.online.enabled) {
+    return state.online.playerName || state.profile.username;
+  }
   return state.playerNames[state.currentPlayerIndex % 2];
 }
 
@@ -289,6 +340,18 @@ function advancePlayerTurn() {
 }
 
 function updateTwoPlayerHud() {
+  if (state.online.enabled) {
+    els.twoPlayerBanner.classList.remove("hidden");
+    const myScore = state.online.scores[state.online.playerName] ?? 0;
+    const opponentScore = state.online.scores[state.online.opponentName] ?? 0;
+    els.turnText.textContent = state.online.waiting
+      ? `Room ${state.online.roomCode} • Waiting for opponent`
+      : `${state.online.playerName} vs ${state.online.opponentName || "Opponent"}`;
+    els.matchupText.textContent = state.online.waiting
+      ? "Share the code and wait for both players to connect."
+      : `${myScore} - ${opponentScore} • Code ${state.online.roomCode}`;
+    return;
+  }
   if (!state.twoPlayer) {
     els.twoPlayerBanner.classList.add("hidden");
     return;
@@ -405,17 +468,20 @@ function renderChoices(question) {
 }
 
 function getCurrentQuestion() {
+  if (state.online.enabled) {
+    return state.online.currentQuestion;
+  }
   return state.questions[state.currentIndex];
 }
 
 function updateHintAvailability() {
   const multipleChoiceLocked = state.answerMode === "multiple-choice";
-  const noHintsMode = state.mode === "Hard" || state.twoPlayer;
+  const noHintsMode = state.mode === "Hard" || state.twoPlayer || state.online.enabled;
   const outOfHints = state.hintsUsed >= state.hintLimit;
   const disabled = state.submitted || noHintsMode || outOfHints;
 
   els.showHint.disabled = disabled;
-  els.showHint.classList.toggle("hidden", state.twoPlayer);
+  els.showHint.classList.toggle("hidden", state.twoPlayer || state.online.enabled);
   els.showHint.classList.toggle("hint-locked", multipleChoiceLocked || outOfHints);
   const remaining = Math.max(state.hintLimit - state.hintsUsed, 0);
   els.showHint.textContent = `Hint (${remaining})`;
@@ -429,6 +495,25 @@ function setFeedback(text, color = "var(--muted)") {
 function renderQuestion() {
   const question = getCurrentQuestion();
   if (!question) {
+    if (state.online.enabled && state.online.waiting) {
+      els.questionText.textContent = "Waiting for opponent to join your match...";
+      els.progressText.textContent = "Online match lobby";
+      els.streakText.textContent = "Online versus mode";
+      els.scoreChip.textContent = "Score 0";
+      els.typedAnswer.value = "";
+      els.multipleChoiceGrid.innerHTML = "";
+      els.multipleChoiceGrid.classList.add("hidden");
+      els.typedAnswer.classList.remove("hidden");
+      els.headshotImage.classList.add("hidden");
+      els.headshotFallback.classList.remove("hidden");
+      els.headshotFallback.textContent = "Waiting";
+      els.logoCard.classList.add("hidden");
+      setFeedback(`Room Code: ${state.online.roomCode}`, "var(--gold)");
+      renderProgress();
+      updateTwoPlayerHud();
+      updateHintAvailability();
+      return;
+    }
     finishQuiz();
     return;
   }
@@ -440,8 +525,17 @@ function renderQuestion() {
   els.typedAnswer.value = "";
   els.questionText.textContent = `Which college did ${question.player_name} attend?`;
   els.progressText.textContent = `Question ${state.currentIndex + 1} of ${state.questions.length}`;
-  els.streakText.textContent = state.twoPlayer ? "Local versus mode" : `Current Streak: ${state.streak}`;
-  els.scoreChip.textContent = state.twoPlayer ? `${state.playerScores[state.playerNames[0]]}-${state.playerScores[state.playerNames[1]]}` : `Score ${state.score}`;
+  els.streakText.textContent = state.online.enabled
+    ? "Online versus mode"
+    : state.twoPlayer
+      ? "Local versus mode"
+      : `Current Streak: ${state.streak}`;
+  if (state.online.enabled) {
+    const myScore = state.online.scores[state.online.playerName] ?? 0;
+    els.scoreChip.textContent = `Score ${myScore}`;
+  } else {
+    els.scoreChip.textContent = state.twoPlayer ? `${state.playerScores[state.playerNames[0]]}-${state.playerScores[state.playerNames[1]]}` : `Score ${state.score}`;
+  }
   renderMedia(question);
   renderChoices(question);
   renderProgress();
@@ -497,6 +591,14 @@ async function submitAnswer(valueFromChoice = null, clickedButton = null) {
     return;
   }
 
+  if (state.online.enabled) {
+    state.submitted = true;
+    updateHintAvailability();
+    setFeedback("Answer locked in. Waiting for opponent...", "var(--gold)");
+    state.online.socket?.send(JSON.stringify({ type: "submit_answer", answer: rawAnswer }));
+    return;
+  }
+
   state.currentQuestionAttempts += 1;
   const result = await checkAnswer(rawAnswer);
 
@@ -545,6 +647,13 @@ async function submitAnswer(valueFromChoice = null, clickedButton = null) {
 function skipQuestion() {
   if (state.submitted) return;
   const question = getCurrentQuestion();
+  if (state.online.enabled) {
+    state.submitted = true;
+    setFeedback("Skip locked in. Waiting for opponent...", "var(--muted)");
+    updateHintAvailability();
+    state.online.socket?.send(JSON.stringify({ type: "skip_question" }));
+    return;
+  }
   state.streak = 0;
   state.results[state.currentIndex] = "skipped";
   markMissed(question);
@@ -563,6 +672,10 @@ function showHint() {
   }
   if (state.twoPlayer) {
     showToast("No hints during 2-player mode.");
+    return;
+  }
+  if (state.online.enabled) {
+    showToast("No hints during online mode.");
     return;
   }
   if (state.mode === "Hard") {
@@ -631,10 +744,20 @@ function finishQuiz() {
   switchScreen(screens.end);
   const summary = buildSummary();
   let reward = { xpGain: 0, earned: [] };
-  if (!state.twoPlayer) {
+  if (!state.twoPlayer && !state.online.enabled) {
     reward = grantRewards(summary);
   }
-  if (state.twoPlayer) {
+  if (state.online.enabled) {
+    const players = Object.keys(state.online.scores);
+    const myScore = state.online.scores[state.online.playerName] ?? 0;
+    const opponentScore = state.online.scores[state.online.opponentName] ?? 0;
+    const winner =
+      myScore === opponentScore
+        ? `Tie game: ${myScore}-${opponentScore}`
+        : `Winner: ${myScore > opponentScore ? state.online.playerName : state.online.opponentName} (${Math.max(myScore, opponentScore)}-${Math.min(myScore, opponentScore)})`;
+    els.endSummary.textContent = `${winner} | Total questions ${summary.total}`;
+    els.rewardSummary.textContent = `${state.online.playerName}: ${myScore}\n${state.online.opponentName || "Opponent"}: ${opponentScore}\nOnline matches do not change XP or achievements yet.`;
+  } else if (state.twoPlayer) {
     const [p1, p2] = state.playerNames;
     const s1 = state.playerScores[p1];
     const s2 = state.playerScores[p2];
@@ -650,7 +773,7 @@ function finishQuiz() {
   }
   const missed = state.missedQuestions.map((question) => `${question.player_name} — ${question.college}`).join("\n");
   els.missedSummary.textContent = missed || "Perfect run. No missed questions.";
-  document.getElementById("submitLeaderboard").classList.toggle("hidden", state.twoPlayer);
+  document.getElementById("submitLeaderboard").classList.toggle("hidden", state.twoPlayer || state.online.enabled);
 }
 
 async function fetchQuizData(customQuestions = null) {
@@ -688,7 +811,12 @@ async function startQuiz(customQuestions = null) {
   state.profile.username = username;
   applyTheme(els.theme.value);
   saveLocalSettings();
+  if (els.onlineMode.checked) {
+    await startOnlineMatch();
+    return;
+  }
   state.daily = els.dailyMode.checked;
+  state.online.enabled = false;
   state.twoPlayer = els.twoPlayerMode.checked;
   state.mode = els.gameMode.value;
   state.answerMode = els.answerMode.value;
@@ -713,6 +841,205 @@ async function startQuiz(customQuestions = null) {
   updateProfileSummary();
   switchScreen(screens.quiz);
   await fetchQuizData(customQuestions);
+}
+
+function getWebSocketBase() {
+  const url = new URL(API_ORIGIN);
+  url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+  url.pathname = "";
+  return url.toString().replace(/\/$/, "");
+}
+
+function resetOnlineState() {
+  if (state.online.socket && state.online.socket.readyState < 2) {
+    state.online.socket.close();
+  }
+  state.online = {
+    enabled: false,
+    action: "create",
+    roomCode: "",
+    socket: null,
+    waiting: false,
+    currentQuestion: null,
+    opponentName: "",
+    scores: {},
+    playerName: "",
+  };
+  updateProfileSummary();
+}
+
+function prepareOnlineQuizState(totalQuestions, payload) {
+  state.online.enabled = true;
+  state.twoPlayer = false;
+  state.daily = false;
+  state.mode = "Online 1v1";
+  state.answerMode = payload.answer_mode || els.answerMode.value;
+  state.currentIndex = payload.current_index ?? 0;
+  state.questions = Array(totalQuestions).fill(null);
+  state.results = Array(totalQuestions).fill(null);
+  state.missedQuestions = [];
+  state.submitted = false;
+  state.hintLimit = 0;
+  state.hintsUsed = 0;
+  state.hintStage = 0;
+  state.online.currentQuestion = payload.question || null;
+  state.online.scores = payload.scores || {};
+  state.online.waiting = false;
+  state.online.opponentName = (payload.players || []).find((name) => name !== state.online.playerName) || state.online.opponentName;
+  els.modeChip.textContent = "Online 1v1";
+  els.endTitle.textContent = "Online Match Recap";
+}
+
+function renderOnlineWaiting() {
+  state.online.waiting = true;
+  state.questions = Array(getRequestedQuestionCount() ?? 10).fill(null);
+  state.results = Array(state.questions.length).fill(null);
+  els.modeChip.textContent = "Online 1v1";
+  els.endTitle.textContent = "Online Match Recap";
+  updateTwoPlayerHud();
+  renderQuestion();
+}
+
+function handleOnlineRoundComplete(payload) {
+  const myResult = payload.round_results?.[state.online.playerName];
+  if (myResult?.correct) {
+    state.results[state.currentIndex] = "correct";
+    setFeedback("Correct!", "var(--green)");
+  } else if (myResult?.skipped) {
+    state.results[state.currentIndex] = "skipped";
+    setFeedback(`Skipped. Correct answer: ${payload.correct_answer}`, "var(--muted)");
+    if (getCurrentQuestion()) {
+      markMissed(getCurrentQuestion());
+    }
+  } else {
+    state.results[state.currentIndex] = "wrong";
+    setFeedback(`Wrong. Correct answer: ${payload.correct_answer}`, "var(--red)");
+    if (getCurrentQuestion()) {
+      markMissed(getCurrentQuestion());
+    }
+  }
+
+  state.online.scores = payload.scores || state.online.scores;
+  renderProgress();
+  updateTwoPlayerHud();
+
+  window.setTimeout(() => {
+    if (payload.finished) {
+      state.online.currentQuestion = null;
+      state.currentIndex = state.questions.length;
+      finishQuiz();
+      return;
+    }
+    prepareOnlineQuizState(payload.total_questions, payload);
+    renderQuestion();
+  }, 1000);
+}
+
+function attachOnlineSocket(roomCode, username) {
+  const socketUrl = `${getWebSocketBase()}/ws/matches/${roomCode}?username=${encodeURIComponent(username)}`;
+  const socket = new WebSocket(socketUrl);
+  state.online.socket = socket;
+
+  socket.addEventListener("message", (event) => {
+    const payload = JSON.parse(event.data);
+    if (payload.type === "room_joined") {
+      state.online.roomCode = payload.room_code;
+      state.online.playerName = payload.player_name;
+      state.online.opponentName = payload.opponent_name || "";
+      state.online.scores = payload.scores || {};
+      renderOnlineWaiting();
+      if (payload.waiting) {
+        els.onlineStatus.textContent = `Match code ${payload.room_code} created. Share it with a friend.`;
+      }
+      return;
+    }
+
+    if (payload.type === "match_started") {
+      prepareOnlineQuizState(payload.total_questions, payload);
+      switchScreen(screens.quiz);
+      startTimer();
+      renderQuestion();
+      return;
+    }
+
+    if (payload.type === "waiting_for_opponent") {
+      setFeedback("Answer locked in. Waiting for opponent...", "var(--gold)");
+      return;
+    }
+
+    if (payload.type === "round_complete") {
+      handleOnlineRoundComplete(payload);
+      return;
+    }
+
+    if (payload.type === "opponent_left") {
+      showToast(payload.message || "Opponent left the match.");
+      state.online.currentQuestion = null;
+      finishQuiz();
+    }
+  });
+
+  socket.addEventListener("close", () => {
+    if (state.online.enabled && screens.quiz.classList.contains("active") && !screens.end.classList.contains("active")) {
+      showToast("Online match connection closed.");
+    }
+  });
+}
+
+async function startOnlineMatch() {
+  const username = els.username.value.trim() || "Guest";
+  const action = els.onlineAction.value;
+  const roomCode = els.onlineCode.value.trim().toUpperCase();
+  saveLocalSettings();
+  resetOnlineState();
+  state.online.enabled = true;
+  state.online.action = action;
+  state.online.playerName = username;
+  state.twoPlayer = false;
+  state.daily = false;
+  state.mode = "Online 1v1";
+  state.answerMode = els.answerMode.value;
+
+  let roomPayload;
+  try {
+    if (action === "create") {
+      roomPayload = await fetchJson("/online-match/create", {
+        method: "POST",
+        body: JSON.stringify({
+          username,
+          count: getRequestedQuestionCount(),
+          conference: els.conferenceFilter.value,
+          answer_mode: els.answerMode.value,
+          show_headshots: els.showHeadshots.checked,
+        }),
+      });
+    } else {
+      if (!roomCode) {
+        showToast("Enter a match code to join.");
+        resetOnlineState();
+        return;
+      }
+      roomPayload = await fetchJson("/online-match/join", {
+        method: "POST",
+        body: JSON.stringify({
+          room_code: roomCode,
+          username,
+        }),
+      });
+    }
+  } catch (error) {
+    resetOnlineState();
+    switchScreen(screens.home);
+    showToast(action === "join" ? "Could not join that match code." : "Could not create an online match.");
+    return;
+  }
+
+  state.online.roomCode = roomPayload.room_code;
+  state.online.playerName = roomPayload.player_name || username;
+  switchScreen(screens.quiz);
+  renderOnlineWaiting();
+  startTimer();
+  attachOnlineSocket(roomPayload.room_code, state.online.playerName);
 }
 
 async function saveProfile() {
@@ -773,6 +1100,7 @@ function playMissedOnly() {
 
 function returnHome() {
   stopTimer();
+  resetOnlineState();
   saveLocalSettings();
   updateProfileSummary();
   switchScreen(screens.home);
@@ -815,18 +1143,30 @@ els.typedAnswer.addEventListener("keydown", (event) => {
   element.addEventListener("change", saveLocalSettings);
 });
 els.twoPlayerMode.addEventListener("change", () => {
-  toggleTwoPlayerFields();
+  syncModeFields();
+  saveLocalSettings();
+});
+els.onlineMode.addEventListener("change", () => {
+  syncModeFields();
+  saveLocalSettings();
+});
+els.onlineAction.addEventListener("change", () => {
+  toggleOnlineFields();
   saveLocalSettings();
 });
 els.playerOneName.addEventListener("change", saveLocalSettings);
 els.playerTwoName.addEventListener("change", saveLocalSettings);
+els.onlineCode.addEventListener("input", (event) => {
+  event.target.value = event.target.value.toUpperCase();
+  saveLocalSettings();
+});
 els.username.addEventListener("change", saveLocalSettings);
 els.conferenceFilter.addEventListener("change", saveLocalSettings);
 
 loadLocalState();
 applyTheme(els.theme.value);
 updateProfileSummary();
-toggleTwoPlayerFields();
+syncModeFields();
 populateMeta().catch(() => {});
 loadLeaderboard().catch(() => {
   els.leaderboardOutput.textContent = "Start the backend to load the leaderboard.";
