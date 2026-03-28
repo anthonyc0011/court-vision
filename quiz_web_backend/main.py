@@ -215,6 +215,7 @@ class ProfilePayload(BaseModel):
     username: str
     theme: str = "Arena Blue"
     settings: dict | None = None
+    progress: dict | None = None
 
 
 class QuizRequest(BaseModel):
@@ -612,7 +613,11 @@ def profiles():
 
 @app.post("/api/profiles")
 def post_profile(profile: ProfilePayload):
-    payload = {"theme": profile.theme, "settings": profile.settings or {}}
+    payload = {
+        "theme": profile.theme,
+        "settings": profile.settings or {},
+        "progress": profile.progress or {},
+    }
     with get_conn() as conn:
         if USING_POSTGRES:
             conn.execute(

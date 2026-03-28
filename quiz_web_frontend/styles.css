@@ -364,6 +364,29 @@ button:hover {
   flex-wrap: wrap;
 }
 
+.history-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.history-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
+  border: 1px solid color-mix(in srgb, var(--outline) 74%, transparent);
+}
+
 .achievement-list {
   display: flex;
   flex-wrap: wrap;
@@ -474,7 +497,8 @@ button:hover {
 @media (max-width: 760px) {
   .profile-hero,
   .daily-header,
-  .leaderboard-header {
+  .leaderboard-header,
+  .history-row {
     flex-direction: column;
     align-items: flex-start;
   }

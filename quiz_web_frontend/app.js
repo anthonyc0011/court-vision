@@ -23,6 +23,19 @@ const API_BASE = getApiBase();
 const API_ORIGIN = API_BASE.replace(/\/api$/, "");
 const STORAGE_KEY = "courtvision-web-settings";
 const PROGRESS_KEY = "courtvision-web-progress";
+const BASE_RANKS = [
+  "Freshman",
+  "Sophomore",
+  "Junior",
+  "Senior",
+  "Captain",
+  "Conference Star",
+  "Tournament Hero",
+  "All-American",
+  "Blue Blood",
+];
+const RANK_SUBTIERS = ["III", "II", "I"];
+const BASE_RANK_THRESHOLDS = [0, 1800, 4200, 7200, 10800, 15000, 19800, 25200, 31200, 37800];
 
 const state = {
   questions: [],
@@ -65,11 +78,14 @@ const state = {
     username: "Guest",
     theme: "Arena Blue",
     xp: 0,
-    rank: "Freshman",
+    rank: "Freshman III",
     achievements: [],
     gamesPlayed: 0,
     bestScore: 0,
-    dailyWins: 0,
+    onlineWins: 0,
+    rankHistory: [],
+    highestRankIndex: 0,
+    seasonTag: "",
   },
 };
 
@@ -181,38 +197,102 @@ function getHintLimitForSelection() {
 function getDefaultProgress() {
   return {
     xp: 0,
-    rank: "Freshman",
+    rank: "Freshman III",
     achievements: [],
     gamesPlayed: 0,
     bestScore: 0,
-    dailyWins: 0,
+    onlineWins: 0,
+    rankHistory: [],
+    highestRankIndex: 0,
+    seasonTag: "",
+  };
+}
+
+function getCurrentSeasonTag() {
+  const now = new Date();
+  const month = now.getMonth();
+  const year = now.getFullYear();
+  if (month <= 2) return `Winter ${year}`;
+  if (month <= 5) return `Spring ${year}`;
+  if (month <= 8) return `Summer ${year}`;
+  return `Fall ${year}`;
+}
+
+function getRankInfoFromXp(xp) {
+  let baseIndex = 0;
+  for (let i = 0; i < BASE_RANKS.length; i += 1) {
+    if (xp >= BASE_RANK_THRESHOLDS[i]) {
+      baseIndex = i;
+    } else {
+      break;
+    }
+  }
+
+  const start = BASE_RANK_THRESHOLDS[baseIndex];
+  const nextBoundary = BASE_RANK_THRESHOLDS[baseIndex + 1] ?? Number.POSITIVE_INFINITY;
+  const span = Number.isFinite(nextBoundary) ? Math.max(nextBoundary - start, 3) : 3;
+  const stepSize = Math.max(Math.floor(span / 3), 1);
+  const progressInTier = Math.max(xp - start, 0);
+
+  let subtierIndex = 0;
+  if (progressInTier >= stepSize * 2) {
+    subtierIndex = 2;
+  } else if (progressInTier >= stepSize) {
+    subtierIndex = 1;
+  }
+
+  if (!Number.isFinite(nextBoundary) && xp >= start) {
+    subtierIndex = 2;
+  }
+
+  const rankIndex = baseIndex * 3 + subtierIndex;
+  const label = `${BASE_RANKS[baseIndex]} ${RANK_SUBTIERS[subtierIndex]}`;
+  const nextRankIndex = Math.min(rankIndex + 1, BASE_RANKS.length * 3 - 1);
+  const nextThreshold =
+    nextRankIndex === rankIndex
+      ? null
+      : start + stepSize * (subtierIndex + 1) >= nextBoundary
+        ? nextBoundary
+        : start + stepSize * (subtierIndex + 1);
+
+  return {
+    label,
+    base: BASE_RANKS[baseIndex],
+    subtier: RANK_SUBTIERS[subtierIndex],
+    rankIndex,
+    nextThreshold,
   };
 }
 
 function getRankFromXp(xp) {
-  if (xp >= 1800) return "Blue Blood";
-  if (xp >= 1400) return "All-American";
-  if (xp >= 1050) return "Tournament Hero";
-  if (xp >= 775) return "Conference Star";
-  if (xp >= 550) return "Captain";
-  if (xp >= 375) return "Senior";
-  if (xp >= 225) return "Junior";
-  if (xp >= 100) return "Sophomore";
-  return "Freshman";
+  return getRankInfoFromXp(xp).label;
 }
 
 function loadLocalState() {
   const savedSettings = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null") || getDefaultSettings();
   const savedProgress = JSON.parse(localStorage.getItem(PROGRESS_KEY) || "null") || getDefaultProgress();
+  const currentSeason = getCurrentSeasonTag();
+  const progress = { ...getDefaultProgress(), ...savedProgress };
+
+  if (progress.seasonTag && progress.seasonTag !== currentSeason) {
+    progress.xp = 0;
+    progress.rank = getRankFromXp(0);
+    progress.highestRankIndex = 0;
+    progress.seasonTag = currentSeason;
+  }
+
   state.profile = {
     username: savedSettings.username || "Guest",
     theme: savedSettings.theme || "Arena Blue",
-    xp: savedProgress.xp || 0,
-    rank: getRankFromXp(savedProgress.xp || 0),
-    achievements: savedProgress.achievements || [],
-    gamesPlayed: savedProgress.gamesPlayed || 0,
-    bestScore: savedProgress.bestScore || 0,
-    dailyWins: savedProgress.dailyWins || 0,
+    xp: progress.xp || 0,
+    rank: getRankFromXp(progress.xp || 0),
+    achievements: progress.achievements || [],
+    gamesPlayed: progress.gamesPlayed || 0,
+    bestScore: progress.bestScore || 0,
+    onlineWins: progress.onlineWins || 0,
+    rankHistory: progress.rankHistory || [],
+    highestRankIndex: progress.highestRankIndex ?? getRankInfoFromXp(progress.xp || 0).rankIndex,
+    seasonTag: progress.seasonTag || currentSeason,
   };
 
   els.username.value = savedSettings.username || "Guest";
@@ -227,7 +307,7 @@ function loadLocalState() {
   els.onlineCode.value = savedSettings.onlineCode || "";
   els.playerOneName.value = savedSettings.playerOneName || "Player 1";
   els.playerTwoName.value = savedSettings.playerTwoName || "Player 2";
-  els.dailyMode.checked = Boolean(savedSettings.dailyMode);
+  els.dailyMode.checked = false;
   syncModeFields();
 }
 
@@ -260,7 +340,10 @@ function saveLocalProgress() {
       achievements: state.profile.achievements,
       gamesPlayed: state.profile.gamesPlayed,
       bestScore: state.profile.bestScore,
-      dailyWins: state.profile.dailyWins,
+      onlineWins: state.profile.onlineWins,
+      rankHistory: state.profile.rankHistory,
+      highestRankIndex: state.profile.highestRankIndex,
+      seasonTag: state.profile.seasonTag || getCurrentSeasonTag(),
     })
   );
 }
@@ -319,7 +402,54 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+function formatDateShort(value = new Date()) {
+  const date = value instanceof Date ? value : new Date(value);
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
+function formatRankHistory() {
+  if (!state.profile.rankHistory.length) {
+    return '<div class="achievement-empty">No rank promotions yet. Win games and stack bonuses to climb the ladder.</div>';
+  }
+
+  return state.profile.rankHistory
+    .slice(-5)
+    .reverse()
+    .map(
+      (entry) => `
+        <div class="history-row">
+          <strong>${escapeHtml(entry.rank)}</strong>
+          <span class="leaderboard-meta">${escapeHtml(entry.date)} • ${escapeHtml(entry.season)}</span>
+        </div>
+      `
+    )
+    .join("");
+}
+
+function renderSeasonStatus() {
+  const season = state.profile.seasonTag || getCurrentSeasonTag();
+  const rankInfo = getRankInfoFromXp(state.profile.xp);
+  const nextTarget = rankInfo.nextThreshold;
+  const xpToNext = nextTarget == null ? 0 : Math.max(nextTarget - state.profile.xp, 0);
+
+  els.dailyOutput.innerHTML = `
+    <div class="daily-header">
+      <div>
+        <p class="eyebrow">Season Ladder</p>
+        <div class="daily-status">${escapeHtml(season)} is live.</div>
+      </div>
+      <div class="profile-rank-badge">${escapeHtml(rankInfo.label)}</div>
+    </div>
+    <div class="daily-note">
+      ${nextTarget == null
+        ? "You are at the top prestige tier. Keep winning to defend your spot on the ladder."
+        : `${xpToNext} XP until the next prestige step. Clean runs, no-hint games, and online wins are your biggest boosts.`}
+    </div>
+  `;
+}
+
 function updateProfileSummary() {
+  const rankInfo = getRankInfoFromXp(state.profile.xp);
   const achievements = state.profile.achievements.length
     ? state.profile.achievements
         .map((achievement) => `<span class="achievement-pill">${escapeHtml(achievement)}</span>`)
@@ -331,13 +461,13 @@ function updateProfileSummary() {
       <div>
         <p class="eyebrow">Saved Profile</p>
         <h3 class="profile-name">${escapeHtml(state.profile.username)}</h3>
-        <div class="profile-subtitle">Track your progress, replay daily runs, and climb into the next rank tier.</div>
+        <div class="profile-subtitle">Season ladder progress, prestige tiers, and recent rank promotions all live here.</div>
       </div>
-      <div class="profile-rank-badge">Rank: ${escapeHtml(state.profile.rank)}</div>
+      <div class="profile-rank-badge">${escapeHtml(rankInfo.label)}</div>
     </div>
     <div class="profile-stat-grid">
       <div class="profile-stat">
-        <span class="dashboard-label">XP</span>
+        <span class="dashboard-label">Season XP</span>
         <strong>${state.profile.xp}</strong>
       </div>
       <div class="profile-stat">
@@ -349,13 +479,21 @@ function updateProfileSummary() {
         <strong>${state.profile.bestScore}</strong>
       </div>
       <div class="profile-stat">
-        <span class="dashboard-label">Daily Wins</span>
-        <strong>${state.profile.dailyWins}</strong>
+        <span class="dashboard-label">Online Wins</span>
+        <strong>${state.profile.onlineWins}</strong>
       </div>
+    </div>
+    <div class="achievement-section">
+      <span class="dashboard-label">Current Season</span>
+      <div class="achievement-pill">${escapeHtml(state.profile.seasonTag || getCurrentSeasonTag())}</div>
     </div>
     <div class="achievement-section">
       <span class="dashboard-label">Achievements</span>
       <div class="achievement-list">${achievements}</div>
+    </div>
+    <div class="history-section">
+      <span class="dashboard-label">Recent Rank History</span>
+      <div class="history-list">${formatRankHistory()}</div>
     </div>
   `;
   if (state.online.enabled) {
@@ -365,9 +503,10 @@ function updateProfileSummary() {
     els.rankText.textContent = "2-Player Local Match";
     els.achievementText.textContent = "Hints disabled in versus mode";
   } else {
-    els.rankText.textContent = `XP ${state.profile.xp} | Rank ${state.profile.rank}`;
+    els.rankText.textContent = `${state.profile.rank} | ${state.profile.xp} XP`;
     els.achievementText.textContent = `Achievements: ${state.profile.achievements.length ? state.profile.achievements.slice(-2).join(" • ") : "none yet"}`;
   }
+  renderSeasonStatus();
 }
 
 function toggleTwoPlayerFields() {
@@ -467,7 +606,8 @@ function unlockAchievements(summary) {
     ["Perfect Game", summary.correct === summary.total && summary.total > 0],
     ["On Fire", summary.bestStreak >= 5],
     ["No Skips", summary.skipped === 0 && summary.total > 0],
-    ["Daily Winner", summary.daily && summary.accuracy >= 70],
+    ["No Hints", summary.hintsUsed === 0 && summary.correct > 0],
+    ["Road Warrior", summary.online && summary.wonOnline],
     ["Hardcore Hero", summary.mode === "Hard" && summary.accuracy >= 80],
   ];
   rules.forEach(([name, ok]) => {
@@ -479,22 +619,83 @@ function unlockAchievements(summary) {
   return earned;
 }
 
-function grantRewards(summary) {
-  let xpGain = summary.correct * 10 + summary.bestStreak * 5;
-  if (summary.daily) xpGain += 25;
-  if (summary.daily && summary.accuracy >= 70) {
-    xpGain += 25;
-    state.profile.dailyWins += 1;
+function recordRankPromotions(previousXp, newXp) {
+  const before = getRankInfoFromXp(previousXp).rankIndex;
+  const afterInfo = getRankInfoFromXp(newXp);
+  const after = afterInfo.rankIndex;
+  const season = state.profile.seasonTag || getCurrentSeasonTag();
+
+  if (after <= Math.max(before, state.profile.highestRankIndex || 0)) {
+    state.profile.highestRankIndex = Math.max(after, state.profile.highestRankIndex || 0);
+    return [];
   }
-  if (summary.correct === summary.total && summary.total > 0) xpGain += 50;
+
+  const promotions = [];
+  for (let index = Math.max(before, state.profile.highestRankIndex || 0) + 1; index <= after; index += 1) {
+    const baseIndex = Math.floor(index / 3);
+    const subtierIndex = index % 3;
+    promotions.push({
+      rank: `${BASE_RANKS[baseIndex]} ${RANK_SUBTIERS[subtierIndex]}`,
+      date: formatDateShort(),
+      season,
+    });
+  }
+
+  state.profile.rankHistory = [...state.profile.rankHistory, ...promotions].slice(-24);
+  state.profile.highestRankIndex = after;
+  return promotions;
+}
+
+function grantRewards(summary) {
+  const breakdown = [];
+  const lostOnlineMatch = summary.online && !summary.wonOnline && !summary.tiedOnline;
+
+  if (summary.correct === 0 || lostOnlineMatch) {
+    state.profile.gamesPlayed += 1;
+    state.profile.bestScore = Math.max(state.profile.bestScore, summary.correct);
+    saveLocalProgress();
+    updateProfileSummary();
+    return {
+      xpGain: 0,
+      earned: [],
+      promotions: [],
+      breakdown: [
+        {
+          label: summary.correct === 0 ? "No XP awarded" : "Loss protection",
+          value: 0,
+          note: summary.correct === 0 ? "Score at least 1 point to earn season XP." : "You earn 0 XP for a loss, but your rank never drops.",
+        },
+      ],
+    };
+  }
+
+  breakdown.push({ label: "Correct answers", value: summary.correct * 20 });
+  if (summary.correct === summary.total && summary.total > 0) breakdown.push({ label: "Perfect game bonus", value: 300 });
+  if (summary.skipped === 0 && summary.total > 0) breakdown.push({ label: "No skips bonus", value: 125 });
+  if (summary.hintsUsed === 0 && summary.correct > 0) breakdown.push({ label: "No hints bonus", value: 150 });
+  if (summary.bestStreak >= 8) {
+    breakdown.push({ label: "Win streak bonus", value: 220 });
+  } else if (summary.bestStreak >= 5) {
+    breakdown.push({ label: "Win streak bonus", value: 100 });
+  } else if (summary.bestStreak >= 3) {
+    breakdown.push({ label: "Win streak bonus", value: 40 });
+  }
+  if (summary.online && summary.wonOnline) {
+    breakdown.push({ label: "Online win bonus", value: 250 });
+    state.profile.onlineWins += 1;
+  }
+
+  const xpGain = breakdown.reduce((total, item) => total + item.value, 0);
+  const previousXp = state.profile.xp;
   state.profile.xp += xpGain;
   state.profile.rank = getRankFromXp(state.profile.xp);
   state.profile.gamesPlayed += 1;
   state.profile.bestScore = Math.max(state.profile.bestScore, summary.correct);
   const earned = unlockAchievements(summary);
+  const promotions = recordRankPromotions(previousXp, state.profile.xp);
   saveLocalProgress();
   updateProfileSummary();
-  return { xpGain, earned };
+  return { xpGain, earned, promotions, breakdown };
 }
 
 function renderProgress() {
@@ -854,8 +1055,11 @@ function buildSummary() {
     skipped,
     accuracy,
     bestStreak: state.bestStreak,
-    daily: state.daily,
     mode: state.mode,
+    hintsUsed: state.hintsUsed,
+    online: state.online.enabled,
+    wonOnline: false,
+    tiedOnline: false,
   };
 }
 
@@ -875,6 +1079,9 @@ function finishQuiz() {
   if (state.online.enabled) {
     const myScore = state.online.scores[state.online.playerName] ?? 0;
     const opponentScore = state.online.scores[state.online.opponentName] ?? 0;
+    summary.wonOnline = myScore > opponentScore;
+    summary.tiedOnline = myScore === opponentScore;
+    reward = grantRewards(summary);
     if (myScore > opponentScore) {
       els.endTitle.textContent = "You Win";
     } else if (myScore < opponentScore) {
@@ -883,7 +1090,17 @@ function finishQuiz() {
       els.endTitle.textContent = "Tie Game";
     }
     els.endSummary.textContent = `Final score: ${myScore} - ${opponentScore}`;
-    els.rewardSummary.textContent = `You: ${state.online.playerName} (${myScore})\nOpponent: ${state.online.opponentName || "Opponent"} (${opponentScore})\nMatch code: ${state.online.roomCode}`;
+    const onlineBreakdown = reward.breakdown?.length
+      ? reward.breakdown.map((item) => `${item.label}: +${item.value}`).join("\n")
+      : "No XP awarded this match.";
+    const onlinePromotions = reward.promotions?.length ? `\nRank Ups: ${reward.promotions.map((item) => item.rank).join(", ")}` : "";
+    els.rewardSummary.textContent =
+      `You: ${state.online.playerName} (${myScore})\n` +
+      `Opponent: ${state.online.opponentName || "Opponent"} (${opponentScore})\n` +
+      `Match code: ${state.online.roomCode}\n` +
+      `Season XP: +${reward.xpGain}\n` +
+      `Current Rank: ${state.profile.rank}${onlinePromotions}\n` +
+      `XP Breakdown:\n${onlineBreakdown}`;
     els.missedSummary.textContent = "Press Request Rematch to play again with the same opponent, or Return Home to leave the room.";
     els.requestRematch.textContent = state.online.rematchRequested ? "Rematch Requested" : "Request Rematch";
     els.requestRematch.disabled = state.online.rematchRequested;
@@ -899,16 +1116,25 @@ function finishQuiz() {
     els.rewardSummary.textContent = `${p1}: ${s1}\n${p2}: ${s2}\n2-player local mode does not change XP or achievements.`;
   } else {
     els.endSummary.textContent = `${summary.correct}/${summary.total} correct | Accuracy ${summary.accuracy}% | Wrong ${summary.wrong} | Skipped ${summary.skipped}`;
+    const breakdownLines = reward.breakdown?.length
+      ? reward.breakdown.map((item) => `${item.label}: +${item.value}${item.note ? ` (${item.note})` : ""}`).join("\n")
+      : "No bonus XP this run.";
+    const promotionLines = reward.promotions?.length
+      ? `Rank Ups: ${reward.promotions.map((item) => item.rank).join(", ")}\n`
+      : "";
     els.rewardSummary.textContent =
-      `XP Gained: ${reward.xpGain}\n` +
+      `Season XP Gained: ${reward.xpGain}\n` +
       `Current Rank: ${state.profile.rank}\n` +
+      `${promotionLines}` +
+      `XP Breakdown:\n${breakdownLines}\n` +
       `New Achievements: ${reward.earned.length ? reward.earned.join(", ") : "None this run"}`;
   }
   if (!state.online.enabled) {
     const missed = state.missedQuestions.map((question) => `${question.player_name} — ${question.college}`).join("\n");
     els.missedSummary.textContent = missed || "Perfect run. No missed questions.";
   }
-  document.getElementById("submitLeaderboard").classList.toggle("hidden", state.twoPlayer || state.online.enabled);
+  document.getElementById("submitLeaderboard").classList.add("hidden");
+  saveProfile(true).catch(() => {});
 }
 
 async function fetchQuizData(customQuestions = null) {
@@ -925,7 +1151,7 @@ async function fetchQuizData(customQuestions = null) {
     method: "POST",
     body: JSON.stringify({
       count: getRequestedQuestionCount(),
-      daily: els.dailyMode.checked,
+      daily: false,
       mode: els.gameMode.value,
       conference: els.conferenceFilter.value,
     }),
@@ -936,27 +1162,16 @@ async function fetchQuizData(customQuestions = null) {
   renderQuestion();
   startTimer();
   const username = els.username.value.trim() || "Guest";
-  els.dailyOutput.innerHTML = state.daily && data.date
-    ? `
-      <div class="daily-header">
-        <div>
-          <p class="eyebrow">Daily Challenge</p>
-          <div class="daily-status">Today's set is ready for ${escapeHtml(username)}.</div>
-        </div>
-        <div class="profile-rank-badge">${escapeHtml(data.date)}</div>
+  els.dailyOutput.innerHTML = `
+    <div class="daily-header">
+      <div>
+        <p class="eyebrow">Current Season</p>
+        <div class="daily-status">${escapeHtml(state.profile.seasonTag || getCurrentSeasonTag())} ladder is active.</div>
       </div>
-      <div class="daily-note">Loaded ${state.questions.length} daily questions. Finish the run to lock in your score and daily rewards.</div>
-    `
-    : `
-      <div class="daily-header">
-        <div>
-          <p class="eyebrow">Quick Play</p>
-          <div class="daily-status">Regular quiz loaded for ${escapeHtml(username)}.</div>
-        </div>
-        <div class="profile-rank-badge">${state.questions.length} Questions</div>
-      </div>
-      <div class="daily-note">Use Daily Challenge on the home screen any time you want the shared set for the day.</div>
-    `;
+      <div class="profile-rank-badge">${state.questions.length} Questions</div>
+    </div>
+    <div class="daily-note">${escapeHtml(username)} is playing a ranked run. Stack clean wins, protect your rank, and push toward the next prestige tier.</div>
+  `;
 }
 
 async function startQuiz(customQuestions = null) {
@@ -968,7 +1183,7 @@ async function startQuiz(customQuestions = null) {
     await startOnlineMatch();
     return;
   }
-  state.daily = els.dailyMode.checked;
+  state.daily = false;
   state.online.enabled = false;
   state.twoPlayer = els.twoPlayerMode.checked;
   state.mode = els.gameMode.value;
@@ -989,8 +1204,8 @@ async function startQuiz(customQuestions = null) {
   state.hintLimit = getHintLimitForSelection();
   state.hintsUsed = 0;
   state.hintStage = 0;
-  els.modeChip.textContent = state.twoPlayer ? "2-Player Local" : (state.daily ? `${state.mode} • Daily` : state.mode);
-  els.endTitle.textContent = state.daily ? "Daily Challenge Recap" : "Final Scoreboard";
+  els.modeChip.textContent = state.twoPlayer ? "2-Player Local" : state.mode;
+  els.endTitle.textContent = "Final Scoreboard";
   updateProfileSummary();
   switchScreen(screens.quiz);
   await fetchQuizData(customQuestions);
@@ -1256,9 +1471,10 @@ async function startOnlineMatch() {
   attachOnlineSocket(roomPayload.room_code, state.online.playerName);
 }
 
-async function saveProfile() {
+async function saveProfile(silent = false) {
   const username = els.username.value.trim() || "Guest";
   state.profile.username = username;
+  state.profile.seasonTag = state.profile.seasonTag || getCurrentSeasonTag();
   saveLocalSettings();
   saveLocalProgress();
   await fetchJson("/profiles", {
@@ -1275,39 +1491,69 @@ async function saveProfile() {
         twoPlayerMode: els.twoPlayerMode.checked,
         playerOneName: els.playerOneName.value.trim() || "Player 1",
         playerTwoName: els.playerTwoName.value.trim() || "Player 2",
-        dailyMode: els.dailyMode.checked,
+        dailyMode: false,
+      },
+      progress: {
+        xp: state.profile.xp,
+        rank: state.profile.rank,
+        achievements: state.profile.achievements,
+        gamesPlayed: state.profile.gamesPlayed,
+        bestScore: state.profile.bestScore,
+        onlineWins: state.profile.onlineWins,
+        rankHistory: state.profile.rankHistory,
+        highestRankIndex: state.profile.highestRankIndex,
+        seasonTag: state.profile.seasonTag || getCurrentSeasonTag(),
       },
     }),
   });
   updateProfileSummary();
-  alert(`Saved profile for ${username}`);
+  await loadLeaderboard().catch(() => {});
+  if (!silent) {
+    alert(`Saved profile for ${username}`);
+  }
 }
 
 async function loadLeaderboard() {
-  const data = await fetchJson("/leaderboard?limit=5");
-  if (!data.entries.length) {
+  const data = await fetchJson("/profiles");
+  const currentSeason = state.profile.seasonTag || getCurrentSeasonTag();
+  const profiles = (data.profiles || [])
+    .map((profile) => {
+      const progress = { ...getDefaultProgress(), ...(profile.progress || {}) };
+      return {
+        username: profile.username,
+        xp: progress.seasonTag === currentSeason ? progress.xp || 0 : 0,
+        rank: progress.seasonTag === currentSeason ? getRankFromXp(progress.xp || 0) : "Freshman III",
+        bestScore: progress.bestScore || 0,
+        achievements: (progress.achievements || []).length,
+      };
+    })
+    .filter((profile) => profile.xp > 0)
+    .sort((a, b) => b.xp - a.xp || b.bestScore - a.bestScore || a.username.localeCompare(b.username))
+    .slice(0, 5);
+
+  if (!profiles.length) {
     els.leaderboardOutput.innerHTML = `
       <div class="leaderboard-header">
         <div>
-          <p class="eyebrow">Top 5 Leaderboard</p>
-          <div class="daily-status">No leaderboard entries yet.</div>
+          <p class="eyebrow">Season Ladder</p>
+          <div class="daily-status">No ranked players saved yet.</div>
         </div>
       </div>
-      <div class="leaderboard-empty">Finish a run and submit your score to claim the first spot.</div>
+      <div class="leaderboard-empty">Save your profile after a run to appear on the ${escapeHtml(currentSeason)} ladder.</div>
     `;
     return;
   }
 
-  const rows = data.entries
+  const rows = profiles
     .map(
       (entry, index) => `
         <div class="leaderboard-row">
           <span class="leaderboard-place">${index + 1}</span>
           <div>
             <span class="leaderboard-name">${escapeHtml(entry.username)}</span>
-            <div class="leaderboard-meta">${escapeHtml(entry.mode)} • ${entry.accuracy}% accuracy • ${escapeHtml(entry.run_date)}${entry.daily ? " • Daily" : ""}</div>
+            <div class="leaderboard-meta">${escapeHtml(entry.rank)} • Best score ${entry.bestScore} • ${entry.achievements} achievements</div>
           </div>
-          <div class="leaderboard-score">Score ${entry.score}</div>
+          <div class="leaderboard-score">${entry.xp} XP</div>
         </div>
       `
     )
@@ -1316,8 +1562,8 @@ async function loadLeaderboard() {
   els.leaderboardOutput.innerHTML = `
     <div class="leaderboard-header">
       <div>
-        <p class="eyebrow">Top 5 Leaderboard</p>
-        <div class="daily-status">Best runs on the board right now.</div>
+        <p class="eyebrow">Season Ladder</p>
+        <div class="daily-status">${escapeHtml(currentSeason)} top 5 by season XP.</div>
       </div>
     </div>
     <div class="leaderboard-list">${rows}</div>
@@ -1325,19 +1571,9 @@ async function loadLeaderboard() {
 }
 
 async function submitLeaderboard() {
-  const summary = buildSummary();
-  await fetchJson("/leaderboard", {
-    method: "POST",
-    body: JSON.stringify({
-      username: els.username.value.trim() || "Guest",
-      score: summary.correct,
-      accuracy: summary.accuracy,
-      mode: `${state.mode} | ${state.answerMode}`,
-      daily: state.daily,
-    }),
-  });
+  await saveProfile(true);
   await loadLeaderboard();
-  alert("Leaderboard entry submitted.");
+  alert("Season ladder refreshed.");
 }
 
 function playMissedOnly() {
@@ -1426,5 +1662,5 @@ updateProfileSummary();
 syncModeFields();
 populateMeta().catch(() => {});
 loadLeaderboard().catch(() => {
-  els.leaderboardOutput.textContent = "Start the backend to load the leaderboard.";
+  els.leaderboardOutput.innerHTML = '<div class="leaderboard-empty">Start the backend to load the season ladder.</div>';
 });
