@@ -401,10 +401,12 @@ def create_online_match(payload: OnlineMatchCreateRequest):
         "room_code": room_code,
         "players": [username, None],
         "connections": {},
+        "question_count": payload.count,
         "questions": build_online_match_questions(payload.count, payload.conference),
         "scores": {username: 0},
         "current_index": 0,
         "round_submissions": {},
+        "rematch_requests": set(),
         "started": False,
         "answer_mode": payload.answer_mode,
         "show_headshots": payload.show_headshots,
@@ -428,6 +430,43 @@ def join_online_match(payload: OnlineMatchJoinRequest):
     room["players"][1] = username
     room["scores"].setdefault(username, 0)
     return {"room_code": room["room_code"], "player_name": username, "host": players[0]}
+
+
+async def handle_rematch_request(room: dict, username: str):
+    room["rematch_requests"].add(username)
+    players = [player for player in room["players"] if player]
+
+    await broadcast_room(
+        room,
+        {
+            "type": "rematch_status",
+            "requested_by": username,
+            "requests": list(room["rematch_requests"]),
+            "players": players,
+        },
+    )
+
+    if len(players) == 2 and all(player in room["rematch_requests"] for player in players):
+        room["scores"] = {player: 0 for player in players}
+        room["current_index"] = 0
+        room["round_submissions"] = {}
+        room["questions"] = build_online_match_questions(room.get("question_count"), room["conference"])
+        room["started"] = True
+        room["rematch_requests"] = set()
+
+        await broadcast_room(
+            room,
+            {
+                "type": "rematch_started",
+                "room_code": room["room_code"],
+                "players": players,
+                "scores": summarize_online_scores(room),
+                "current_index": 0,
+                "total_questions": len(room["questions"]),
+                "question": serialize_online_question(room),
+                "answer_mode": room["answer_mode"],
+            },
+        )
 
 
 @app.get("/api/players")
@@ -615,6 +654,8 @@ async def online_match_socket(websocket: WebSocket, room_code: str, username: st
                 await handle_online_submission(room, normalized_username, str(payload.get("answer", "")), skipped=False)
             elif event_type == "skip_question":
                 await handle_online_submission(room, normalized_username, "", skipped=True)
+            elif event_type == "request_rematch":
+                await handle_rematch_request(room, normalized_username)
     except WebSocketDisconnect:
         room["connections"].pop(normalized_username, None)
         remaining = [player for player in room["players"] if player and player in room["connections"]]

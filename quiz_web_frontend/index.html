@@ -131,8 +131,26 @@
           <span id="streakText">Current Streak: 0</span>
         </div>
         <div id="twoPlayerBanner" class="hud-sub hud-turn hidden">
-          <span id="turnText">Player 1's Turn</span>
-          <span id="matchupText">Player 1 0 - 0 Player 2</span>
+          <div id="standardMatchLayout" class="standard-match-layout">
+            <span id="turnText">Player 1's Turn</span>
+            <span id="matchupText">Player 1 0 - 0 Player 2</span>
+          </div>
+          <div id="onlineMatchLayout" class="online-match-layout hidden">
+            <div class="online-player-card">
+              <span class="online-label">You</span>
+              <strong id="onlineYouName">Player</strong>
+              <span id="onlineYouScore" class="online-score">0</span>
+            </div>
+            <div class="online-match-center">
+              <span id="onlineMatchState" class="online-match-state">Waiting for opponent</span>
+              <strong id="onlineMatchCode">Code ----</strong>
+            </div>
+            <div class="online-player-card">
+              <span class="online-label">Opponent</span>
+              <strong id="onlineOpponentName">Opponent</strong>
+              <span id="onlineOpponentScore" class="online-score">0</span>
+            </div>
+          </div>
         </div>
         <div class="hud-sub hud-meta">
           <span id="achievementText">Achievements: none yet</span>
@@ -189,10 +207,12 @@
         <div id="missedSummary" class="scroll-box compact-box"></div>
         <div class="hero-actions">
           <button id="playAgain">Play Again</button>
+          <button id="requestRematch" class="hidden">Request Rematch</button>
           <button id="playMissedOnly">Play Missed Only</button>
           <button id="submitLeaderboard">Submit Leaderboard</button>
           <button id="returnHome">Return Home</button>
         </div>
+        <div id="rematchStatus" class="online-status hidden"></div>
       </section>
     </section>
   </main>

@@ -56,6 +56,7 @@ const state = {
     opponentName: "",
     scores: {},
     playerName: "",
+    rematchRequested: false,
   },
   profile: {
     username: "Guest",
@@ -102,8 +103,16 @@ const els = {
   progressText: document.getElementById("progressText"),
   streakText: document.getElementById("streakText"),
   twoPlayerBanner: document.getElementById("twoPlayerBanner"),
+  standardMatchLayout: document.getElementById("standardMatchLayout"),
+  onlineMatchLayout: document.getElementById("onlineMatchLayout"),
   turnText: document.getElementById("turnText"),
   matchupText: document.getElementById("matchupText"),
+  onlineYouName: document.getElementById("onlineYouName"),
+  onlineYouScore: document.getElementById("onlineYouScore"),
+  onlineOpponentName: document.getElementById("onlineOpponentName"),
+  onlineOpponentScore: document.getElementById("onlineOpponentScore"),
+  onlineMatchState: document.getElementById("onlineMatchState"),
+  onlineMatchCode: document.getElementById("onlineMatchCode"),
   achievementText: document.getElementById("achievementText"),
   rankText: document.getElementById("rankText"),
   progressBar: document.getElementById("progressBar"),
@@ -122,6 +131,8 @@ const els = {
   endSummary: document.getElementById("endSummary"),
   rewardSummary: document.getElementById("rewardSummary"),
   missedSummary: document.getElementById("missedSummary"),
+  requestRematch: document.getElementById("requestRematch"),
+  rematchStatus: document.getElementById("rematchStatus"),
 };
 
 function getDefaultSettings() {
@@ -301,7 +312,7 @@ function updateProfileSummary() {
     `Achievements: ${state.profile.achievements.length ? state.profile.achievements.join(", ") : "None yet"}`;
   if (state.online.enabled) {
     els.rankText.textContent = `Room ${state.online.roomCode || "----"} | Online 1v1`;
-    els.achievementText.textContent = "Hints disabled in online mode";
+    els.achievementText.textContent = state.online.waiting ? "Waiting room" : "Hints disabled in online mode";
   } else if (state.twoPlayer) {
     els.rankText.textContent = "2-Player Local Match";
     els.achievementText.textContent = "Hints disabled in versus mode";
@@ -352,14 +363,17 @@ function advancePlayerTurn() {
 function updateTwoPlayerHud() {
   if (state.online.enabled) {
     els.twoPlayerBanner.classList.remove("hidden");
+    els.standardMatchLayout.classList.add("hidden");
+    els.onlineMatchLayout.classList.remove("hidden");
     const myScore = state.online.scores[state.online.playerName] ?? 0;
-    const opponentScore = state.online.scores[state.online.opponentName] ?? 0;
-    els.turnText.textContent = state.online.waiting
-      ? `Room ${state.online.roomCode} • Waiting for opponent`
-      : `${state.online.playerName} vs ${state.online.opponentName || "Opponent"}`;
-    els.matchupText.textContent = state.online.waiting
-      ? "Share the code and wait for both players to connect."
-      : `${myScore} - ${opponentScore} • Code ${state.online.roomCode}`;
+    const opponentName = state.online.opponentName || "Waiting...";
+    const opponentScore = state.online.scores[opponentName] ?? 0;
+    els.onlineYouName.textContent = state.online.playerName || "You";
+    els.onlineYouScore.textContent = String(myScore);
+    els.onlineOpponentName.textContent = opponentName;
+    els.onlineOpponentScore.textContent = state.online.waiting ? "-" : String(opponentScore);
+    els.onlineMatchState.textContent = state.online.waiting ? "Waiting for opponent to join" : "Live online match";
+    els.onlineMatchCode.textContent = `Code ${state.online.roomCode || "----"}`;
     return;
   }
   if (!state.twoPlayer) {
@@ -367,6 +381,8 @@ function updateTwoPlayerHud() {
     return;
   }
   els.twoPlayerBanner.classList.remove("hidden");
+  els.standardMatchLayout.classList.remove("hidden");
+  els.onlineMatchLayout.classList.add("hidden");
   els.turnText.textContent = `${getActivePlayerName()}'s Turn`;
   els.matchupText.textContent = `${state.playerNames[0]} ${state.playerScores[state.playerNames[0]]} - ${state.playerScores[state.playerNames[1]]} ${state.playerNames[1]}`;
 }
@@ -754,19 +770,31 @@ function finishQuiz() {
   switchScreen(screens.end);
   const summary = buildSummary();
   let reward = { xpGain: 0, earned: [] };
+  document.getElementById("playAgain").classList.remove("hidden");
+  document.getElementById("playMissedOnly").classList.remove("hidden");
+  els.rematchStatus.classList.add("hidden");
+  els.requestRematch.classList.add("hidden");
   if (!state.twoPlayer && !state.online.enabled) {
     reward = grantRewards(summary);
   }
   if (state.online.enabled) {
-    const players = Object.keys(state.online.scores);
     const myScore = state.online.scores[state.online.playerName] ?? 0;
     const opponentScore = state.online.scores[state.online.opponentName] ?? 0;
-    const winner =
-      myScore === opponentScore
-        ? `Tie game: ${myScore}-${opponentScore}`
-        : `Winner: ${myScore > opponentScore ? state.online.playerName : state.online.opponentName} (${Math.max(myScore, opponentScore)}-${Math.min(myScore, opponentScore)})`;
-    els.endSummary.textContent = `${winner} | Total questions ${summary.total}`;
-    els.rewardSummary.textContent = `${state.online.playerName}: ${myScore}\n${state.online.opponentName || "Opponent"}: ${opponentScore}\nOnline matches do not change XP or achievements yet.`;
+    if (myScore > opponentScore) {
+      els.endTitle.textContent = "You Win";
+    } else if (myScore < opponentScore) {
+      els.endTitle.textContent = "You Lose";
+    } else {
+      els.endTitle.textContent = "Tie Game";
+    }
+    els.endSummary.textContent = `Final score: ${myScore} - ${opponentScore}`;
+    els.rewardSummary.textContent = `You: ${state.online.playerName} (${myScore})\nOpponent: ${state.online.opponentName || "Opponent"} (${opponentScore})\nMatch code: ${state.online.roomCode}`;
+    els.missedSummary.textContent = "Press Request Rematch to play again with the same opponent, or Return Home to leave the room.";
+    els.requestRematch.textContent = state.online.rematchRequested ? "Rematch Requested" : "Request Rematch";
+    els.requestRematch.disabled = state.online.rematchRequested;
+    els.requestRematch.classList.remove("hidden");
+    document.getElementById("playAgain").classList.add("hidden");
+    document.getElementById("playMissedOnly").classList.add("hidden");
   } else if (state.twoPlayer) {
     const [p1, p2] = state.playerNames;
     const s1 = state.playerScores[p1];
@@ -781,8 +809,10 @@ function finishQuiz() {
       `Current Rank: ${state.profile.rank}\n` +
       `New Achievements: ${reward.earned.length ? reward.earned.join(", ") : "None this run"}`;
   }
-  const missed = state.missedQuestions.map((question) => `${question.player_name} — ${question.college}`).join("\n");
-  els.missedSummary.textContent = missed || "Perfect run. No missed questions.";
+  if (!state.online.enabled) {
+    const missed = state.missedQuestions.map((question) => `${question.player_name} — ${question.college}`).join("\n");
+    els.missedSummary.textContent = missed || "Perfect run. No missed questions.";
+  }
   document.getElementById("submitLeaderboard").classList.toggle("hidden", state.twoPlayer || state.online.enabled);
 }
 
@@ -874,6 +904,7 @@ function resetOnlineState() {
     opponentName: "",
     scores: {},
     playerName: "",
+    rematchRequested: false,
   };
   updateProfileSummary();
 }
@@ -895,9 +926,12 @@ function prepareOnlineQuizState(totalQuestions, payload) {
   state.online.currentQuestion = payload.question || null;
   state.online.scores = payload.scores || {};
   state.online.waiting = false;
+  state.online.rematchRequested = false;
   state.online.opponentName = (payload.players || []).find((name) => name !== state.online.playerName) || state.online.opponentName;
   els.modeChip.textContent = "Online 1v1";
   els.endTitle.textContent = "Online Match Recap";
+  els.requestRematch.classList.add("hidden");
+  els.rematchStatus.classList.add("hidden");
 }
 
 function renderOnlineWaiting() {
@@ -979,6 +1013,28 @@ function attachOnlineSocket(roomCode, username) {
 
     if (payload.type === "round_complete") {
       handleOnlineRoundComplete(payload);
+      return;
+    }
+
+    if (payload.type === "rematch_status") {
+      els.rematchStatus.classList.remove("hidden");
+      if (payload.requested_by === state.online.playerName) {
+        state.online.rematchRequested = true;
+        els.requestRematch.textContent = "Rematch Requested";
+        els.requestRematch.disabled = true;
+        els.rematchStatus.textContent = "Rematch requested. Waiting for your opponent to accept.";
+      } else {
+        els.rematchStatus.textContent = `${payload.requested_by} wants a rematch. Press Request Rematch to accept.`;
+      }
+      return;
+    }
+
+    if (payload.type === "rematch_started") {
+      prepareOnlineQuizState(payload.total_questions, payload);
+      switchScreen(screens.quiz);
+      startTimer();
+      renderQuestion();
+      showToast("Rematch started.");
       return;
     }
 
@@ -1143,6 +1199,15 @@ document.getElementById("playAgain").addEventListener("click", () => startQuiz()
 document.getElementById("playMissedOnly").addEventListener("click", playMissedOnly);
 document.getElementById("submitLeaderboard").addEventListener("click", submitLeaderboard);
 document.getElementById("returnHome").addEventListener("click", returnHome);
+document.getElementById("requestRematch").addEventListener("click", () => {
+  if (!state.online.enabled || state.online.rematchRequested) return;
+  state.online.rematchRequested = true;
+  els.requestRematch.textContent = "Rematch Requested";
+  els.requestRematch.disabled = true;
+  els.rematchStatus.classList.remove("hidden");
+  els.rematchStatus.textContent = "Rematch requested. Waiting for your opponent to accept.";
+  state.online.socket?.send(JSON.stringify({ type: "request_rematch" }));
+});
 els.theme.addEventListener("change", (event) => {
   applyTheme(event.target.value);
   saveLocalSettings();

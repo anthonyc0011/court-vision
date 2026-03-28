@@ -330,6 +330,15 @@ button:hover {
   border: 1px solid var(--outline);
 }
 
+.standard-match-layout {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
 .hud-turn #turnText {
   color: var(--gold);
   font-weight: 800;
@@ -338,6 +347,62 @@ button:hover {
 .hud-turn #matchupText {
   color: var(--text);
   font-weight: 700;
+}
+
+.online-match-layout {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, auto) minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+}
+
+.online-player-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface) 85%, black 15%);
+  border: 1px solid color-mix(in srgb, var(--outline) 80%, transparent);
+}
+
+.online-player-card strong {
+  color: var(--text);
+  font-size: 1.06rem;
+}
+
+.online-label {
+  color: var(--muted);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.online-score {
+  color: var(--gold);
+  font-size: 1.55rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.online-match-center {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.online-match-state {
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.online-match-center strong {
+  color: var(--text);
+  font-size: 1.05rem;
 }
 
 .chip-row {
@@ -621,5 +686,9 @@ button:hover {
 
   .logo-card {
     margin-top: 0;
+  }
+
+  .online-match-layout {
+    grid-template-columns: 1fr;
   }
 }
