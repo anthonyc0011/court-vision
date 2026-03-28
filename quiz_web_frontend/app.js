@@ -35,7 +35,7 @@ const BASE_RANKS = [
   "Blue Blood",
 ];
 const RANK_SUBTIERS = ["III", "II", "I"];
-const BASE_RANK_THRESHOLDS = [0, 1800, 4200, 7200, 10800, 15000, 19800, 25200, 31200, 37800];
+const BASE_RANK_THRESHOLDS = [0, 5000, 11000, 19000, 29000, 41000, 55500, 72500, 92500, 116000];
 
 const state = {
   questions: [],
