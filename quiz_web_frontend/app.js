@@ -306,15 +306,54 @@ function applyTheme(themeName) {
   updateProfileSummary();
 }
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function updateProfileSummary() {
-  els.profileSummary.textContent =
-    `Username: ${state.profile.username}\n` +
-    `XP: ${state.profile.xp}\n` +
-    `Rank: ${state.profile.rank}\n` +
-    `Games Played: ${state.profile.gamesPlayed}\n` +
-    `Best Score: ${state.profile.bestScore}\n` +
-    `Daily Wins: ${state.profile.dailyWins}\n` +
-    `Achievements: ${state.profile.achievements.length ? state.profile.achievements.join(", ") : "None yet"}`;
+  const achievements = state.profile.achievements.length
+    ? state.profile.achievements
+        .map((achievement) => `<span class="achievement-pill">${escapeHtml(achievement)}</span>`)
+        .join("")
+    : '<span class="achievement-empty">No achievements unlocked yet.</span>';
+
+  els.profileSummary.innerHTML = `
+    <div class="profile-hero">
+      <div>
+        <p class="eyebrow">Saved Profile</p>
+        <h3 class="profile-name">${escapeHtml(state.profile.username)}</h3>
+        <div class="profile-subtitle">Track your progress, replay daily runs, and climb into the next rank tier.</div>
+      </div>
+      <div class="profile-rank-badge">Rank: ${escapeHtml(state.profile.rank)}</div>
+    </div>
+    <div class="profile-stat-grid">
+      <div class="profile-stat">
+        <span class="dashboard-label">XP</span>
+        <strong>${state.profile.xp}</strong>
+      </div>
+      <div class="profile-stat">
+        <span class="dashboard-label">Games Played</span>
+        <strong>${state.profile.gamesPlayed}</strong>
+      </div>
+      <div class="profile-stat">
+        <span class="dashboard-label">Best Score</span>
+        <strong>${state.profile.bestScore}</strong>
+      </div>
+      <div class="profile-stat">
+        <span class="dashboard-label">Daily Wins</span>
+        <strong>${state.profile.dailyWins}</strong>
+      </div>
+    </div>
+    <div class="achievement-section">
+      <span class="dashboard-label">Achievements</span>
+      <div class="achievement-list">${achievements}</div>
+    </div>
+  `;
   if (state.online.enabled) {
     els.rankText.textContent = `Room ${state.online.roomCode || "----"} | Online 1v1`;
     els.achievementText.textContent = state.online.waiting ? "Waiting room" : "Hints disabled in online mode";
@@ -893,9 +932,27 @@ async function fetchQuizData(customQuestions = null) {
   renderQuestion();
   startTimer();
   const username = els.username.value.trim() || "Guest";
-  els.dailyOutput.textContent = state.daily && data.date
-    ? `Date: ${data.date}\nLoaded ${state.questions.length} daily questions for ${username}.`
-    : `Loaded ${state.questions.length} questions for ${username}.`;
+  els.dailyOutput.innerHTML = state.daily && data.date
+    ? `
+      <div class="daily-header">
+        <div>
+          <p class="eyebrow">Daily Challenge</p>
+          <div class="daily-status">Today's set is ready for ${escapeHtml(username)}.</div>
+        </div>
+        <div class="profile-rank-badge">${escapeHtml(data.date)}</div>
+      </div>
+      <div class="daily-note">Loaded ${state.questions.length} daily questions. Finish the run to lock in your score and daily rewards.</div>
+    `
+    : `
+      <div class="daily-header">
+        <div>
+          <p class="eyebrow">Quick Play</p>
+          <div class="daily-status">Regular quiz loaded for ${escapeHtml(username)}.</div>
+        </div>
+        <div class="profile-rank-badge">${state.questions.length} Questions</div>
+      </div>
+      <div class="daily-note">Use Daily Challenge on the home screen any time you want the shared set for the day.</div>
+    `;
 }
 
 async function startQuiz(customQuestions = null) {
@@ -1224,10 +1281,43 @@ async function saveProfile() {
 
 async function loadLeaderboard() {
   const data = await fetchJson("/leaderboard?limit=5");
-  const lines = data.entries.map((entry, index) =>
-    `${index + 1}. ${entry.username} | Score ${entry.score} | Accuracy ${entry.accuracy}% | ${entry.mode} | ${entry.run_date}${entry.daily ? " | Daily" : ""}`
-  );
-  els.leaderboardOutput.textContent = lines.length ? lines.join("\n") : "No leaderboard entries yet.";
+  if (!data.entries.length) {
+    els.leaderboardOutput.innerHTML = `
+      <div class="leaderboard-header">
+        <div>
+          <p class="eyebrow">Top 5 Leaderboard</p>
+          <div class="daily-status">No leaderboard entries yet.</div>
+        </div>
+      </div>
+      <div class="leaderboard-empty">Finish a run and submit your score to claim the first spot.</div>
+    `;
+    return;
+  }
+
+  const rows = data.entries
+    .map(
+      (entry, index) => `
+        <div class="leaderboard-row">
+          <span class="leaderboard-place">${index + 1}</span>
+          <div>
+            <span class="leaderboard-name">${escapeHtml(entry.username)}</span>
+            <div class="leaderboard-meta">${escapeHtml(entry.mode)} • ${entry.accuracy}% accuracy • ${escapeHtml(entry.run_date)}${entry.daily ? " • Daily" : ""}</div>
+          </div>
+          <div class="leaderboard-score">Score ${entry.score}</div>
+        </div>
+      `
+    )
+    .join("");
+
+  els.leaderboardOutput.innerHTML = `
+    <div class="leaderboard-header">
+      <div>
+        <p class="eyebrow">Top 5 Leaderboard</p>
+        <div class="daily-status">Best runs on the board right now.</div>
+      </div>
+    </div>
+    <div class="leaderboard-list">${rows}</div>
+  `;
 }
 
 async function submitLeaderboard() {
