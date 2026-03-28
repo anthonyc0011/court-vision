@@ -1556,7 +1556,43 @@ async function saveProfile(silent = false) {
 
 async function loadLeaderboard() {
   const data = await fetchJson("/profiles");
-  const profiles = (data.profiles || [])
+  const activeUsername = (els.username.value.trim() || state.profile.username || "Guest").trim().toLowerCase();
+  const remoteProfiles = [...(data.profiles || [])];
+  const localProfileEntry = {
+    username: state.profile.username || els.username.value.trim() || "Guest",
+    progress: {
+      xp: state.profile.xp,
+      rank: getRankFromXp(state.profile.xp),
+      achievements: state.profile.achievements,
+      gamesPlayed: state.profile.gamesPlayed,
+      bestScore: state.profile.bestScore,
+      onlineWins: state.profile.onlineWins,
+      rankHistory: state.profile.rankHistory,
+      highestRankIndex: Math.max(
+        state.profile.highestRankIndex || 0,
+        getRankInfoFromXp(state.profile.xp).rankIndex
+      ),
+      seasonTag: state.profile.seasonTag || getCurrentSeasonTag(),
+    },
+  };
+
+  const existingIndex = remoteProfiles.findIndex(
+    (profile) => String(profile.username || "").trim().toLowerCase() === activeUsername
+  );
+  if (existingIndex >= 0) {
+    remoteProfiles[existingIndex] = {
+      ...remoteProfiles[existingIndex],
+      ...localProfileEntry,
+      progress: {
+        ...(remoteProfiles[existingIndex].progress || {}),
+        ...localProfileEntry.progress,
+      },
+    };
+  } else if (activeUsername) {
+    remoteProfiles.push(localProfileEntry);
+  }
+
+  const profiles = remoteProfiles
     .map((profile) => {
       const progress = getProfileProgress(profile);
       return {
