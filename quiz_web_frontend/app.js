@@ -33,6 +33,8 @@ const state = {
   results: [],
   startedAt: null,
   timerId: null,
+  questionTimerId: null,
+  questionTimeLeft: 0,
   submitted: false,
   daily: false,
   twoPlayer: false,
@@ -100,6 +102,7 @@ const els = {
   modeChip: document.getElementById("modeChip"),
   scoreChip: document.getElementById("scoreChip"),
   timerLabel: document.getElementById("timerLabel"),
+  turnTimerText: document.getElementById("turnTimerText"),
   progressText: document.getElementById("progressText"),
   streakText: document.getElementById("streakText"),
   twoPlayerBanner: document.getElementById("twoPlayerBanner"),
@@ -127,6 +130,7 @@ const els = {
   multipleChoiceGrid: document.getElementById("multipleChoiceGrid"),
   showHint: document.getElementById("showHint"),
   toastPopup: document.getElementById("toastPopup"),
+  roundOverlay: document.getElementById("roundOverlay"),
   endTitle: document.getElementById("endTitle"),
   endSummary: document.getElementById("endSummary"),
   rewardSummary: document.getElementById("rewardSummary"),
@@ -374,10 +378,12 @@ function updateTwoPlayerHud() {
     els.onlineOpponentScore.textContent = state.online.waiting ? "-" : String(opponentScore);
     els.onlineMatchState.textContent = state.online.waiting ? "Waiting for opponent to join" : "Live online match";
     els.onlineMatchCode.textContent = `Code ${state.online.roomCode || "----"}`;
+    els.turnTimerText.classList.add("hidden");
     return;
   }
   if (!state.twoPlayer) {
     els.twoPlayerBanner.classList.add("hidden");
+    els.turnTimerText.classList.add("hidden");
     return;
   }
   els.twoPlayerBanner.classList.remove("hidden");
@@ -385,6 +391,8 @@ function updateTwoPlayerHud() {
   els.onlineMatchLayout.classList.add("hidden");
   els.turnText.textContent = `${getActivePlayerName()}'s Turn`;
   els.matchupText.textContent = `${state.playerNames[0]} ${state.playerScores[state.playerNames[0]]} - ${state.playerScores[state.playerNames[1]]} ${state.playerNames[1]}`;
+  els.turnTimerText.classList.remove("hidden");
+  els.turnTimerText.textContent = `${state.questionTimeLeft || 15}s to answer`;
 }
 
 function showToast(message) {
@@ -395,6 +403,16 @@ function showToast(message) {
   state.toastTimerId = window.setTimeout(() => {
     els.toastPopup.classList.remove("visible");
   }, 1800);
+}
+
+function showRoundOverlay(message, duration = 900) {
+  if (!els.roundOverlay) return;
+  window.clearTimeout(state.roundOverlayTimerId);
+  els.roundOverlay.textContent = message;
+  els.roundOverlay.classList.add("visible");
+  state.roundOverlayTimerId = window.setTimeout(() => {
+    els.roundOverlay.classList.remove("visible");
+  }, duration);
 }
 
 function unlockAchievements(summary) {
@@ -567,6 +585,7 @@ function renderQuestion() {
   renderProgress();
   updateTwoPlayerHud();
   updateHintAvailability();
+  restartQuestionTimerIfNeeded();
 }
 
 function updateTimer() {
@@ -587,6 +606,31 @@ function startTimer() {
 function stopTimer() {
   clearInterval(state.timerId);
   state.timerId = null;
+}
+
+function stopQuestionTimer() {
+  clearInterval(state.questionTimerId);
+  state.questionTimerId = null;
+  state.questionTimeLeft = 0;
+  els.turnTimerText.classList.add("hidden");
+}
+
+function restartQuestionTimerIfNeeded() {
+  stopQuestionTimer();
+  if (!state.twoPlayer || state.online.enabled) {
+    return;
+  }
+  state.questionTimeLeft = 15;
+  updateTwoPlayerHud();
+  state.questionTimerId = setInterval(() => {
+    state.questionTimeLeft -= 1;
+    updateTwoPlayerHud();
+    if (state.questionTimeLeft <= 0) {
+      stopQuestionTimer();
+      showToast("Time ran out. Turn skipped.");
+      skipQuestion(true);
+    }
+  }, 1000);
 }
 
 function markMissed(question) {
@@ -616,6 +660,8 @@ async function submitAnswer(valueFromChoice = null, clickedButton = null) {
     setFeedback("Type an answer or use Skip.");
     return;
   }
+
+  stopQuestionTimer();
 
   if (state.online.enabled) {
     state.submitted = true;
@@ -670,9 +716,10 @@ async function submitAnswer(valueFromChoice = null, clickedButton = null) {
   window.setTimeout(nextQuestion, state.mode === "Learning" && result.correct ? 500 : 700);
 }
 
-function skipQuestion() {
+function skipQuestion(autoSkipped = false) {
   if (state.submitted) return;
   const question = getCurrentQuestion();
+  stopQuestionTimer();
   if (state.online.enabled) {
     state.submitted = true;
     setFeedback("Skip locked in. Waiting for opponent...", "var(--muted)");
@@ -683,7 +730,7 @@ function skipQuestion() {
   state.streak = 0;
   state.results[state.currentIndex] = "skipped";
   markMissed(question);
-  setFeedback(`Skipped. Correct answer: ${question.college}`, "var(--muted)");
+  setFeedback(`${autoSkipped ? "Time ran out." : "Skipped."} Correct answer: ${question.college}`, "var(--muted)");
   updateHintAvailability();
   renderProgress();
   advancePlayerTurn();
@@ -743,6 +790,7 @@ function showHint() {
 }
 
 function nextQuestion() {
+  stopQuestionTimer();
   state.currentIndex += 1;
   renderQuestion();
 }
@@ -767,6 +815,7 @@ function buildSummary() {
 
 function finishQuiz() {
   stopTimer();
+  stopQuestionTimer();
   switchScreen(screens.end);
   const summary = buildSummary();
   let reward = { xpGain: 0, earned: [] };
@@ -966,6 +1015,12 @@ function handleOnlineRoundComplete(payload) {
   state.online.scores = payload.scores || state.online.scores;
   renderProgress();
   updateTwoPlayerHud();
+  if (!payload.finished) {
+    showRoundOverlay(
+      myResult?.correct ? "Correct • Next Round" : myResult?.skipped ? "Skipped • Next Round" : "Wrong • Next Round",
+      850
+    );
+  }
 
   window.setTimeout(() => {
     if (payload.finished) {
@@ -1002,6 +1057,7 @@ function attachOnlineSocket(roomCode, username) {
       prepareOnlineQuizState(payload.total_questions, payload);
       switchScreen(screens.quiz);
       startTimer();
+      showRoundOverlay("Match Start");
       renderQuestion();
       return;
     }
@@ -1033,6 +1089,7 @@ function attachOnlineSocket(roomCode, username) {
       prepareOnlineQuizState(payload.total_questions, payload);
       switchScreen(screens.quiz);
       startTimer();
+      showRoundOverlay("Rematch Start");
       renderQuestion();
       showToast("Rematch started.");
       return;
@@ -1167,6 +1224,7 @@ function playMissedOnly() {
 
 function returnHome() {
   stopTimer();
+  stopQuestionTimer();
   resetOnlineState();
   saveLocalSettings();
   updateProfileSummary();
