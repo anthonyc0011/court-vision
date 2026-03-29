@@ -992,7 +992,7 @@ def show_settings_window():
                 "Theme": ["Arena Blue", "Classic Gold", "Emerald Court", "Midnight Heat"],
                 "Text Size": ["Small", "Normal", "Large"],
                 "Window Size": ["1050x760", "1200x820", "1360x900"],
-                "Default Length": ["10", "25", "50", "All"],
+                "Default Length": ["10", "25", "50", "100", "All"],
                 "Default Mode": ["Practice", "Timed", "Hard", "Learning"],
                 "Default Style": ["Typed", "Multiple Choice"],
             }[label_text]
@@ -2558,7 +2558,7 @@ for text, value in [("Typed", "Typed"), ("Multiple Choice", "Multiple Choice")]:
 length_label = tk.Label(left_panel, text="Quiz Length", font=label_font, bg=PANEL_COLOR, fg=TEXT_PRIMARY)
 length_label.pack(anchor="w", padx=18, pady=(18, 8))
 
-length_dropdown = tk.OptionMenu(left_panel, quiz_length_var, "10", "25", "50", "All")
+length_dropdown = tk.OptionMenu(left_panel, quiz_length_var, "10", "25", "50", "100", "All")
 style_option_menu(length_dropdown)
 length_dropdown.pack(anchor="w", padx=18, pady=(0, 12))
 
