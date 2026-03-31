@@ -62,6 +62,22 @@ ONLINE_MATCHES: dict[str, dict] = {}
 QUESTION_STORE: dict[str, dict] = {}
 QUESTION_TTL_SECONDS = 60 * 60 * 6
 HIDDEN_LEADERBOARD_USERNAMES = {"ant", "test", "guest"}
+RANKED_QUEUE: list[dict] = []
+RANKED_PENDING_MATCHES: dict[str, str] = {}
+RANKED_MATCHES: dict[str, dict] = {}
+RANKED_DIVISIONS = [
+    ("Blacktop", 0),
+    ("Gym", 200),
+    ("Varsity", 500),
+    ("Conference", 900),
+    ("Bracket", 1400),
+    ("Final Four", 2000),
+    ("Champion", 2800),
+    ("Dynasty", 3800),
+]
+RANKED_QUESTION_COUNT = 25
+RANKED_WIN_ELO = 30
+RANKED_LOSS_ELO = 10
 
 
 def normalize_name(text: str) -> str:
@@ -372,6 +388,20 @@ def init_db():
                 )
                 """
             )
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS ranked_players (
+                    player_id TEXT PRIMARY KEY,
+                    username TEXT NOT NULL,
+                    elo INTEGER NOT NULL DEFAULT 0,
+                    wins INTEGER NOT NULL DEFAULT 0,
+                    losses INTEGER NOT NULL DEFAULT 0,
+                    win_streak INTEGER NOT NULL DEFAULT 0,
+                    best_win_streak INTEGER NOT NULL DEFAULT 0,
+                    updated_at BIGINT NOT NULL
+                )
+                """
+            )
         else:
             conn.execute(
                 """
@@ -415,6 +445,20 @@ def init_db():
                     display_name TEXT,
                     picture TEXT,
                     payload TEXT NOT NULL DEFAULT '{}'
+                )
+                """
+            )
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS ranked_players (
+                    player_id TEXT PRIMARY KEY,
+                    username TEXT NOT NULL,
+                    elo INTEGER NOT NULL DEFAULT 0,
+                    wins INTEGER NOT NULL DEFAULT 0,
+                    losses INTEGER NOT NULL DEFAULT 0,
+                    win_streak INTEGER NOT NULL DEFAULT 0,
+                    best_win_streak INTEGER NOT NULL DEFAULT 0,
+                    updated_at INTEGER NOT NULL
                 )
                 """
             )
@@ -485,6 +529,13 @@ def get_analytics_summary() -> dict:
     for room in ONLINE_MATCHES.values():
         connected_players += len(room.get("connections", {}))
         if room.get("started"):
+            live_matches += 1
+        else:
+            waiting_rooms += 1
+    connected_players += len({entry["player_id"] for entry in RANKED_QUEUE})
+    for match in RANKED_MATCHES.values():
+        connected_players += len(match.get("connections", {}))
+        if match.get("started"):
             live_matches += 1
         else:
             waiting_rooms += 1
@@ -571,6 +622,10 @@ class OnlineMatchJoinRequest(BaseModel):
     username: str
 
 
+class RankedQueueRequest(BaseModel):
+    pass
+
+
 @app.on_event("startup")
 def startup():
     init_db()
@@ -586,11 +641,327 @@ def build_online_match_questions(count: int | None, conference: str) -> list[dic
     return [build_question_payload(row, df) for row in sample]
 
 
+def build_ranked_questions() -> list[dict]:
+    df = load_dataframe()
+    sample = choose_random_records(df, RANKED_QUESTION_COUNT)
+    return [build_question_payload(row, df) for row in sample]
+
+
 def get_online_room(room_code: str) -> dict:
     room = ONLINE_MATCHES.get(room_code.upper())
     if not room:
         raise HTTPException(status_code=404, detail="Match not found.")
     return room
+
+
+def get_ranked_division(elo: int) -> str:
+    division = RANKED_DIVISIONS[0][0]
+    for label, threshold in RANKED_DIVISIONS:
+        if elo >= threshold:
+            division = label
+        else:
+            break
+    return division
+
+
+def get_ranked_identity(authorization: str | None) -> dict:
+    user = require_authenticated_user(authorization)
+    google_sub = str(user.get("sub", "")).strip()
+    if not google_sub:
+        raise HTTPException(status_code=401, detail="Google sign-in is required for ranked online.")
+
+    with get_conn() as conn:
+        if USING_POSTGRES:
+            row = conn.execute(
+                """
+                SELECT email, display_name, picture, payload
+                FROM google_accounts
+                WHERE google_sub = %s
+                """,
+                (google_sub,),
+            ).fetchone()
+        else:
+            row = conn.execute(
+                """
+                SELECT email, display_name, picture, payload
+                FROM google_accounts
+                WHERE google_sub = ?
+                """,
+                (google_sub,),
+            ).fetchone()
+
+    if not row:
+        raise HTTPException(status_code=401, detail="Signed-in ranked profile not found.")
+
+    payload = json.loads(row["payload"] or "{}")
+    username = payload.get("username") or row["display_name"] or row["email"] or "Player"
+    return {
+        "player_id": f"google:{google_sub}",
+        "google_sub": google_sub,
+        "username": username,
+        "email": row["email"],
+        "picture": row["picture"],
+    }
+
+
+def ensure_ranked_player(player_id: str, username: str) -> dict:
+    with get_conn() as conn:
+        if USING_POSTGRES:
+            conn.execute(
+                """
+                INSERT INTO ranked_players (player_id, username, elo, wins, losses, win_streak, best_win_streak, updated_at)
+                VALUES (%s, %s, 0, 0, 0, 0, 0, %s)
+                ON CONFLICT(player_id) DO UPDATE
+                SET username = excluded.username,
+                    updated_at = excluded.updated_at
+                """,
+                (player_id, username, int(time.time())),
+            )
+            row = conn.execute(
+                """
+                SELECT player_id, username, elo, wins, losses, win_streak, best_win_streak
+                FROM ranked_players
+                WHERE player_id = %s
+                """,
+                (player_id,),
+            ).fetchone()
+        else:
+            conn.execute(
+                """
+                INSERT INTO ranked_players (player_id, username, elo, wins, losses, win_streak, best_win_streak, updated_at)
+                VALUES (?, ?, 0, 0, 0, 0, 0, ?)
+                ON CONFLICT(player_id) DO UPDATE SET
+                    username = excluded.username,
+                    updated_at = excluded.updated_at
+                """,
+                (player_id, username, int(time.time())),
+            )
+            row = conn.execute(
+                """
+                SELECT player_id, username, elo, wins, losses, win_streak, best_win_streak
+                FROM ranked_players
+                WHERE player_id = ?
+                """,
+                (player_id,),
+            ).fetchone()
+        conn.commit()
+    return dict(row)
+
+
+def get_ranked_profile(player_id: str, username: str) -> dict:
+    row = ensure_ranked_player(player_id, username)
+    elo = int(row["elo"] or 0)
+    wins = int(row["wins"] or 0)
+    losses = int(row["losses"] or 0)
+    streak = int(row["win_streak"] or 0)
+    best_streak = int(row["best_win_streak"] or 0)
+    return {
+        "player_id": row["player_id"],
+        "username": row["username"],
+        "elo": elo,
+        "division": get_ranked_division(elo),
+        "wins": wins,
+        "losses": losses,
+        "games": wins + losses,
+        "win_streak": streak,
+        "best_win_streak": best_streak,
+    }
+
+
+def cleanup_ranked_queue():
+    active_ids = {entry["player_id"] for entry in RANKED_QUEUE}
+    for player_id in list(RANKED_PENDING_MATCHES.keys()):
+        if player_id in active_ids:
+            continue
+        match_id = RANKED_PENDING_MATCHES[player_id]
+        if match_id not in RANKED_MATCHES:
+            RANKED_PENDING_MATCHES.pop(player_id, None)
+
+
+def create_ranked_match(player_one: dict, player_two: dict) -> dict:
+    match_id = secrets.token_urlsafe(10)
+    player_one_profile = get_ranked_profile(player_one["player_id"], player_one["username"])
+    player_two_profile = get_ranked_profile(player_two["player_id"], player_two["username"])
+    match = {
+        "match_id": match_id,
+        "players": [player_one["player_id"], player_two["player_id"]],
+        "player_names": {
+            player_one["player_id"]: player_one_profile["username"],
+            player_two["player_id"]: player_two_profile["username"],
+        },
+        "connections": {},
+        "question_count": RANKED_QUESTION_COUNT,
+        "questions": build_ranked_questions(),
+        "scores": {player_one["player_id"]: 0, player_two["player_id"]: 0},
+        "current_index": 0,
+        "round_submissions": {},
+        "started": False,
+        "answer_mode": "multiple-choice",
+        "created_at": time.time(),
+        "ranked": True,
+        "ranked_profiles": {
+            player_one["player_id"]: player_one_profile,
+            player_two["player_id"]: player_two_profile,
+        },
+    }
+    RANKED_MATCHES[match_id] = match
+    RANKED_PENDING_MATCHES[player_one["player_id"]] = match_id
+    RANKED_PENDING_MATCHES[player_two["player_id"]] = match_id
+    return match
+
+
+def summarize_ranked_scores(match: dict) -> dict:
+    return {player_id: match["scores"].get(player_id, 0) for player_id in match["players"]}
+
+
+def serialize_ranked_question(match: dict) -> dict | None:
+    if match["current_index"] >= len(match["questions"]):
+        return None
+    return dict(match["questions"][match["current_index"]])
+
+
+def compute_ranked_gain_from_streak(next_streak: int) -> int:
+    if next_streak >= 10:
+        return RANKED_WIN_ELO + 20
+    if next_streak >= 5:
+        return RANKED_WIN_ELO + 10
+    return RANKED_WIN_ELO
+
+
+def apply_ranked_match_result(match: dict) -> dict:
+    player_a, player_b = match["players"]
+    score_a = int(match["scores"].get(player_a, 0))
+    score_b = int(match["scores"].get(player_b, 0))
+    profiles = {
+        player_a: get_ranked_profile(player_a, match["player_names"][player_a]),
+        player_b: get_ranked_profile(player_b, match["player_names"][player_b]),
+    }
+    updates: dict[str, dict] = {}
+
+    if score_a == score_b:
+        for player_id in (player_a, player_b):
+            profile = profiles[player_id]
+            updates[player_id] = {
+                "old_elo": profile["elo"],
+                "new_elo": profile["elo"],
+                "elo_change": 0,
+                "division": get_ranked_division(profile["elo"]),
+                "wins": profile["wins"],
+                "losses": profile["losses"],
+                "win_streak": 0,
+                "best_win_streak": profile["best_win_streak"],
+                "result": "tie",
+            }
+        with get_conn() as conn:
+            if USING_POSTGRES:
+                for player_id, profile in profiles.items():
+                    conn.execute(
+                        """
+                        UPDATE ranked_players
+                        SET win_streak = 0, username = %s, updated_at = %s
+                        WHERE player_id = %s
+                        """,
+                        (match["player_names"][player_id], int(time.time()), player_id),
+                    )
+            else:
+                for player_id, profile in profiles.items():
+                    conn.execute(
+                        """
+                        UPDATE ranked_players
+                        SET win_streak = 0, username = ?, updated_at = ?
+                        WHERE player_id = ?
+                        """,
+                        (match["player_names"][player_id], int(time.time()), player_id),
+                    )
+            conn.commit()
+        return updates
+
+    winner = player_a if score_a > score_b else player_b
+    loser = player_b if winner == player_a else player_a
+    winner_profile = profiles[winner]
+    loser_profile = profiles[loser]
+    winner_next_streak = int(winner_profile["win_streak"] or 0) + 1
+    loser_next_elo = max(int(loser_profile["elo"] or 0) - RANKED_LOSS_ELO, 0)
+    winner_gain = compute_ranked_gain_from_streak(winner_next_streak)
+    winner_next_elo = int(winner_profile["elo"] or 0) + winner_gain
+
+    updates[winner] = {
+        "old_elo": winner_profile["elo"],
+        "new_elo": winner_next_elo,
+        "elo_change": winner_gain,
+        "division": get_ranked_division(winner_next_elo),
+        "wins": winner_profile["wins"] + 1,
+        "losses": winner_profile["losses"],
+        "win_streak": winner_next_streak,
+        "best_win_streak": max(winner_profile["best_win_streak"], winner_next_streak),
+        "result": "win",
+    }
+    updates[loser] = {
+        "old_elo": loser_profile["elo"],
+        "new_elo": loser_next_elo,
+        "elo_change": loser_next_elo - int(loser_profile["elo"] or 0),
+        "division": get_ranked_division(loser_next_elo),
+        "wins": loser_profile["wins"],
+        "losses": loser_profile["losses"] + 1,
+        "win_streak": 0,
+        "best_win_streak": loser_profile["best_win_streak"],
+        "result": "loss",
+    }
+
+    with get_conn() as conn:
+        if USING_POSTGRES:
+            for player_id, update in updates.items():
+                conn.execute(
+                    """
+                    UPDATE ranked_players
+                    SET username = %s,
+                        elo = %s,
+                        wins = %s,
+                        losses = %s,
+                        win_streak = %s,
+                        best_win_streak = %s,
+                        updated_at = %s
+                    WHERE player_id = %s
+                    """,
+                    (
+                        match["player_names"][player_id],
+                        update["new_elo"],
+                        update["wins"],
+                        update["losses"],
+                        update["win_streak"],
+                        update["best_win_streak"],
+                        int(time.time()),
+                        player_id,
+                    ),
+                )
+        else:
+            for player_id, update in updates.items():
+                conn.execute(
+                    """
+                    UPDATE ranked_players
+                    SET username = ?,
+                        elo = ?,
+                        wins = ?,
+                        losses = ?,
+                        win_streak = ?,
+                        best_win_streak = ?,
+                        updated_at = ?
+                    WHERE player_id = ?
+                    """,
+                    (
+                        match["player_names"][player_id],
+                        update["new_elo"],
+                        update["wins"],
+                        update["losses"],
+                        update["win_streak"],
+                        update["best_win_streak"],
+                        int(time.time()),
+                        player_id,
+                    ),
+                )
+        conn.commit()
+
+    return updates
 
 
 async def send_ws(websocket: WebSocket, payload: dict):
@@ -678,6 +1049,103 @@ async def finalize_online_round(room: dict):
                 payload["winner"] = players[0] if first_score > second_score else players[1]
 
     await broadcast_room(room, payload)
+
+
+async def send_ranked_match_started(match: dict):
+    match["started"] = True
+    payload = {
+        "type": "match_started",
+        "ranked": True,
+        "match_id": match["match_id"],
+        "players": match["players"],
+        "player_names": match["player_names"],
+        "scores": summarize_ranked_scores(match),
+        "current_index": 0,
+        "total_questions": len(match["questions"]),
+        "question": serialize_ranked_question(match),
+        "answer_mode": match["answer_mode"],
+        "question_count": match["question_count"],
+    }
+    for player_id in match["players"]:
+        ws = match["connections"].get(player_id)
+        if ws:
+            opponent_id = next((item for item in match["players"] if item != player_id), None)
+            await ws.send_json(
+                {
+                    **payload,
+                    "ranked_profile": match["ranked_profiles"].get(player_id),
+                    "opponent_profile": match["ranked_profiles"].get(opponent_id) if opponent_id else None,
+                }
+            )
+
+
+async def finalize_ranked_round(match: dict):
+    current_question = match["questions"][match["current_index"]]
+    results = match["round_submissions"]
+    next_index = match["current_index"] + 1
+    finished = next_index >= len(match["questions"])
+    match["current_index"] = next_index
+    match["round_submissions"] = {}
+
+    payload = {
+        "type": "round_complete",
+        "ranked": True,
+        "match_id": match["match_id"],
+        "players": match["players"],
+        "player_names": match["player_names"],
+        "scores": summarize_ranked_scores(match),
+        "current_index": next_index,
+        "total_questions": len(match["questions"]),
+        "correct_answer": current_question["college"],
+        "round_results": results,
+        "finished": finished,
+        "question": None if finished else serialize_ranked_question(match),
+        "rating_updates": None,
+        "winner": None,
+    }
+
+    if finished:
+        score_a = match["scores"].get(match["players"][0], 0)
+        score_b = match["scores"].get(match["players"][1], 0)
+        if score_a != score_b:
+            payload["winner"] = match["players"][0] if score_a > score_b else match["players"][1]
+        payload["rating_updates"] = apply_ranked_match_result(match)
+
+    for player_id in match["players"]:
+        ws = match["connections"].get(player_id)
+        if ws:
+            player_payload = dict(payload)
+            if payload["rating_updates"]:
+                player_payload["ranked_profile"] = payload["rating_updates"].get(player_id)
+            await ws.send_json(player_payload)
+
+
+async def handle_ranked_submission(match: dict, player_id: str, answer: str, skipped: bool):
+    if not match["started"] or match["current_index"] >= len(match["questions"]):
+        return
+    if player_id in match["round_submissions"]:
+        return
+
+    current_question = match["questions"][match["current_index"]]
+    accepted = {normalize_answer(item) for item in get_registered_question(current_question["question_id"])["accepted_answers"]}
+    normalized_answer = normalize_answer(answer)
+    correct = False if skipped else normalized_answer in accepted
+
+    match["round_submissions"][player_id] = {
+        "answer": answer,
+        "correct": correct,
+        "skipped": skipped,
+    }
+    if correct:
+        match["scores"][player_id] = match["scores"].get(player_id, 0) + 1
+
+    if len(match["round_submissions"]) < 2:
+        websocket = match["connections"].get(player_id)
+        if websocket:
+            await send_ws(websocket, {"type": "waiting_for_opponent", "ranked": True})
+        return
+
+    await finalize_ranked_round(match)
 
 
 async def handle_online_submission(room: dict, username: str, answer: str, skipped: bool):
@@ -936,6 +1404,115 @@ def create_online_match(payload: OnlineMatchCreateRequest):
         "question_count": payload.count,
         "conference": payload.conference,
     }
+
+
+@app.get("/api/ranked/profile")
+def ranked_profile(authorization: str | None = Header(default=None)):
+    identity = get_ranked_identity(authorization)
+    return {"profile": get_ranked_profile(identity["player_id"], identity["username"])}
+
+
+@app.get("/api/ranked/leaderboard")
+def ranked_leaderboard(limit: int = 5):
+    with get_conn() as conn:
+        if USING_POSTGRES:
+            rows = conn.execute(
+                """
+                SELECT player_id, username, elo, wins, losses, win_streak, best_win_streak
+                FROM ranked_players
+                ORDER BY elo DESC, wins DESC, best_win_streak DESC, updated_at ASC
+                LIMIT %s
+                """,
+                (limit,),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                """
+                SELECT player_id, username, elo, wins, losses, win_streak, best_win_streak
+                FROM ranked_players
+                ORDER BY elo DESC, wins DESC, best_win_streak DESC, updated_at ASC
+                LIMIT ?
+                """,
+                (limit,),
+            ).fetchall()
+    entries = []
+    for row in rows:
+        username = str(row["username"] or "").strip()
+        if normalized_profile_username(username) in HIDDEN_LEADERBOARD_USERNAMES:
+            continue
+        elo = int(row["elo"] or 0)
+        wins = int(row["wins"] or 0)
+        losses = int(row["losses"] or 0)
+        entries.append(
+            {
+                "player_id": row["player_id"],
+                "username": username,
+                "elo": elo,
+                "division": get_ranked_division(elo),
+                "wins": wins,
+                "losses": losses,
+                "games": wins + losses,
+                "win_streak": int(row["win_streak"] or 0),
+                "best_win_streak": int(row["best_win_streak"] or 0),
+            }
+        )
+    return {"entries": entries[: max(1, min(limit, 100))]}
+
+
+@app.post("/api/ranked/queue/join")
+def ranked_queue_join(payload: RankedQueueRequest, authorization: str | None = Header(default=None)):
+    identity = get_ranked_identity(authorization)
+    ensure_ranked_player(identity["player_id"], identity["username"])
+
+    global RANKED_QUEUE
+    cleanup_ranked_queue()
+    RANKED_QUEUE = [entry for entry in RANKED_QUEUE if entry["player_id"] != identity["player_id"]]
+
+    pending_match_id = RANKED_PENDING_MATCHES.get(identity["player_id"])
+    if pending_match_id and pending_match_id in RANKED_MATCHES:
+        return {"status": "matched", "match_id": pending_match_id, "player_name": identity["username"], "question_count": RANKED_QUESTION_COUNT}
+
+    opponent = next((entry for entry in RANKED_QUEUE if entry["player_id"] != identity["player_id"]), None)
+    if opponent:
+        RANKED_QUEUE = [entry for entry in RANKED_QUEUE if entry["player_id"] != opponent["player_id"]]
+        match = create_ranked_match(opponent, identity)
+        return {"status": "matched", "match_id": match["match_id"], "player_name": identity["username"], "question_count": RANKED_QUESTION_COUNT}
+
+    RANKED_QUEUE.append({"player_id": identity["player_id"], "username": identity["username"], "joined_at": time.time()})
+    return {"status": "waiting", "player_name": identity["username"], "question_count": RANKED_QUESTION_COUNT}
+
+
+@app.get("/api/ranked/queue/status")
+def ranked_queue_status(authorization: str | None = Header(default=None)):
+    identity = get_ranked_identity(authorization)
+    cleanup_ranked_queue()
+    pending_match_id = RANKED_PENDING_MATCHES.get(identity["player_id"])
+    if pending_match_id and pending_match_id in RANKED_MATCHES:
+        match = RANKED_MATCHES[pending_match_id]
+        opponent_id = next(player_id for player_id in match["players"] if player_id != identity["player_id"])
+        return {
+            "status": "matched",
+            "match_id": pending_match_id,
+            "player_name": identity["username"],
+            "opponent_name": match["player_names"].get(opponent_id, "Opponent"),
+            "question_count": RANKED_QUESTION_COUNT,
+        }
+
+    waiting = any(entry["player_id"] == identity["player_id"] for entry in RANKED_QUEUE)
+    return {"status": "waiting" if waiting else "idle", "question_count": RANKED_QUESTION_COUNT}
+
+
+@app.delete("/api/ranked/queue/leave")
+def ranked_queue_leave(authorization: str | None = Header(default=None)):
+    identity = get_ranked_identity(authorization)
+    global RANKED_QUEUE
+    before = len(RANKED_QUEUE)
+    RANKED_QUEUE = [entry for entry in RANKED_QUEUE if entry["player_id"] != identity["player_id"]]
+    removed = len(RANKED_QUEUE) != before
+    if identity["player_id"] in RANKED_PENDING_MATCHES:
+        RANKED_PENDING_MATCHES.pop(identity["player_id"], None)
+        removed = True
+    return {"removed": removed}
 
 
 @app.post("/api/online-match/join")
@@ -1200,6 +1777,14 @@ def post_authenticated_profile(profile: ProfilePayload, authorization: str | Non
                 """,
                 (json.dumps(payload), google_sub),
             )
+            conn.execute(
+                """
+                UPDATE ranked_players
+                SET username = %s, updated_at = %s
+                WHERE player_id = %s
+                """,
+                (payload["username"], int(time.time()), f"google:{google_sub}"),
+            )
         else:
             conn.execute(
                 """
@@ -1208,6 +1793,14 @@ def post_authenticated_profile(profile: ProfilePayload, authorization: str | Non
                 WHERE google_sub = ?
                 """,
                 (json.dumps(payload), google_sub),
+            )
+            conn.execute(
+                """
+                UPDATE ranked_players
+                SET username = ?, updated_at = ?
+                WHERE player_id = ?
+                """,
+                (payload["username"], int(time.time()), f"google:{google_sub}"),
             )
         conn.commit()
     return {"saved": True}
@@ -1315,6 +1908,67 @@ async def online_match_socket(websocket: WebSocket, room_code: str, username: st
             await broadcast_room(room, {"type": "opponent_left", "message": f"{normalized_username} left the match."})
         else:
             ONLINE_MATCHES.pop(room["room_code"], None)
+
+
+@app.websocket("/ws/ranked/{match_id}")
+async def ranked_match_socket(websocket: WebSocket, match_id: str, token: str):
+    try:
+        user = verify_session_token(token)
+    except HTTPException:
+        await websocket.close(code=4401)
+        return
+
+    player_id = f"google:{str(user.get('sub', '')).strip()}"
+    match = RANKED_MATCHES.get(match_id)
+    if not match or player_id not in match["players"]:
+        await websocket.close(code=4404)
+        return
+
+    await websocket.accept()
+    match["connections"][player_id] = websocket
+    RANKED_PENDING_MATCHES.pop(player_id, None)
+
+    opponent_id = next((item for item in match["players"] if item != player_id), None)
+    await send_ws(
+        websocket,
+        {
+            "type": "room_joined",
+            "ranked": True,
+            "match_id": match["match_id"],
+            "player_id": player_id,
+            "player_name": match["player_names"].get(player_id, user.get("name") or "Player"),
+            "opponent_name": match["player_names"].get(opponent_id, "Opponent") if opponent_id else "Opponent",
+            "waiting": not match["started"],
+            "scores": summarize_ranked_scores(match),
+            "answer_mode": match["answer_mode"],
+            "question_count": match["question_count"],
+            "ranked_profile": match["ranked_profiles"].get(player_id),
+            "opponent_profile": match["ranked_profiles"].get(opponent_id) if opponent_id else None,
+        },
+    )
+
+    if len(match["connections"]) == 2 and not match["started"]:
+        await send_ranked_match_started(match)
+
+    try:
+        while True:
+            payload = await websocket.receive_json()
+            event_type = payload.get("type")
+            if event_type == "submit_answer":
+                await handle_ranked_submission(match, player_id, str(payload.get("answer", "")), skipped=False)
+            elif event_type == "skip_question":
+                await handle_ranked_submission(match, player_id, "", skipped=True)
+        # no rematches in ranked mode
+    except WebSocketDisconnect:
+        match["connections"].pop(player_id, None)
+        remaining = [item for item in match["players"] if item in match["connections"]]
+        if remaining and match["current_index"] < len(match["questions"]):
+            for remaining_player_id in remaining:
+                ws = match["connections"].get(remaining_player_id)
+                if ws:
+                    await ws.send_json({"type": "opponent_left", "ranked": True, "message": f"{match['player_names'].get(player_id, 'Opponent')} left the ranked match."})
+        else:
+            RANKED_MATCHES.pop(match["match_id"], None)
 
 
 app.mount("/assets/headshots", StaticFiles(directory=str(HEADSHOT_DIR)), name="headshots")

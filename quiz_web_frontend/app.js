@@ -70,16 +70,22 @@ const state = {
   playerScores: { "Player 1": 0, "Player 2": 0 },
   online: {
     enabled: false,
+    ranked: false,
     action: "create",
     roomCode: "",
+    matchId: "",
     socket: null,
     waiting: false,
     currentQuestion: null,
     opponentName: "",
+    opponentId: "",
     scores: {},
     playerName: "",
+    playerId: "",
     rematchRequested: false,
     showHeadshots: true,
+    queuePollId: null,
+    rankedProfile: null,
   },
   profile: {
     username: "Guest",
@@ -126,6 +132,8 @@ const els = {
   playerTwoName: document.getElementById("playerTwoName"),
   onlineMode: document.getElementById("onlineMode"),
   onlineFields: document.getElementById("onlineFields"),
+  rankedMode: document.getElementById("rankedMode"),
+  rankedFields: document.getElementById("rankedFields"),
   onlineAction: document.getElementById("onlineAction"),
   onlineCode: document.getElementById("onlineCode"),
   onlineStatus: document.getElementById("onlineStatus"),
@@ -205,6 +213,7 @@ function getDefaultSettings() {
     showHeadshots: true,
     twoPlayerMode: false,
     onlineMode: false,
+    rankedMode: false,
     onlineAction: "create",
     playerOneName: "Player 1",
     playerTwoName: "Player 2",
@@ -389,6 +398,7 @@ async function handleGoogleCredentialResponse(response) {
       state.profile.username = payload.user.name;
     }
     await loadAuthenticatedProfile();
+    await loadRankedProfile();
     state.auth.panelOpen = false;
     renderAuthPanel();
     showToast("Signed in with Google.");
@@ -412,9 +422,11 @@ async function restoreAuthenticatedUser() {
       state.profile.username = payload.user.name;
     }
     await loadAuthenticatedProfile();
+    await loadRankedProfile();
     persistAuthState();
   } catch (_error) {
     clearAuthState();
+    state.online.rankedProfile = null;
   }
 }
 
@@ -481,6 +493,23 @@ function populateProfileSettingsForm() {
   els.profileDefaultCount.value = els.questionCount.value;
   els.profileDefaultAnswerMode.value = els.answerMode.value;
   els.profileDefaultHeadshots.checked = els.showHeadshots.checked;
+}
+
+async function loadRankedProfile() {
+  if (!state.auth.token) {
+    state.online.rankedProfile = null;
+    updateProfileSummary();
+    return;
+  }
+  try {
+    const payload = await fetchJson("/ranked/profile", {
+      headers: getAuthHeaders(),
+    });
+    state.online.rankedProfile = payload.profile;
+    updateProfileSummary();
+  } catch (_error) {
+    state.online.rankedProfile = null;
+  }
 }
 
 function getCurrentSeasonTag() {
@@ -593,6 +622,7 @@ function loadLocalState() {
   els.showHeadshots.checked = savedSettings.showHeadshots !== false;
   els.twoPlayerMode.checked = Boolean(savedSettings.twoPlayerMode);
   els.onlineMode.checked = Boolean(savedSettings.onlineMode);
+  els.rankedMode.checked = Boolean(savedSettings.rankedMode);
   els.onlineAction.value = savedSettings.onlineAction || "create";
   els.onlineCode.value = savedSettings.onlineCode || "";
   els.playerOneName.value = savedSettings.playerOneName || "Player 1";
@@ -612,6 +642,7 @@ function saveLocalSettings() {
     showHeadshots: els.showHeadshots.checked,
     twoPlayerMode: els.twoPlayerMode.checked,
     onlineMode: els.onlineMode.checked,
+    rankedMode: els.rankedMode.checked,
     onlineAction: els.onlineAction.value,
     playerOneName: els.playerOneName.value.trim() || "Player 1",
     playerTwoName: els.playerTwoName.value.trim() || "Player 2",
@@ -933,6 +964,7 @@ function getProfileProgress(profile) {
 
 function updateProfileSummary() {
   const rankInfo = getRankInfoFromXp(state.profile.xp);
+  const rankedProfile = state.online.rankedProfile;
   const achievements = state.profile.achievements.length
     ? state.profile.achievements
         .map((achievement) => `<span class="achievement-pill">${escapeHtml(achievement)}</span>`)
@@ -964,6 +996,24 @@ function updateProfileSummary() {
       <div class="profile-stat">
         <span class="dashboard-label">Online Wins</span>
         <strong>${state.profile.onlineWins}</strong>
+      </div>
+    </div>
+    <div class="profile-stat-grid">
+      <div class="profile-stat">
+        <span class="dashboard-label">Ranked Division</span>
+        <strong>${escapeHtml(rankedProfile?.division || "Unranked")}</strong>
+      </div>
+      <div class="profile-stat">
+        <span class="dashboard-label">Ranked Elo</span>
+        <strong>${rankedProfile?.elo ?? 0}</strong>
+      </div>
+      <div class="profile-stat">
+        <span class="dashboard-label">Ranked Record</span>
+        <strong>${rankedProfile ? `${rankedProfile.wins}-${rankedProfile.losses}` : "0-0"}</strong>
+      </div>
+      <div class="profile-stat">
+        <span class="dashboard-label">Win Streak</span>
+        <strong>${rankedProfile?.win_streak ?? 0}</strong>
       </div>
     </div>
     <div class="achievement-section">
@@ -1006,15 +1056,26 @@ function toggleOnlineFields() {
     : "Create a room with your own code or leave it blank for a random one.";
 }
 
+function toggleRankedFields() {
+  els.rankedFields.classList.toggle("hidden", !els.rankedMode.checked);
+}
+
 function syncModeFields() {
+  if (els.rankedMode.checked) {
+    els.twoPlayerMode.checked = false;
+    els.onlineMode.checked = false;
+  }
   if (els.onlineMode.checked) {
     els.twoPlayerMode.checked = false;
+    els.rankedMode.checked = false;
   }
   if (els.twoPlayerMode.checked) {
     els.onlineMode.checked = false;
+    els.rankedMode.checked = false;
   }
   toggleTwoPlayerFields();
   toggleOnlineFields();
+  toggleRankedFields();
 }
 
 function getActivePlayerName() {
@@ -1035,16 +1096,27 @@ function updateTwoPlayerHud() {
     els.twoPlayerBanner.classList.remove("hidden");
     els.standardMatchLayout.classList.add("hidden");
     els.onlineMatchLayout.classList.remove("hidden");
-    const myScore = state.online.scores[state.online.playerName] ?? 0;
+    const myScore = state.online.scores[state.online.ranked ? state.online.playerId : state.online.playerName] ?? 0;
     const opponentName = state.online.opponentName || "Waiting...";
-    const opponentScore = state.online.scores[opponentName] ?? 0;
+    const opponentScore = state.online.scores[state.online.ranked ? state.online.opponentId : opponentName] ?? 0;
     els.onlineYouName.textContent = state.online.playerName || "You";
-    els.onlineYouScore.textContent = String(myScore);
+    els.onlineYouScore.textContent = state.online.ranked ? `${state.online.rankedProfile?.elo ?? 0} Elo` : String(myScore);
     els.onlineOpponentName.textContent = opponentName;
-    els.onlineOpponentScore.textContent = state.online.waiting ? "-" : String(opponentScore);
-    els.onlineMatchState.textContent = state.online.waiting ? "Waiting for opponent to join" : "Live online match";
-    els.onlineMatchCode.textContent = `Code ${state.online.roomCode || "----"}`;
-    els.turnTimerText.classList.add("hidden");
+    els.onlineOpponentScore.textContent = state.online.waiting
+      ? "-"
+      : state.online.ranked
+        ? `${state.online.opponentElo ?? 0} Elo`
+        : String(opponentScore);
+    els.onlineMatchState.textContent = state.online.waiting
+      ? (state.online.ranked ? "Searching for ranked opponent" : "Waiting for opponent to join")
+      : (state.online.ranked ? `Live ranked match • ${myScore}-${opponentScore}` : "Live online match");
+    els.onlineMatchCode.textContent = state.online.ranked ? `${state.online.rankedProfile?.division || "Blacktop"} • Ranked` : `Code ${state.online.roomCode || "----"}`;
+    if (state.online.ranked) {
+      els.turnTimerText.classList.remove("hidden");
+      els.turnTimerText.textContent = `${state.questionTimeLeft || 15}s to answer`;
+    } else {
+      els.turnTimerText.classList.add("hidden");
+    }
     return;
   }
   if (!state.twoPlayer) {
@@ -1300,13 +1372,13 @@ function renderQuestion() {
   els.questionText.textContent = `Which college did ${question.player_name} attend?`;
   els.progressText.textContent = `Question ${state.currentIndex + 1} of ${state.questions.length}`;
   els.streakText.textContent = state.online.enabled
-    ? "Online versus mode"
+    ? state.online.ranked ? "Ranked queue match" : "Online versus mode"
     : state.twoPlayer
       ? "Local versus mode"
       : `Current Streak: ${state.streak}`;
   if (state.online.enabled) {
     const myScore = state.online.scores[state.online.playerName] ?? 0;
-    els.scoreChip.textContent = `Score ${myScore}`;
+    els.scoreChip.textContent = state.online.ranked ? `Elo ${state.online.rankedProfile?.elo ?? 0}` : `Score ${myScore}`;
   } else {
     els.scoreChip.textContent = state.twoPlayer ? `${state.playerScores[state.playerNames[0]]}-${state.playerScores[state.playerNames[1]]}` : `Score ${state.score}`;
   }
@@ -1347,6 +1419,20 @@ function stopQuestionTimer() {
 
 function restartQuestionTimerIfNeeded() {
   stopQuestionTimer();
+  if (state.online.enabled && state.online.ranked) {
+    state.questionTimeLeft = 15;
+    updateTwoPlayerHud();
+    state.questionTimerId = setInterval(() => {
+      state.questionTimeLeft -= 1;
+      updateTwoPlayerHud();
+      if (state.questionTimeLeft <= 0) {
+        stopQuestionTimer();
+        showToast("Time ran out. Answer skipped.");
+        skipQuestion(true);
+      }
+    }, 1000);
+    return;
+  }
   if (!state.twoPlayer || state.online.enabled) {
     return;
   }
@@ -1505,7 +1591,7 @@ function showHint() {
     return;
   }
   if (state.online.enabled) {
-    showToast("No hints during online mode.");
+    showToast(state.online.ranked ? "No hints during ranked mode." : "No hints during online mode.");
     return;
   }
   if (state.mode === "Hard") {
@@ -1580,8 +1666,8 @@ function finishQuiz() {
     reward = grantRewards(summary);
   }
   if (state.online.enabled) {
-    const myScore = state.online.scores[state.online.playerName] ?? 0;
-    const opponentScore = state.online.scores[state.online.opponentName] ?? 0;
+    const myScore = state.online.scores[state.online.ranked ? state.online.playerId : state.online.playerName] ?? 0;
+    const opponentScore = state.online.scores[state.online.ranked ? state.online.opponentId : state.online.opponentName] ?? 0;
     summary.wonOnline = myScore > opponentScore;
     summary.tiedOnline = myScore === opponentScore;
     reward = grantRewards(summary);
@@ -1592,24 +1678,48 @@ function finishQuiz() {
     } else {
       els.endTitle.textContent = "Tie Game";
     }
-    els.endSummary.textContent = `Final score: ${myScore} - ${opponentScore}`;
-    const onlineBreakdown = reward.breakdown?.length
-      ? reward.breakdown.map((item) => `${item.label}: +${item.value}`).join("\n")
-      : "No XP awarded this match.";
-    const onlinePromotions = reward.promotions?.length ? `\nRank Ups: ${reward.promotions.map((item) => item.rank).join(", ")}` : "";
-    els.rewardSummary.textContent =
-      `You: ${state.online.playerName} (${myScore})\n` +
-      `Opponent: ${state.online.opponentName || "Opponent"} (${opponentScore})\n` +
-      `Match code: ${state.online.roomCode}\n` +
-      `Season XP: +${reward.xpGain}\n` +
-      `Current Rank: ${state.profile.rank}${onlinePromotions}\n` +
-      `XP Breakdown:\n${onlineBreakdown}`;
-    els.missedSummary.textContent = "Press Request Rematch to play again with the same opponent, or Return Home to leave the room.";
-    els.requestRematch.textContent = state.online.rematchRequested ? "Rematch Requested" : "Request Rematch";
-    els.requestRematch.disabled = state.online.rematchRequested;
-    els.requestRematch.classList.remove("hidden");
-    document.getElementById("playAgain").classList.add("hidden");
-    document.getElementById("playMissedOnly").classList.add("hidden");
+    if (state.online.ranked) {
+      const rankedProfile = state.online.rankedProfile || { elo: 0, division: "Blacktop", wins: 0, losses: 0, win_streak: 0 };
+      const eloChange = (() => {
+        if (summary.tiedOnline) return 0;
+        if (summary.wonOnline) {
+          if (rankedProfile.win_streak >= 10) return 50;
+          if (rankedProfile.win_streak >= 5) return 40;
+          return 30;
+        }
+        return -10;
+      })();
+      els.endSummary.textContent = `Ranked final score: ${myScore} - ${opponentScore}`;
+      els.rewardSummary.textContent =
+        `Division: ${rankedProfile.division}\n` +
+        `Current Elo: ${rankedProfile.elo}\n` +
+        `Elo Change: ${eloChange >= 0 ? "+" : ""}${eloChange}\n` +
+        `Ranked Record: ${rankedProfile.wins}-${rankedProfile.losses}\n` +
+        `Win Streak: ${rankedProfile.win_streak}`;
+      els.missedSummary.textContent = "Ranked queue has no rematches. Return home to queue again.";
+      els.requestRematch.classList.add("hidden");
+      document.getElementById("playAgain").classList.add("hidden");
+      document.getElementById("playMissedOnly").classList.add("hidden");
+    } else {
+      els.endSummary.textContent = `Final score: ${myScore} - ${opponentScore}`;
+      const onlineBreakdown = reward.breakdown?.length
+        ? reward.breakdown.map((item) => `${item.label}: +${item.value}`).join("\n")
+        : "No XP awarded this match.";
+      const onlinePromotions = reward.promotions?.length ? `\nRank Ups: ${reward.promotions.map((item) => item.rank).join(", ")}` : "";
+      els.rewardSummary.textContent =
+        `You: ${state.online.playerName} (${myScore})\n` +
+        `Opponent: ${state.online.opponentName || "Opponent"} (${opponentScore})\n` +
+        `Match code: ${state.online.roomCode}\n` +
+        `Season XP: +${reward.xpGain}\n` +
+        `Current Rank: ${state.profile.rank}${onlinePromotions}\n` +
+        `XP Breakdown:\n${onlineBreakdown}`;
+      els.missedSummary.textContent = "Press Request Rematch to play again with the same opponent, or Return Home to leave the room.";
+      els.requestRematch.textContent = state.online.rematchRequested ? "Rematch Requested" : "Request Rematch";
+      els.requestRematch.disabled = state.online.rematchRequested;
+      els.requestRematch.classList.remove("hidden");
+      document.getElementById("playAgain").classList.add("hidden");
+      document.getElementById("playMissedOnly").classList.add("hidden");
+    }
   } else if (state.twoPlayer) {
     const [p1, p2] = state.playerNames;
     const s1 = state.playerScores[p1];
@@ -1685,6 +1795,10 @@ async function startQuiz(customQuestions = null) {
   trackAnalytics("quiz_start");
   applyTheme(els.theme.value);
   saveLocalSettings();
+  if (els.rankedMode.checked) {
+    await startRankedQueue();
+    return;
+  }
   if (els.onlineMode.checked) {
     await startOnlineMatch();
     return;
@@ -1725,21 +1839,31 @@ function getWebSocketBase() {
 }
 
 function resetOnlineState() {
+  if (state.online.queuePollId) {
+    clearInterval(state.online.queuePollId);
+  }
   if (state.online.socket && state.online.socket.readyState < 2) {
     state.online.socket.close();
   }
   state.online = {
     enabled: false,
+    ranked: false,
     action: "create",
     roomCode: "",
+    matchId: "",
     socket: null,
     waiting: false,
     currentQuestion: null,
     opponentName: "",
+    opponentId: "",
     scores: {},
     playerName: "",
+    playerId: "",
     rematchRequested: false,
     showHeadshots: true,
+    queuePollId: null,
+    rankedProfile: state.online.rankedProfile || null,
+    opponentElo: 0,
   };
   updateProfileSummary();
 }
@@ -1771,7 +1895,7 @@ function prepareOnlineQuizState(totalQuestions, payload) {
   state.online.enabled = true;
   state.twoPlayer = false;
   state.daily = false;
-  state.mode = "Online 1v1";
+  state.mode = payload.ranked ? "Ranked Online" : "Online 1v1";
   applyOnlineMatchSettings(payload);
   state.currentIndex = payload.current_index ?? 0;
   state.questions = Array(totalQuestions).fill(null);
@@ -1785,25 +1909,44 @@ function prepareOnlineQuizState(totalQuestions, payload) {
   state.online.scores = payload.scores || {};
   state.online.waiting = false;
   state.online.rematchRequested = false;
+  state.online.ranked = Boolean(payload.ranked);
+  if (payload.player_names && state.online.playerId) {
+    state.online.opponentId = Object.keys(payload.player_names).find((id) => id !== state.online.playerId) || state.online.opponentId;
+  }
   state.online.opponentName = (payload.players || []).find((name) => name !== state.online.playerName) || state.online.opponentName;
-  els.modeChip.textContent = "Online 1v1";
-  els.endTitle.textContent = "Online Match Recap";
-  els.requestRematch.classList.add("hidden");
+  if (payload.player_names && state.online.playerId) {
+    const opponentId = Object.keys(payload.player_names).find((id) => id !== state.online.playerId);
+    if (opponentId) {
+      state.online.opponentName = payload.player_names[opponentId];
+    }
+  }
+  if (payload.ranked_profile) {
+    state.online.rankedProfile = {
+      ...(state.online.rankedProfile || {}),
+      ...payload.ranked_profile,
+    };
+  }
+  if (payload.opponent_profile) {
+    state.online.opponentElo = payload.opponent_profile.elo ?? 0;
+  }
+  els.modeChip.textContent = payload.ranked ? "Ranked Online" : "Online 1v1";
+  els.endTitle.textContent = payload.ranked ? "Ranked Match Recap" : "Online Match Recap";
+  els.requestRematch.classList.toggle("hidden", Boolean(payload.ranked));
   els.rematchStatus.classList.add("hidden");
 }
 
 function renderOnlineWaiting() {
   state.online.waiting = true;
-  state.questions = Array(getRequestedQuestionCount() ?? 10).fill(null);
+  state.questions = Array(state.online.ranked ? 25 : (getRequestedQuestionCount() ?? 10)).fill(null);
   state.results = Array(state.questions.length).fill(null);
-  els.modeChip.textContent = "Online 1v1";
-  els.endTitle.textContent = "Online Match Recap";
+  els.modeChip.textContent = state.online.ranked ? "Ranked Online" : "Online 1v1";
+  els.endTitle.textContent = state.online.ranked ? "Ranked Match Recap" : "Online Match Recap";
   updateTwoPlayerHud();
   renderQuestion();
 }
 
 function handleOnlineRoundComplete(payload) {
-  const myResult = payload.round_results?.[state.online.playerName];
+  const myResult = payload.round_results?.[state.online.ranked ? state.online.playerId : state.online.playerName];
   if (myResult?.correct) {
     state.results[state.currentIndex] = "correct";
     setFeedback("Correct!", "var(--green)");
@@ -1811,17 +1954,23 @@ function handleOnlineRoundComplete(payload) {
     state.results[state.currentIndex] = "skipped";
     setFeedback(`Skipped. Correct answer: ${payload.correct_answer}`, "var(--muted)");
     if (getCurrentQuestion()) {
-      markMissed(getCurrentQuestion());
+      markMissed(getCurrentQuestion(), payload.correct_answer);
     }
   } else {
     state.results[state.currentIndex] = "wrong";
     setFeedback(`Wrong. Correct answer: ${payload.correct_answer}`, "var(--red)");
     if (getCurrentQuestion()) {
-      markMissed(getCurrentQuestion());
+      markMissed(getCurrentQuestion(), payload.correct_answer);
     }
   }
 
   state.online.scores = payload.scores || state.online.scores;
+  if (payload.ranked_profile) {
+    state.online.rankedProfile = {
+      ...(state.online.rankedProfile || {}),
+      ...payload.ranked_profile,
+    };
+  }
   renderProgress();
   updateTwoPlayerHud();
   if (!payload.finished) {
@@ -1835,12 +1984,153 @@ function handleOnlineRoundComplete(payload) {
     if (payload.finished) {
       state.online.currentQuestion = null;
       state.currentIndex = state.questions.length;
+      if (state.online.ranked && payload.rating_updates && state.online.playerId) {
+        const myUpdate = payload.rating_updates[state.online.playerId];
+        if (myUpdate) {
+          state.online.rankedProfile = {
+            ...(state.online.rankedProfile || {}),
+            elo: myUpdate.new_elo,
+            division: myUpdate.division,
+            wins: myUpdate.wins,
+            losses: myUpdate.losses,
+            win_streak: myUpdate.win_streak,
+            best_win_streak: myUpdate.best_win_streak,
+          };
+        }
+      }
       finishQuiz();
       return;
     }
     prepareOnlineQuizState(payload.total_questions, payload);
     renderQuestion();
   }, 1000);
+}
+
+async function pollRankedQueueStatus() {
+  if (!state.online.ranked) return;
+  try {
+    const payload = await fetchJson("/ranked/queue/status", {
+      headers: getAuthHeaders(),
+    });
+    if (payload.status === "matched" && payload.match_id) {
+      clearInterval(state.online.queuePollId);
+      state.online.queuePollId = null;
+      state.online.matchId = payload.match_id;
+      state.online.opponentName = payload.opponent_name || "Opponent";
+      attachRankedSocket(payload.match_id);
+    }
+  } catch (_error) {
+    // keep waiting quietly
+  }
+}
+
+function attachRankedSocket(matchId) {
+  const token = state.auth.token;
+  const socketUrl = `${getWebSocketBase()}/ws/ranked/${matchId}?token=${encodeURIComponent(token)}`;
+  const socket = new WebSocket(socketUrl);
+  state.online.socket = socket;
+  state.online.matchId = matchId;
+
+  socket.addEventListener("message", (event) => {
+    const payload = JSON.parse(event.data);
+    if (payload.type === "room_joined") {
+      state.online.enabled = true;
+      state.online.ranked = true;
+      state.online.playerId = payload.player_id;
+      state.online.playerName = payload.player_name;
+      state.online.opponentName = payload.opponent_name || "";
+      if (payload.player_names && payload.player_id) {
+        state.online.opponentId = Object.keys(payload.player_names).find((id) => id !== payload.player_id) || "";
+      }
+      state.online.scores = payload.scores || {};
+      state.online.waiting = Boolean(payload.waiting);
+      state.answerMode = payload.answer_mode || "multiple-choice";
+      els.answerMode.value = state.answerMode;
+      if (payload.ranked_profile) {
+        state.online.rankedProfile = payload.ranked_profile;
+      }
+      if (payload.opponent_profile) {
+        state.online.opponentElo = payload.opponent_profile.elo ?? 0;
+      }
+      renderOnlineWaiting();
+      updateTwoPlayerHud();
+      return;
+    }
+
+    if (payload.type === "match_started") {
+      prepareOnlineQuizState(payload.total_questions, payload);
+      switchScreen(screens.quiz);
+      startTimer();
+      showRoundOverlay("Ranked Match Found");
+      renderQuestion();
+      return;
+    }
+
+    if (payload.type === "waiting_for_opponent") {
+      setFeedback("Answer locked in. Waiting for opponent...", "var(--gold)");
+      return;
+    }
+
+    if (payload.type === "round_complete") {
+      handleOnlineRoundComplete(payload);
+      return;
+    }
+
+    if (payload.type === "opponent_left") {
+      showToast(payload.message || "Opponent left the ranked match.");
+      state.online.currentQuestion = null;
+      finishQuiz();
+    }
+  });
+
+  socket.addEventListener("close", () => {
+    if (state.online.ranked && screens.quiz.classList.contains("active") && !screens.end.classList.contains("active")) {
+      showToast("Ranked connection closed.");
+    }
+  });
+}
+
+async function startRankedQueue() {
+  if (!state.auth.token) {
+    showToast("Sign in with Google to play ranked.");
+    return;
+  }
+  saveLocalSettings();
+  resetOnlineState();
+  state.online.enabled = true;
+  state.online.ranked = true;
+  state.mode = "Ranked Online";
+  state.answerMode = "multiple-choice";
+  els.answerMode.value = "multiple-choice";
+  els.modeChip.textContent = "Ranked Online";
+  state.hintLimit = 0;
+  state.hintsUsed = 0;
+  state.hintStage = 0;
+  state.results = [];
+  state.missedQuestions = [];
+  state.currentIndex = 0;
+  state.score = 0;
+  state.streak = 0;
+  state.bestStreak = 0;
+  await loadRankedProfile();
+  const payload = await fetchJson("/ranked/queue/join", {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({}),
+  });
+  state.online.playerName = state.profile.username;
+  state.online.waiting = payload.status === "waiting";
+  state.questions = Array(payload.question_count || 25).fill(null);
+  state.results = Array(state.questions.length).fill(null);
+  switchScreen(screens.quiz);
+  renderOnlineWaiting();
+  startTimer();
+  if (payload.status === "matched" && payload.match_id) {
+    attachRankedSocket(payload.match_id);
+  } else {
+    els.onlineStatus.textContent = "Searching for a ranked opponent...";
+    state.online.queuePollId = setInterval(pollRankedQueueStatus, 2500);
+  }
 }
 
 function attachOnlineSocket(roomCode, username) {
@@ -2066,109 +2356,32 @@ async function saveAccountSettings() {
 }
 
 async function loadLeaderboard() {
-  const data = await fetchJson("/profiles");
-  const activeUsername = (els.username.value.trim() || state.profile.username || "Guest").trim().toLowerCase();
-  const remoteProfiles = [...(data.profiles || [])];
-  const localProfileEntry = {
-    username: state.profile.username || els.username.value.trim() || "Guest",
-    auth_id: state.auth.user?.sub ? `google:${state.auth.user.sub}` : "",
-    progress: {
-      xp: state.profile.xp,
-      rank: getRankFromXp(state.profile.xp),
-      achievements: state.profile.achievements,
-      gamesPlayed: state.profile.gamesPlayed,
-      bestScore: state.profile.bestScore,
-      onlineWins: state.profile.onlineWins,
-      rankHistory: state.profile.rankHistory,
-      highestRankIndex: Math.max(
-        state.profile.highestRankIndex || 0,
-        getRankInfoFromXp(state.profile.xp).rankIndex
-      ),
-      seasonTag: state.profile.seasonTag || getCurrentSeasonTag(),
-    },
-  };
+  const data = await fetchJson("/ranked/leaderboard?limit=5");
+  const entries = data.entries || [];
 
-  const existingIndex = remoteProfiles.findIndex(
-    (profile) =>
-      (localProfileEntry.auth_id && String(profile.auth_id || "").trim().toLowerCase() === localProfileEntry.auth_id.toLowerCase()) ||
-      String(profile.username || "").trim().toLowerCase() === activeUsername
-  );
-  if (existingIndex >= 0) {
-    remoteProfiles[existingIndex] = {
-      ...remoteProfiles[existingIndex],
-      ...localProfileEntry,
-      progress: {
-        ...(remoteProfiles[existingIndex].progress || {}),
-        ...localProfileEntry.progress,
-      },
-    };
-  } else if (activeUsername) {
-    remoteProfiles.push(localProfileEntry);
-  }
-
-  const mergedProfiles = remoteProfiles
-    .map((profile) => {
-      const progress = getProfileProgress(profile);
-      return {
-        username: profile.username,
-        authId: profile.auth_id || "",
-        xp: progress.xp || 0,
-        rank: progress.rank || getRankFromXp(progress.xp || 0),
-        rankIndex: progress.highestRankIndex ?? getRankIndexFromLabel(progress.rank) ?? getRankInfoFromXp(progress.xp || 0).rankIndex,
-        bestScore: progress.bestScore || 0,
-        achievements: (progress.achievements || []).length,
-        onlineWins: progress.onlineWins || 0,
-      };
-    })
-    .filter((profile) => String(profile.username || "").trim());
-
-  const dedupedProfiles = [];
-  const byUsername = new Map();
-
-  for (const profile of mergedProfiles) {
-    const key = String(profile.authId || profile.username).trim().toLowerCase();
-    const existing = byUsername.get(key);
-    if (
-      !existing ||
-      profile.rankIndex > existing.rankIndex ||
-      (profile.rankIndex === existing.rankIndex && profile.xp > existing.xp) ||
-      (profile.rankIndex === existing.rankIndex && profile.xp === existing.xp && profile.bestScore > existing.bestScore)
-    ) {
-      byUsername.set(key, profile);
-    }
-  }
-
-  for (const profile of byUsername.values()) {
-    dedupedProfiles.push(profile);
-  }
-
-  const profiles = dedupedProfiles
-    .sort((a, b) => b.rankIndex - a.rankIndex || b.xp - a.xp || b.bestScore - a.bestScore || a.username.localeCompare(b.username))
-    .slice(0, 5);
-
-  if (!profiles.length) {
+  if (!entries.length) {
     els.leaderboardOutput.innerHTML = `
       <div class="leaderboard-header">
         <div>
-          <p class="eyebrow">Ranked Leaderboard</p>
-          <div class="daily-status">No ranked players saved yet.</div>
+          <p class="eyebrow">True Ranked Online</p>
+          <div class="daily-status">No ranked players yet.</div>
         </div>
       </div>
-      <div class="leaderboard-empty">Save your profile after a run to appear on the ranked board.</div>
+      <div class="leaderboard-empty">Sign in with Google and queue ranked to appear on the competitive ladder.</div>
     `;
     return;
   }
 
-  const rows = profiles
+  const rows = entries
     .map(
       (entry, index) => `
         <div class="leaderboard-row">
           <span class="leaderboard-place">${index + 1}</span>
           <div>
             <span class="leaderboard-name">${escapeHtml(entry.username)}</span>
-            <div class="leaderboard-meta">${escapeHtml(entry.rank)} • ${entry.xp} XP • Best score ${entry.bestScore} • ${entry.onlineWins} online wins</div>
+            <div class="leaderboard-meta">${escapeHtml(entry.division)} • ${entry.elo} Elo • ${entry.wins}-${entry.losses} record • ${entry.win_streak} streak</div>
           </div>
-          <div class="leaderboard-score">${escapeHtml(entry.rank)}</div>
+          <div class="leaderboard-score">${entry.elo} Elo</div>
         </div>
       `
     )
@@ -2177,8 +2390,8 @@ async function loadLeaderboard() {
   els.leaderboardOutput.innerHTML = `
     <div class="leaderboard-header">
       <div>
-        <p class="eyebrow">Ranked Leaderboard</p>
-        <div class="daily-status">Top 5 players by rank and XP.</div>
+        <p class="eyebrow">True Ranked Online</p>
+        <div class="daily-status">Top 5 players by Elo.</div>
       </div>
     </div>
     <div class="leaderboard-list">${rows}</div>
@@ -2247,6 +2460,12 @@ function playMissedOnly() {
 function returnHome() {
   stopTimer();
   stopQuestionTimer();
+  if (state.online.ranked && state.auth.token) {
+    fetchJson("/ranked/queue/leave", {
+      method: "DELETE",
+      headers: getAuthHeaders(),
+    }).catch(() => {});
+  }
   resetOnlineState();
   saveLocalSettings();
   updateProfileSummary();
@@ -2310,8 +2529,10 @@ els.shareButton?.addEventListener("click", async () => {
 });
 els.logoutButton?.addEventListener("click", () => {
   clearAuthState();
+  state.online.rankedProfile = null;
   state.auth.panelOpen = false;
   renderAuthPanel();
+  updateProfileSummary();
   showToast("Logged out.");
 });
 els.openProfileSettings?.addEventListener("click", () => {
@@ -2385,6 +2606,10 @@ els.onlineMode.addEventListener("change", () => {
   syncModeFields();
   saveLocalSettings();
 });
+els.rankedMode.addEventListener("change", () => {
+  syncModeFields();
+  saveLocalSettings();
+});
 els.onlineAction.addEventListener("change", () => {
   toggleOnlineFields();
   saveLocalSettings();
@@ -2416,7 +2641,7 @@ syncModeFields();
 renderAnalyticsSummary(null);
 populateMeta().catch(() => {});
 loadLeaderboard().catch(() => {
-  els.leaderboardOutput.innerHTML = '<div class="leaderboard-empty">Start the backend to load the season ladder.</div>';
+  els.leaderboardOutput.innerHTML = '<div class="leaderboard-empty">Start the backend to load the ranked ladder.</div>';
 });
 trackAnalytics("page_view").then(() => loadAnalyticsSummary()).catch(() => {
   renderAnalyticsSummary(null);
