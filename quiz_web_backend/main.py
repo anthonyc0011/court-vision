@@ -751,6 +751,7 @@ def auth_profile(authorization: str | None = Header(default=None)):
             "progress": payload.get("progress", {}),
             "picture": row["picture"],
             "auth_provider": "google",
+            "auth_id": f"google:{google_sub}",
         }
     }
 
@@ -1050,6 +1051,7 @@ def profiles():
             {
                 "username": payload.get("username") or row["display_name"] or row["email"] or "Player",
                 "auth_provider": "google",
+                "auth_id": f"google:{row['google_sub']}",
                 "picture": row["picture"],
                 **payload,
             }
@@ -1064,7 +1066,7 @@ def profiles():
 
     deduped: dict[str, dict] = {}
     for item in result:
-        key = str(item.get("username") or "").strip().lower()
+        key = str(item.get("auth_id") or item.get("username") or "").strip().lower()
         if not key:
             continue
         existing = deduped.get(key)

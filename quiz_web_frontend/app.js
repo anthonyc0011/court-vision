@@ -425,6 +425,10 @@ function applyProfilePayload(profile) {
     seasonTag: progress.seasonTag || getCurrentSeasonTag(),
   };
 
+  if (profile.auth_id && state.auth.user?.sub && profile.auth_id === `google:${state.auth.user.sub}`) {
+    state.profile.authId = profile.auth_id;
+  }
+
   els.username.value = state.profile.username;
   els.theme.value = profile.theme || els.theme.value;
   els.gameMode.value = settings.mode || els.gameMode.value;
@@ -1893,6 +1897,7 @@ async function loadLeaderboard() {
   const remoteProfiles = [...(data.profiles || [])];
   const localProfileEntry = {
     username: state.profile.username || els.username.value.trim() || "Guest",
+    auth_id: state.auth.user?.sub ? `google:${state.auth.user.sub}` : "",
     progress: {
       xp: state.profile.xp,
       rank: getRankFromXp(state.profile.xp),
@@ -1910,7 +1915,9 @@ async function loadLeaderboard() {
   };
 
   const existingIndex = remoteProfiles.findIndex(
-    (profile) => String(profile.username || "").trim().toLowerCase() === activeUsername
+    (profile) =>
+      (localProfileEntry.auth_id && String(profile.auth_id || "").trim().toLowerCase() === localProfileEntry.auth_id.toLowerCase()) ||
+      String(profile.username || "").trim().toLowerCase() === activeUsername
   );
   if (existingIndex >= 0) {
     remoteProfiles[existingIndex] = {
@@ -1930,6 +1937,7 @@ async function loadLeaderboard() {
       const progress = getProfileProgress(profile);
       return {
         username: profile.username,
+        authId: profile.auth_id || "",
         xp: progress.xp || 0,
         rank: progress.rank || getRankFromXp(progress.xp || 0),
         rankIndex: progress.highestRankIndex ?? getRankIndexFromLabel(progress.rank) ?? getRankInfoFromXp(progress.xp || 0).rankIndex,
@@ -1944,7 +1952,7 @@ async function loadLeaderboard() {
   const byUsername = new Map();
 
   for (const profile of mergedProfiles) {
-    const key = String(profile.username).trim().toLowerCase();
+    const key = String(profile.authId || profile.username).trim().toLowerCase();
     const existing = byUsername.get(key);
     if (
       !existing ||
