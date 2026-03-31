@@ -61,6 +61,7 @@ app.add_middleware(
 ONLINE_MATCHES: dict[str, dict] = {}
 QUESTION_STORE: dict[str, dict] = {}
 QUESTION_TTL_SECONDS = 60 * 60 * 6
+HIDDEN_LEADERBOARD_USERNAMES = {"ant", "test", "guest"}
 
 
 def normalize_name(text: str) -> str:
@@ -1066,6 +1067,9 @@ def profiles():
 
     deduped: dict[str, dict] = {}
     for item in result:
+        visible_username = str(item.get("username") or "").strip().lower()
+        if visible_username in HIDDEN_LEADERBOARD_USERNAMES:
+            continue
         key = str(item.get("auth_id") or item.get("username") or "").strip().lower()
         if not key:
             continue
