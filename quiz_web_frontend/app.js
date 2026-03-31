@@ -122,6 +122,8 @@ const els = {
   profileSummary: document.getElementById("profileSummary"),
   dailyOutput: document.getElementById("dailyOutput"),
   leaderboardOutput: document.getElementById("leaderboardOutput"),
+  loginButton: document.getElementById("loginButton"),
+  shareButton: document.getElementById("shareButton"),
   siteTitle: document.getElementById("siteTitle"),
   modeChip: document.getElementById("modeChip"),
   scoreChip: document.getElementById("scoreChip"),
@@ -1864,6 +1866,29 @@ document.getElementById("loadLeaderboard").addEventListener("click", () => {
   Promise.all([loadLeaderboard(), loadAnalyticsSummary().catch(() => {})])
     .then(() => showToast("Rankings refreshed."))
     .catch((error) => showToast(error?.message || "Could not refresh rankings."));
+});
+els.loginButton?.addEventListener("click", () => {
+  showToast("Google login is the next step to make profiles truly yours.");
+});
+els.shareButton?.addEventListener("click", async () => {
+  const shareUrl = window.location.href;
+  try {
+    if (navigator.share) {
+      await navigator.share({ title: "Court Vision", url: shareUrl });
+    } else if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(shareUrl);
+    } else {
+      const temp = document.createElement("input");
+      temp.value = shareUrl;
+      document.body.appendChild(temp);
+      temp.select();
+      document.execCommand("copy");
+      temp.remove();
+    }
+    showToast("Link copied.");
+  } catch (_error) {
+    showToast("Could not share the link.");
+  }
 });
 els.siteTitle?.addEventListener("click", () => {
   const now = Date.now();
