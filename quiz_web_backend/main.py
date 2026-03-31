@@ -7,6 +7,7 @@ import time
 import base64
 import hashlib
 import hmac
+import secrets
 from pathlib import Path
 
 import pandas as pd
@@ -42,14 +43,24 @@ HEADSHOT_DIR.mkdir(parents=True, exist_ok=True)
 LOGO_DIR.mkdir(parents=True, exist_ok=True)
 
 app = FastAPI(title="NBA Quiz Web API")
+ALLOWED_ORIGINS = [
+    "https://courtvision.cc",
+    "https://www.courtvision.cc",
+    "https://api.courtvision.cc",
+    "http://127.0.0.1:4173",
+    "http://localhost:4173",
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
+    allow_credentials=True,
 )
 
 ONLINE_MATCHES: dict[str, dict] = {}
+QUESTION_STORE: dict[str, dict] = {}
+QUESTION_TTL_SECONDS = 60 * 60 * 6
 
 
 def normalize_name(text: str) -> str:
@@ -137,14 +148,41 @@ def build_question_payload(row, df: pd.DataFrame):
     logo_name = f"{normalize_name(school)}.png"
     headshot_file = str(row.get("Headshot File", "")).strip() if row.get("Headshot File") else ""
     return {
+        "question_id": register_question_data(row),
         "player_name": row["Player Name"],
-        "college": school,
         "conference": row["Conference"],
         "headshot": f"/assets/headshots/{headshot_file}" if headshot_file else None,
         "logo": f"/assets/school_logos/{logo_name}" if (LOGO_DIR / logo_name).exists() else None,
         "choices": build_choices(df, school),
+    }
+
+
+def cleanup_question_store():
+    now = time.time()
+    expired = [key for key, value in QUESTION_STORE.items() if now - value.get("created_at", now) > QUESTION_TTL_SECONDS]
+    for key in expired:
+        QUESTION_STORE.pop(key, None)
+
+
+def register_question_data(row) -> str:
+    cleanup_question_store()
+    question_id = secrets.token_urlsafe(16)
+    QUESTION_STORE[question_id] = {
+        "created_at": time.time(),
+        "player_name": row["Player Name"],
+        "college": str(row["College / Last School"]).strip(),
+        "conference": str(row["Conference"]).strip(),
         "accepted_answers": get_answer_variants(row),
     }
+    return question_id
+
+
+def get_registered_question(question_id: str) -> dict:
+    cleanup_question_store()
+    question = QUESTION_STORE.get(question_id)
+    if not question:
+        raise HTTPException(status_code=404, detail="Question expired. Please start a new quiz.")
+    return question
 
 
 def get_conn():
@@ -423,8 +461,15 @@ class QuizRequest(BaseModel):
 
 
 class AnswerCheckRequest(BaseModel):
-    answer: str
-    accepted_answers: list[str]
+    question_id: str
+    answer: str = ""
+    skipped: bool = False
+    reveal_answer: bool = True
+
+
+class QuestionHintRequest(BaseModel):
+    question_id: str
+    stage: int = 0
 
 
 class OnlineMatchCreateRequest(BaseModel):
@@ -487,6 +532,7 @@ def serialize_online_question(room: dict) -> dict | None:
         return None
     question = dict(room["questions"][room["current_index"]])
     question.pop("accepted_answers", None)
+    question.pop("college", None)
     return question
 
 
@@ -661,6 +707,50 @@ def auth_me(authorization: str | None = Header(default=None)):
             "email": user.get("email"),
             "name": user.get("name"),
             "picture": user.get("picture"),
+        }
+    }
+
+
+@app.get("/api/auth/profile")
+def auth_profile(authorization: str | None = Header(default=None)):
+    user = require_authenticated_user(authorization)
+    google_sub = str(user.get("sub", "")).strip()
+    if not google_sub:
+        raise HTTPException(status_code=401, detail="Invalid authenticated user.")
+
+    with get_conn() as conn:
+        if USING_POSTGRES:
+            row = conn.execute(
+                """
+                SELECT email, display_name, picture, payload
+                FROM google_accounts
+                WHERE google_sub = %s
+                """,
+                (google_sub,),
+            ).fetchone()
+        else:
+            row = conn.execute(
+                """
+                SELECT email, display_name, picture, payload
+                FROM google_accounts
+                WHERE google_sub = ?
+                """,
+                (google_sub,),
+            ).fetchone()
+
+    if not row:
+        raise HTTPException(status_code=404, detail="Authenticated profile not found.")
+
+    payload = json.loads(row["payload"] or "{}")
+    username = payload.get("username") or row["display_name"] or row["email"] or "Player"
+    return {
+        "profile": {
+            "username": username,
+            "theme": payload.get("theme", "Arena Blue"),
+            "settings": payload.get("settings", {}),
+            "progress": payload.get("progress", {}),
+            "picture": row["picture"],
+            "auth_provider": "google",
         }
     }
 
@@ -853,9 +943,31 @@ def quiz(payload: QuizRequest):
 
 @app.post("/api/check-answer")
 def check_answer(payload: AnswerCheckRequest):
+    question = get_registered_question(payload.question_id)
     normalized = normalize_answer(payload.answer)
-    accepted = {normalize_answer(item) for item in payload.accepted_answers}
-    return {"correct": normalized in accepted}
+    accepted = {normalize_answer(item) for item in question["accepted_answers"]}
+    correct = False if payload.skipped else normalized in accepted
+    response = {"correct": correct}
+    if not correct and payload.reveal_answer:
+        response["correct_answer"] = question["college"]
+    return response
+
+
+@app.post("/api/question-hint")
+def question_hint(payload: QuestionHintRequest):
+    question = get_registered_question(payload.question_id)
+    answer = question["college"]
+    words = answer.split()
+    stage = max(0, min(int(payload.stage or 0), 2))
+
+    if stage == 0:
+        hint = f"Hint: first letters {' '.join(word[0] for word in words)}"
+    elif stage == 1:
+        hint = f"Hint: word lengths {' - '.join(str(len(word)) for word in words)}"
+    else:
+        hint = f"Final hint: conference {question['conference']}"
+
+    return {"hint": hint, "stage": stage}
 
 
 @app.get("/api/leaderboard")
@@ -964,6 +1076,16 @@ def profiles():
 
 @app.post("/api/profiles")
 def post_profile(profile: ProfilePayload):
+    normalized_username = (profile.username.strip() or "Guest").lower()
+    with get_conn() as conn:
+        google_rows = conn.execute("SELECT email, display_name, payload FROM google_accounts").fetchall()
+
+    for row in google_rows:
+        payload = json.loads(row["payload"] or "{}")
+        claimed_username = str(payload.get("username") or row["display_name"] or row["email"] or "").strip().lower()
+        if claimed_username and claimed_username == normalized_username:
+            raise HTTPException(status_code=409, detail="That username is reserved by a signed-in account.")
+
     payload = {
         "theme": profile.theme,
         "settings": profile.settings or {},

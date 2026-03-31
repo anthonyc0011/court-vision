@@ -312,6 +312,10 @@ function renderAuthPanel() {
   els.authPanel?.classList.toggle("hidden", !state.auth.panelOpen);
   els.authSignedOut?.classList.toggle("hidden", signedIn);
   els.authSignedIn?.classList.toggle("hidden", !signedIn);
+  if (els.username) {
+    els.username.readOnly = signedIn;
+    els.username.title = signedIn ? "This profile is locked to your signed-in Google account." : "";
+  }
 
   if (signedIn) {
     els.loginButton.textContent = state.auth.user.name || "Account";
@@ -372,6 +376,7 @@ async function handleGoogleCredentialResponse(response) {
       els.username.value = payload.user.name;
       state.profile.username = payload.user.name;
     }
+    await loadAuthenticatedProfile();
     state.auth.panelOpen = false;
     renderAuthPanel();
     showToast("Signed in with Google.");
@@ -394,9 +399,59 @@ async function restoreAuthenticatedUser() {
       els.username.value = payload.user.name;
       state.profile.username = payload.user.name;
     }
+    await loadAuthenticatedProfile();
     persistAuthState();
   } catch (_error) {
     clearAuthState();
+  }
+}
+
+function applyProfilePayload(profile) {
+  if (!profile) return;
+  const settings = profile.settings || {};
+  const progress = getProfileProgress(profile);
+
+  state.profile = {
+    username: profile.username || state.auth.user?.name || state.profile.username || "Guest",
+    theme: profile.theme || state.profile.theme || "Arena Blue",
+    xp: progress.xp,
+    rank: getRankFromXp(progress.xp || 0),
+    achievements: progress.achievements || [],
+    gamesPlayed: progress.gamesPlayed || 0,
+    bestScore: progress.bestScore || 0,
+    onlineWins: progress.onlineWins || 0,
+    rankHistory: progress.rankHistory || [],
+    highestRankIndex: progress.highestRankIndex ?? getRankInfoFromXp(progress.xp || 0).rankIndex,
+    seasonTag: progress.seasonTag || getCurrentSeasonTag(),
+  };
+
+  els.username.value = state.profile.username;
+  els.theme.value = profile.theme || els.theme.value;
+  els.gameMode.value = settings.mode || els.gameMode.value;
+  els.questionCount.value = settings.questionCount || els.questionCount.value;
+  els.conferenceFilter.value = settings.conferenceFilter || els.conferenceFilter.value;
+  els.answerMode.value = settings.answerMode || els.answerMode.value;
+  els.showHeadshots.checked = settings.showHeadshots !== false;
+  els.twoPlayerMode.checked = Boolean(settings.twoPlayerMode);
+  els.onlineMode.checked = Boolean(settings.onlineMode);
+  els.playerOneName.value = settings.playerOneName || els.playerOneName.value;
+  els.playerTwoName.value = settings.playerTwoName || els.playerTwoName.value;
+  syncModeFields();
+  applyTheme(els.theme.value);
+  saveLocalSettings();
+  saveLocalProgress();
+  updateProfileSummary();
+}
+
+async function loadAuthenticatedProfile() {
+  if (!state.auth.token) return;
+  try {
+    const payload = await fetchJson("/auth/profile", {
+      headers: getAuthHeaders(),
+    });
+    applyProfilePayload(payload.profile);
+  } catch (_error) {
+    // Keep local state when the signed-in account has not saved a profile yet.
   }
 }
 
@@ -1161,19 +1216,36 @@ function restartQuestionTimerIfNeeded() {
   }, 1000);
 }
 
-function markMissed(question) {
+function markMissed(question, correctAnswer = null) {
+  if (!question) return;
   if (!state.missedQuestions.find((item) => item.player_name === question.player_name)) {
-    state.missedQuestions.push(question);
+    state.missedQuestions.push({
+      ...question,
+      correct_answer: correctAnswer || question.correct_answer || null,
+    });
   }
 }
 
-async function checkAnswer(rawAnswer) {
+async function checkAnswer(rawAnswer, skipped = false, revealAnswer = true) {
   const question = getCurrentQuestion();
   return fetchJson("/check-answer", {
     method: "POST",
     body: JSON.stringify({
+      question_id: question.question_id,
       answer: rawAnswer,
-      accepted_answers: question.accepted_answers,
+      skipped,
+      reveal_answer: revealAnswer,
+    }),
+  });
+}
+
+async function fetchHint(stage) {
+  const question = getCurrentQuestion();
+  return fetchJson("/question-hint", {
+    method: "POST",
+    body: JSON.stringify({
+      question_id: question.question_id,
+      stage,
     }),
   });
 }
@@ -1200,17 +1272,21 @@ async function submitAnswer(valueFromChoice = null, clickedButton = null) {
   }
 
   state.currentQuestionAttempts += 1;
-  const result = await checkAnswer(rawAnswer);
+  const result = await checkAnswer(
+    rawAnswer,
+    false,
+    !(state.mode === "Learning" && state.currentQuestionAttempts < 3)
+  );
 
   if (state.mode === "Learning" && !result.correct) {
     if (state.currentQuestionAttempts === 1) {
-      const firstLetters = question.college.split(" ").map((word) => word[0]).join(" ");
-      setFeedback(`Wrong. Hint: first letters ${firstLetters}`, "var(--gold)");
+      const hint = await fetchHint(0);
+      setFeedback(`Wrong. ${hint.hint}`, "var(--gold)");
       return;
     }
     if (state.currentQuestionAttempts === 2) {
-      const lengths = question.college.split(" ").map((word) => word.length).join(" - ");
-      setFeedback(`Wrong again. Hint: word lengths ${lengths}`, "var(--gold)");
+      const hint = await fetchHint(1);
+      setFeedback(`Wrong again. ${hint.hint}`, "var(--gold)");
       return;
     }
   }
@@ -1231,9 +1307,9 @@ async function submitAnswer(valueFromChoice = null, clickedButton = null) {
   } else {
     state.streak = 0;
     state.results[state.currentIndex] = "wrong";
-    setFeedback(`Wrong. Correct answer: ${question.college}`, "var(--red)");
+    setFeedback(`Wrong. Correct answer: ${result.correct_answer || "Unavailable"}`, "var(--red)");
     if (clickedButton) clickedButton.classList.add("wrong-choice");
-    markMissed(question);
+    markMissed(question, result.correct_answer);
   }
 
   els.scoreChip.textContent = state.twoPlayer ? `${state.playerScores[state.playerNames[0]]}-${state.playerScores[state.playerNames[1]]}` : `Score ${state.score}`;
@@ -1257,13 +1333,19 @@ function skipQuestion(autoSkipped = false) {
   }
   state.streak = 0;
   state.results[state.currentIndex] = "skipped";
-  markMissed(question);
-  setFeedback(`${autoSkipped ? "Time ran out." : "Skipped."} Correct answer: ${question.college}`, "var(--muted)");
-  updateHintAvailability();
-  renderProgress();
-  advancePlayerTurn();
-  updateTwoPlayerHud();
-  window.setTimeout(nextQuestion, 500);
+  checkAnswer("", true)
+    .then((result) => {
+      markMissed(question, result.correct_answer);
+      setFeedback(`${autoSkipped ? "Time ran out." : "Skipped."} Correct answer: ${result.correct_answer || "Unavailable"}`, "var(--muted)");
+      updateHintAvailability();
+      renderProgress();
+      advancePlayerTurn();
+      updateTwoPlayerHud();
+      window.setTimeout(nextQuestion, 500);
+    })
+    .catch((error) => {
+      setFeedback(error?.message || "Could not skip this question.", "var(--muted)");
+    });
 }
 
 function showHint() {
@@ -1295,26 +1377,19 @@ function showHint() {
   }
   const question = getCurrentQuestion();
   if (!question) return;
-  const answer = question.college;
-  const words = answer.split(" ");
 
   state.hintsUsed += 1;
-
-  if (state.hintStage === 0) {
-    setFeedback(`Hint: first letters ${words.map((word) => word[0]).join(" ")}`, "var(--gold)");
-    state.hintStage = 1;
-    updateHintAvailability();
-    return;
-  }
-  if (state.hintStage === 1) {
-    setFeedback(`Hint: word lengths ${words.map((word) => word.length).join(" - ")}`, "var(--gold)");
-    state.hintStage = 2;
-    updateHintAvailability();
-    return;
-  }
-  setFeedback(`Final hint: conference ${question.conference}`, "var(--gold)");
-  state.hintStage = 3;
-  updateHintAvailability();
+  fetchHint(state.hintStage)
+    .then((payload) => {
+      setFeedback(payload.hint, "var(--gold)");
+      state.hintStage = Math.min(state.hintStage + 1, 3);
+      updateHintAvailability();
+    })
+    .catch((error) => {
+      state.hintsUsed = Math.max(state.hintsUsed - 1, 0);
+      showToast(error?.message || "Could not load a hint.");
+      updateHintAvailability();
+    });
 }
 
 function nextQuestion() {
@@ -1411,7 +1486,9 @@ function finishQuiz() {
       `New Achievements: ${reward.earned.length ? reward.earned.join(", ") : "None this run"}`;
   }
   if (!state.online.enabled) {
-    const missed = state.missedQuestions.map((question) => `${question.player_name} — ${question.college}`).join("\n");
+    const missed = state.missedQuestions
+      .map((question) => `${question.player_name} — ${question.correct_answer || "Unavailable"}`)
+      .join("\n");
     els.missedSummary.textContent = missed || "Perfect run. No missed questions.";
   }
   document.getElementById("submitLeaderboard").classList.add("hidden");
