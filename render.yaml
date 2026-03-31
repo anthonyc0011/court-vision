@@ -11,16 +11,23 @@ services:
         fromDatabase:
           name: court-vision-db
           property: connectionString
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: SESSION_SECRET
+        sync: false
 
   - type: web
     name: court-vision-web
     runtime: static
     rootDir: quiz_web_frontend
-    buildCommand: printf 'window.COURT_VISION_API_BASE = "%s";\n' "$COURT_VISION_API_BASE" > config.js
+    buildCommand: |
+      printf 'window.COURT_VISION_API_BASE = "%s";\nwindow.COURT_VISION_GOOGLE_CLIENT_ID = "%s";\n' "$COURT_VISION_API_BASE" "$COURT_VISION_GOOGLE_CLIENT_ID" > config.js
     staticPublishPath: .
     plan: free
     envVars:
       - key: COURT_VISION_API_BASE
+        sync: false
+      - key: COURT_VISION_GOOGLE_CLIENT_ID
         sync: false
 
 databases:

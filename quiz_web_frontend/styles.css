@@ -124,6 +124,39 @@ body {
   padding: 10px 16px;
 }
 
+.auth-panel {
+  position: relative;
+  z-index: 1;
+  margin: 0 0 16px auto;
+  max-width: 360px;
+  padding: 16px;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--surface-alt) 90%, black 10%);
+  border: 1px solid color-mix(in srgb, var(--outline) 84%, transparent);
+  box-shadow: var(--shadow);
+}
+
+.auth-user-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.auth-avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--outline);
+  background: var(--surface);
+}
+
+.google-signin-slot {
+  margin-top: 12px;
+  min-height: 40px;
+}
+
 .hero-card::before,
 .hud-card::before {
   content: "";

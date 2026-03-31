@@ -4,6 +4,9 @@ import random
 import re
 import sqlite3
 import time
+import base64
+import hashlib
+import hmac
 from pathlib import Path
 
 import pandas as pd
@@ -11,6 +14,8 @@ from fastapi import FastAPI, Header, HTTPException, WebSocket, WebSocketDisconne
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from google.auth.transport import requests as google_requests
+from google.oauth2 import id_token as google_id_token
 
 try:
     import psycopg
@@ -27,6 +32,8 @@ HEADSHOT_DIR = BASE_DIR / "headshots"
 LOGO_DIR = BASE_DIR / "school_logos"
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 ANALYTICS_ADMIN_KEY = os.getenv("ANALYTICS_ADMIN_KEY", "").strip()
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "").strip()
+SESSION_SECRET = os.getenv("SESSION_SECRET", "").strip()
 USING_POSTGRES = DATABASE_URL.startswith("postgres")
 
 if not USING_POSTGRES:
@@ -155,6 +162,58 @@ def as_bool(value: bool):
     return value if USING_POSTGRES else (1 if value else 0)
 
 
+def b64url_encode(value: bytes) -> str:
+    return base64.urlsafe_b64encode(value).decode().rstrip("=")
+
+
+def b64url_decode(value: str) -> bytes:
+    padding = "=" * (-len(value) % 4)
+    return base64.urlsafe_b64decode(value + padding)
+
+
+def sign_session_payload(payload: dict) -> str:
+    if not SESSION_SECRET:
+        raise HTTPException(status_code=503, detail="Session secret is not configured.")
+    payload_json = json.dumps(payload, separators=(",", ":"), sort_keys=True).encode()
+    payload_part = b64url_encode(payload_json)
+    signature = hmac.new(SESSION_SECRET.encode(), payload_part.encode(), hashlib.sha256).digest()
+    return f"{payload_part}.{b64url_encode(signature)}"
+
+
+def verify_session_token(token: str | None) -> dict:
+    if not token:
+        raise HTTPException(status_code=401, detail="Missing auth token.")
+    if not SESSION_SECRET:
+        raise HTTPException(status_code=503, detail="Session secret is not configured.")
+    try:
+        payload_part, signature_part = token.split(".", 1)
+    except ValueError as exc:
+        raise HTTPException(status_code=401, detail="Invalid auth token.") from exc
+
+    expected_sig = hmac.new(SESSION_SECRET.encode(), payload_part.encode(), hashlib.sha256).digest()
+    actual_sig = b64url_decode(signature_part)
+    if not hmac.compare_digest(expected_sig, actual_sig):
+        raise HTTPException(status_code=401, detail="Invalid auth token.")
+
+    payload = json.loads(b64url_decode(payload_part).decode())
+    if int(payload.get("exp", 0)) < int(time.time()):
+        raise HTTPException(status_code=401, detail="Session expired.")
+    return payload
+
+
+def get_bearer_token(authorization: str | None) -> str | None:
+    if not authorization:
+        return None
+    prefix = "Bearer "
+    if authorization.startswith(prefix):
+        return authorization[len(prefix):].strip()
+    return None
+
+
+def require_authenticated_user(authorization: str | None) -> dict:
+    return verify_session_token(get_bearer_token(authorization))
+
+
 def init_db():
     with get_conn() as conn:
         if USING_POSTGRES:
@@ -192,6 +251,17 @@ def init_db():
                 )
                 """
             )
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS google_accounts (
+                    google_sub TEXT PRIMARY KEY,
+                    email TEXT,
+                    display_name TEXT,
+                    picture TEXT,
+                    payload TEXT NOT NULL DEFAULT '{}'
+                )
+                """
+            )
         else:
             conn.execute(
                 """
@@ -224,6 +294,17 @@ def init_db():
                     username TEXT,
                     referrer TEXT,
                     created_at INTEGER NOT NULL
+                )
+                """
+            )
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS google_accounts (
+                    google_sub TEXT PRIMARY KEY,
+                    email TEXT,
+                    display_name TEXT,
+                    picture TEXT,
+                    payload TEXT NOT NULL DEFAULT '{}'
                 )
                 """
             )
@@ -319,6 +400,10 @@ class ProfilePayload(BaseModel):
     theme: str = "Arena Blue"
     settings: dict | None = None
     progress: dict | None = None
+
+
+class GoogleLoginPayload(BaseModel):
+    credential: str
 
 
 class AnalyticsEventPayload(BaseModel):
@@ -495,6 +580,89 @@ async def handle_online_submission(room: dict, username: str, answer: str, skipp
 @app.get("/api/health")
 def health():
     return {"ok": True, "online_rooms": len(ONLINE_MATCHES)}
+
+
+@app.post("/api/auth/google")
+def auth_google(payload: GoogleLoginPayload):
+    if not GOOGLE_CLIENT_ID:
+        raise HTTPException(status_code=503, detail="Google client ID is not configured.")
+
+    try:
+        token_info = google_id_token.verify_oauth2_token(
+            payload.credential,
+            google_requests.Request(),
+            GOOGLE_CLIENT_ID,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=401, detail="Google sign-in failed.") from exc
+
+    google_sub = str(token_info.get("sub", "")).strip()
+    if not google_sub:
+        raise HTTPException(status_code=401, detail="Google sign-in failed.")
+
+    email = str(token_info.get("email", "")).strip()
+    display_name = str(token_info.get("name") or email.split("@")[0] or "Player").strip()
+    picture = str(token_info.get("picture", "")).strip()
+
+    with get_conn() as conn:
+        if USING_POSTGRES:
+            conn.execute(
+                """
+                INSERT INTO google_accounts (google_sub, email, display_name, picture, payload)
+                VALUES (%s, %s, %s, %s, COALESCE((SELECT payload FROM google_accounts WHERE google_sub = %s), '{}'))
+                ON CONFLICT(google_sub) DO UPDATE
+                SET email = excluded.email,
+                    display_name = excluded.display_name,
+                    picture = excluded.picture
+                """,
+                (google_sub, email, display_name, picture, google_sub),
+            )
+        else:
+            conn.execute(
+                """
+                INSERT INTO google_accounts (google_sub, email, display_name, picture, payload)
+                VALUES (?, ?, ?, ?, COALESCE((SELECT payload FROM google_accounts WHERE google_sub = ?), '{}'))
+                ON CONFLICT(google_sub) DO UPDATE SET
+                    email = excluded.email,
+                    display_name = excluded.display_name,
+                    picture = excluded.picture
+                """,
+                (google_sub, email, display_name, picture, google_sub),
+            )
+        conn.commit()
+
+    auth_token = sign_session_payload(
+        {
+            "sub": google_sub,
+            "email": email,
+            "name": display_name,
+            "picture": picture,
+            "exp": int(time.time()) + (60 * 60 * 24 * 30),
+        }
+    )
+
+    return {
+        "token": auth_token,
+        "user": {
+            "sub": google_sub,
+            "email": email,
+            "name": display_name,
+            "picture": picture,
+        },
+    }
+
+
+@app.get("/api/auth/me")
+def auth_me(authorization: str | None = Header(default=None)):
+    user = require_authenticated_user(authorization)
+    return {
+        "user": {
+            "sub": user.get("sub"),
+            "email": user.get("email"),
+            "name": user.get("name"),
+            "picture": user.get("picture"),
+        }
+    }
 
 
 @app.post("/api/analytics")
@@ -757,10 +925,23 @@ def post_leaderboard(entry: LeaderboardEntry):
 def profiles():
     with get_conn() as conn:
         rows = conn.execute("SELECT username, payload FROM profiles ORDER BY username ASC").fetchall()
+        google_rows = conn.execute(
+            "SELECT google_sub, email, display_name, picture, payload FROM google_accounts ORDER BY display_name ASC"
+        ).fetchall()
     result = []
     for row in rows:
         payload = json.loads(row["payload"])
         result.append({"username": row["username"], **payload})
+    for row in google_rows:
+        payload = json.loads(row["payload"] or "{}")
+        result.append(
+            {
+                "username": payload.get("username") or row["display_name"] or row["email"] or "Player",
+                "auth_provider": "google",
+                "picture": row["picture"],
+                **payload,
+            }
+        )
     return {"profiles": result}
 
 
@@ -787,6 +968,43 @@ def post_profile(profile: ProfilePayload):
                 ON CONFLICT(username) DO UPDATE SET payload=excluded.payload
                 """,
                 (profile.username.strip() or "Guest", json.dumps(payload)),
+            )
+        conn.commit()
+    return {"saved": True}
+
+
+@app.post("/api/auth/profile")
+def post_authenticated_profile(profile: ProfilePayload, authorization: str | None = Header(default=None)):
+    user = require_authenticated_user(authorization)
+    google_sub = str(user.get("sub", "")).strip()
+    if not google_sub:
+        raise HTTPException(status_code=401, detail="Invalid authenticated user.")
+
+    payload = {
+        "username": profile.username.strip() or user.get("name") or "Player",
+        "theme": profile.theme,
+        "settings": profile.settings or {},
+        "progress": profile.progress or {},
+    }
+
+    with get_conn() as conn:
+        if USING_POSTGRES:
+            conn.execute(
+                """
+                UPDATE google_accounts
+                SET payload = %s
+                WHERE google_sub = %s
+                """,
+                (json.dumps(payload), google_sub),
+            )
+        else:
+            conn.execute(
+                """
+                UPDATE google_accounts
+                SET payload = ?
+                WHERE google_sub = ?
+                """,
+                (json.dumps(payload), google_sub),
             )
         conn.commit()
     return {"saved": True}

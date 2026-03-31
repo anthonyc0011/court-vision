@@ -21,10 +21,15 @@ function getApiBase() {
 
 const API_BASE = getApiBase();
 const API_ORIGIN = API_BASE.replace(/\/api$/, "");
+const GOOGLE_CLIENT_ID =
+  typeof window !== "undefined" && typeof window.COURT_VISION_GOOGLE_CLIENT_ID === "string"
+    ? window.COURT_VISION_GOOGLE_CLIENT_ID.trim()
+    : "";
 const STORAGE_KEY = "courtvision-web-settings";
 const PROGRESS_KEY = "courtvision-web-progress";
 const VISITOR_KEY = "courtvision-web-visitor-id";
 const ANALYTICS_KEY_STORAGE = "courtvision-web-analytics-key";
+const AUTH_STORAGE_KEY = "courtvision-web-auth";
 const BASE_RANKS = [
   "Freshman",
   "Sophomore",
@@ -93,6 +98,11 @@ const state = {
     titleTapCount: 0,
     lastTitleTapAt: 0,
   },
+  auth: {
+    token: "",
+    user: null,
+    panelOpen: false,
+  },
 };
 
 const screens = {
@@ -124,6 +134,15 @@ const els = {
   leaderboardOutput: document.getElementById("leaderboardOutput"),
   loginButton: document.getElementById("loginButton"),
   shareButton: document.getElementById("shareButton"),
+  authPanel: document.getElementById("authPanel"),
+  authSignedOut: document.getElementById("authSignedOut"),
+  authSignedIn: document.getElementById("authSignedIn"),
+  authStatus: document.getElementById("authStatus"),
+  googleSignInButton: document.getElementById("googleSignInButton"),
+  authUserPicture: document.getElementById("authUserPicture"),
+  authUserName: document.getElementById("authUserName"),
+  authUserEmail: document.getElementById("authUserEmail"),
+  logoutButton: document.getElementById("logoutButton"),
   siteTitle: document.getElementById("siteTitle"),
   modeChip: document.getElementById("modeChip"),
   scoreChip: document.getElementById("scoreChip"),
@@ -238,6 +257,38 @@ function setAnalyticsAdminKey(value) {
   }
 }
 
+function loadAuthState() {
+  const saved = JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY) || "null");
+  if (saved?.token && saved?.user) {
+    state.auth.token = saved.token;
+    state.auth.user = saved.user;
+  }
+}
+
+function persistAuthState() {
+  if (state.auth.token && state.auth.user) {
+    localStorage.setItem(
+      AUTH_STORAGE_KEY,
+      JSON.stringify({
+        token: state.auth.token,
+        user: state.auth.user,
+      })
+    );
+  } else {
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+  }
+}
+
+function clearAuthState() {
+  state.auth.token = "";
+  state.auth.user = null;
+  persistAuthState();
+}
+
+function getAuthHeaders() {
+  return state.auth.token ? { Authorization: `Bearer ${state.auth.token}` } : {};
+}
+
 function ensureAnalyticsCard() {
   let card = document.getElementById("analyticsOutput");
   if (card) return card;
@@ -253,6 +304,99 @@ function removeAnalyticsCard() {
   const card = document.getElementById("analyticsOutput");
   if (card) {
     card.remove();
+  }
+}
+
+function renderAuthPanel() {
+  const signedIn = Boolean(state.auth.user && state.auth.token);
+  els.authPanel?.classList.toggle("hidden", !state.auth.panelOpen);
+  els.authSignedOut?.classList.toggle("hidden", signedIn);
+  els.authSignedIn?.classList.toggle("hidden", !signedIn);
+
+  if (signedIn) {
+    els.loginButton.textContent = state.auth.user.name || "Account";
+    els.authUserName.textContent = state.auth.user.name || "Signed in";
+    els.authUserEmail.textContent = state.auth.user.email || "";
+    if (state.auth.user.picture) {
+      els.authUserPicture.src = state.auth.user.picture;
+      els.authUserPicture.classList.remove("hidden");
+    } else {
+      els.authUserPicture.classList.add("hidden");
+    }
+  } else {
+    els.loginButton.textContent = "Login";
+    if (els.authStatus) {
+      els.authStatus.textContent = GOOGLE_CLIENT_ID
+        ? "Sign in to save a profile that belongs to your Google account."
+        : "Google login is not configured yet.";
+    }
+    if (els.authUserPicture) {
+      els.authUserPicture.classList.add("hidden");
+    }
+  }
+}
+
+function initializeGoogleButton() {
+  if (!els.googleSignInButton || !window.google?.accounts?.id) return;
+  els.googleSignInButton.innerHTML = "";
+  if (!GOOGLE_CLIENT_ID) {
+    if (els.authStatus) {
+      els.authStatus.textContent = "Google login is not configured yet.";
+    }
+    return;
+  }
+
+  window.google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: handleGoogleCredentialResponse,
+  });
+  window.google.accounts.id.renderButton(els.googleSignInButton, {
+    theme: "outline",
+    size: "large",
+    shape: "pill",
+    text: "continue_with",
+    width: 280,
+  });
+}
+
+async function handleGoogleCredentialResponse(response) {
+  try {
+    const payload = await fetchJson("/auth/google", {
+      method: "POST",
+      body: JSON.stringify({ credential: response.credential }),
+    });
+    state.auth.token = payload.token;
+    state.auth.user = payload.user;
+    persistAuthState();
+    if (payload.user?.name) {
+      els.username.value = payload.user.name;
+      state.profile.username = payload.user.name;
+    }
+    state.auth.panelOpen = false;
+    renderAuthPanel();
+    showToast("Signed in with Google.");
+  } catch (error) {
+    if (els.authStatus) {
+      els.authStatus.textContent = error?.message || "Google sign-in failed.";
+    }
+    showToast(error?.message || "Google sign-in failed.");
+  }
+}
+
+async function restoreAuthenticatedUser() {
+  if (!state.auth.token) return;
+  try {
+    const payload = await fetchJson("/auth/me", {
+      headers: getAuthHeaders(),
+    });
+    state.auth.user = payload.user;
+    if (payload.user?.name) {
+      els.username.value = payload.user.name;
+      state.profile.username = payload.user.name;
+    }
+    persistAuthState();
+  } catch (_error) {
+    clearAuthState();
   }
 }
 
@@ -429,9 +573,10 @@ async function fetchJson(path, options = {}) {
     "Content-Type": "application/json",
     ...(options.headers || {}),
   };
+  const { headers: _ignoredHeaders, ...restOptions } = options;
   const response = await fetch(`${API_BASE}${path}`, {
+    ...restOptions,
     headers: requestHeaders,
-    ...options,
   });
   if (!response.ok) {
     let errorMessage = `Request failed: ${response.status}`;
@@ -1619,35 +1764,45 @@ async function saveProfile(silent = false) {
   );
   saveLocalSettings();
   saveLocalProgress();
-  await fetchJson("/profiles", {
-    method: "POST",
-    body: JSON.stringify({
-      username,
-      theme: els.theme.value,
-      settings: {
-        mode: els.gameMode.value,
-        questionCount: els.questionCount.value,
-        conferenceFilter: els.conferenceFilter.value,
-        answerMode: els.answerMode.value,
-        showHeadshots: els.showHeadshots.checked,
-        twoPlayerMode: els.twoPlayerMode.checked,
-        playerOneName: els.playerOneName.value.trim() || "Player 1",
-        playerTwoName: els.playerTwoName.value.trim() || "Player 2",
-        dailyMode: false,
-      },
-      progress: {
-        xp: state.profile.xp,
-        rank: state.profile.rank,
-        achievements: state.profile.achievements,
-        gamesPlayed: state.profile.gamesPlayed,
-        bestScore: state.profile.bestScore,
-        onlineWins: state.profile.onlineWins,
-        rankHistory: state.profile.rankHistory,
-        highestRankIndex: state.profile.highestRankIndex,
-        seasonTag: state.profile.seasonTag || getCurrentSeasonTag(),
-      },
-    }),
-  });
+  const profilePayload = {
+    username,
+    theme: els.theme.value,
+    settings: {
+      mode: els.gameMode.value,
+      questionCount: els.questionCount.value,
+      conferenceFilter: els.conferenceFilter.value,
+      answerMode: els.answerMode.value,
+      showHeadshots: els.showHeadshots.checked,
+      twoPlayerMode: els.twoPlayerMode.checked,
+      playerOneName: els.playerOneName.value.trim() || "Player 1",
+      playerTwoName: els.playerTwoName.value.trim() || "Player 2",
+      dailyMode: false,
+    },
+    progress: {
+      xp: state.profile.xp,
+      rank: state.profile.rank,
+      achievements: state.profile.achievements,
+      gamesPlayed: state.profile.gamesPlayed,
+      bestScore: state.profile.bestScore,
+      onlineWins: state.profile.onlineWins,
+      rankHistory: state.profile.rankHistory,
+      highestRankIndex: state.profile.highestRankIndex,
+      seasonTag: state.profile.seasonTag || getCurrentSeasonTag(),
+    },
+  };
+
+  if (state.auth.token) {
+    await fetchJson("/auth/profile", {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(profilePayload),
+    });
+  } else {
+    await fetchJson("/profiles", {
+      method: "POST",
+      body: JSON.stringify(profilePayload),
+    });
+  }
   updateProfileSummary();
   await loadLeaderboard().catch(() => {});
   if (!silent) {
@@ -1868,7 +2023,11 @@ document.getElementById("loadLeaderboard").addEventListener("click", () => {
     .catch((error) => showToast(error?.message || "Could not refresh rankings."));
 });
 els.loginButton?.addEventListener("click", () => {
-  showToast("Google login is the next step to make profiles truly yours.");
+  state.auth.panelOpen = !state.auth.panelOpen;
+  renderAuthPanel();
+  if (state.auth.panelOpen) {
+    initializeGoogleButton();
+  }
 });
 els.shareButton?.addEventListener("click", async () => {
   const shareUrl = window.location.href;
@@ -1889,6 +2048,12 @@ els.shareButton?.addEventListener("click", async () => {
   } catch (_error) {
     showToast("Could not share the link.");
   }
+});
+els.logoutButton?.addEventListener("click", () => {
+  clearAuthState();
+  state.auth.panelOpen = false;
+  renderAuthPanel();
+  showToast("Logged out.");
 });
 els.siteTitle?.addEventListener("click", () => {
   const now = Date.now();
@@ -1972,7 +2137,18 @@ els.username.addEventListener("change", saveLocalSettings);
 els.conferenceFilter.addEventListener("change", saveLocalSettings);
 
 loadLocalState();
+loadAuthState();
 applyTheme(els.theme.value);
+renderAuthPanel();
+restoreAuthenticatedUser()
+  .then(() => {
+    renderAuthPanel();
+    updateProfileSummary();
+  })
+  .catch(() => {
+    renderAuthPanel();
+    updateProfileSummary();
+  });
 updateProfileSummary();
 syncModeFields();
 renderAnalyticsSummary(null);

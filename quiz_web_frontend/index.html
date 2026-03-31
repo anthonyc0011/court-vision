@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Court Vision Web</title>
   <link rel="stylesheet" href="./styles.css" />
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body data-theme="Arena Blue">
   <main class="app-shell">
@@ -13,6 +14,27 @@
         <div class="hero-topbar">
           <button id="loginButton" class="topbar-button secondary-button">Login</button>
           <button id="shareButton" class="topbar-button secondary-button">Share</button>
+        </div>
+        <div id="authPanel" class="auth-panel hidden">
+          <div id="authSignedOut">
+            <p class="eyebrow">Account</p>
+            <div class="daily-status">Sign in with Google to make your profile truly yours.</div>
+            <div id="googleSignInButton" class="google-signin-slot"></div>
+            <div id="authStatus" class="online-status"></div>
+          </div>
+          <div id="authSignedIn" class="hidden">
+            <p class="eyebrow">Signed In</p>
+            <div class="auth-user-row">
+              <img id="authUserPicture" class="auth-avatar" alt="Profile picture" />
+              <div>
+                <div id="authUserName" class="daily-status"></div>
+                <div id="authUserEmail" class="leaderboard-meta"></div>
+              </div>
+            </div>
+            <div class="hero-actions">
+              <button id="logoutButton" class="secondary-button">Logout</button>
+            </div>
+          </div>
         </div>
         <p class="eyebrow">Playable Web Build</p>
         <h1 id="siteTitle">Court Vision</h1>
