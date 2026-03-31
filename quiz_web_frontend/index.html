@@ -32,6 +32,7 @@
               </div>
             </div>
             <div class="hero-actions">
+              <button id="openProfileSettings" class="secondary-button">Profile Settings</button>
               <button id="logoutButton" class="secondary-button">Logout</button>
             </div>
           </div>
@@ -136,6 +137,61 @@
             <h2>Profile, Ranked Leaderboard, And Rank History</h2>
           </div>
           <div id="profileSummary" class="dashboard-card profile-card">Profile summary will appear here.</div>
+          <div id="profileSettingsCard" class="dashboard-card settings-card hidden">
+            <div class="leaderboard-header">
+              <div>
+                <p class="eyebrow">Profile Settings</p>
+                <div class="daily-status">Set your canonical account name and saved defaults.</div>
+              </div>
+            </div>
+            <label for="profileDisplayName">Display Name</label>
+            <input id="profileDisplayName" placeholder="Choose your public profile name" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
+            <div class="settings-grid">
+              <div>
+                <label for="profileTheme">Theme</label>
+                <select id="profileTheme">
+                  <option>Arena Blue</option>
+                  <option>Classic Gold</option>
+                  <option>Emerald Court</option>
+                  <option>Midnight Heat</option>
+                </select>
+              </div>
+              <div>
+                <label for="profileDefaultMode">Default Mode</label>
+                <select id="profileDefaultMode">
+                  <option value="Practice">Practice</option>
+                  <option value="Timed">Timed</option>
+                  <option value="Hard">Hard</option>
+                  <option value="Learning">Learning</option>
+                </select>
+              </div>
+              <div>
+                <label for="profileDefaultCount">Default Quiz Length</label>
+                <select id="profileDefaultCount">
+                  <option value="10">10</option>
+                  <option value="25">25</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                  <option value="all">All</option>
+                </select>
+              </div>
+              <div>
+                <label for="profileDefaultAnswerMode">Default Answer Style</label>
+                <select id="profileDefaultAnswerMode">
+                  <option value="typed">Typed</option>
+                  <option value="multiple-choice">Multiple Choice</option>
+                </select>
+              </div>
+            </div>
+            <label class="checkbox-row">
+              <input type="checkbox" id="profileDefaultHeadshots" checked />
+              <span>Show headshots by default</span>
+            </label>
+            <div class="settings-note">This locks one display name to your Google account and keeps your saved defaults synced across devices.</div>
+            <div class="hero-actions">
+              <button id="saveProfileSettings">Save Account Settings</button>
+            </div>
+          </div>
           <div id="dailyOutput" class="dashboard-card daily-card">Season status will appear here.</div>
           <div id="leaderboardOutput" class="dashboard-card leaderboard-card">Ranked leaderboard not loaded yet.</div>
         </article>

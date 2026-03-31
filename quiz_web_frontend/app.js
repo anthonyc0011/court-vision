@@ -97,6 +97,7 @@ const state = {
   admin: {
     titleTapCount: 0,
     lastTitleTapAt: 0,
+    profiles: [],
   },
   auth: {
     token: "",
@@ -142,8 +143,17 @@ const els = {
   authUserPicture: document.getElementById("authUserPicture"),
   authUserName: document.getElementById("authUserName"),
   authUserEmail: document.getElementById("authUserEmail"),
+  openProfileSettings: document.getElementById("openProfileSettings"),
   logoutButton: document.getElementById("logoutButton"),
   siteTitle: document.getElementById("siteTitle"),
+  profileSettingsCard: document.getElementById("profileSettingsCard"),
+  profileDisplayName: document.getElementById("profileDisplayName"),
+  profileTheme: document.getElementById("profileTheme"),
+  profileDefaultMode: document.getElementById("profileDefaultMode"),
+  profileDefaultCount: document.getElementById("profileDefaultCount"),
+  profileDefaultAnswerMode: document.getElementById("profileDefaultAnswerMode"),
+  profileDefaultHeadshots: document.getElementById("profileDefaultHeadshots"),
+  saveProfileSettings: document.getElementById("saveProfileSettings"),
   modeChip: document.getElementById("modeChip"),
   scoreChip: document.getElementById("scoreChip"),
   timerLabel: document.getElementById("timerLabel"),
@@ -312,6 +322,7 @@ function renderAuthPanel() {
   els.authPanel?.classList.toggle("hidden", !state.auth.panelOpen);
   els.authSignedOut?.classList.toggle("hidden", signedIn);
   els.authSignedIn?.classList.toggle("hidden", !signedIn);
+  els.profileSettingsCard?.classList.toggle("hidden", !signedIn);
   if (els.username) {
     els.username.readOnly = signedIn;
     els.username.title = signedIn ? "This profile is locked to your signed-in Google account." : "";
@@ -338,6 +349,7 @@ function renderAuthPanel() {
       els.authUserPicture.classList.add("hidden");
     }
   }
+  populateProfileSettingsForm();
 }
 
 function initializeGoogleButton() {
@@ -445,6 +457,7 @@ function applyProfilePayload(profile) {
   saveLocalSettings();
   saveLocalProgress();
   updateProfileSummary();
+  populateProfileSettingsForm();
 }
 
 async function loadAuthenticatedProfile() {
@@ -457,6 +470,17 @@ async function loadAuthenticatedProfile() {
   } catch (_error) {
     // Keep local state when the signed-in account has not saved a profile yet.
   }
+}
+
+function populateProfileSettingsForm() {
+  const signedIn = Boolean(state.auth.user && state.auth.token);
+  if (!signedIn || !els.profileDisplayName) return;
+  els.profileDisplayName.value = state.profile.username || state.auth.user?.name || "";
+  els.profileTheme.value = state.profile.theme || els.theme.value;
+  els.profileDefaultMode.value = els.gameMode.value;
+  els.profileDefaultCount.value = els.questionCount.value;
+  els.profileDefaultAnswerMode.value = els.answerMode.value;
+  els.profileDefaultHeadshots.checked = els.showHeadshots.checked;
 }
 
 function getCurrentSeasonTag() {
@@ -758,12 +782,131 @@ function renderAnalyticsSummary(summary) {
         <span class="dashboard-label">Total Pageviews</span>
         <strong>${summary.total_pageviews}</strong>
       </div>
+      <div class="analytics-stat">
+        <span class="dashboard-label">Live Matches</span>
+        <strong>${summary.live_matches}</strong>
+      </div>
+      <div class="analytics-stat">
+        <span class="dashboard-label">Waiting Rooms</span>
+        <strong>${summary.waiting_rooms}</strong>
+      </div>
+      <div class="analytics-stat">
+        <span class="dashboard-label">Online Players</span>
+        <strong>${summary.online_players}</strong>
+      </div>
+    </div>
+    <div class="admin-section">
+      <div class="leaderboard-header">
+        <div>
+          <p class="eyebrow">Admin Cleanup</p>
+          <div class="daily-status">Remove junk, duplicate, or test profiles from the backend.</div>
+        </div>
+      </div>
+      <div class="admin-cleanup-row">
+        <input id="adminCleanupUsername" placeholder="Enter username to remove" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
+        <button id="adminCleanupButton" class="secondary-button">Remove Player</button>
+      </div>
+      <div id="adminProfileList" class="admin-profile-list"></div>
     </div>
     <div class="hero-actions">
       <button id="refreshAnalytics">Refresh Analytics</button>
+      <button id="refreshAdminProfiles" class="secondary-button">Refresh Admin List</button>
       <button id="clearAnalyticsKey" class="secondary-button">Hide Analytics</button>
     </div>
   `;
+
+  document.getElementById("refreshAnalytics")?.addEventListener("click", () => {
+    loadAnalyticsSummary()
+      .then(() => showToast("Analytics refreshed."))
+      .catch((error) => showToast(error?.message || "Could not refresh analytics."));
+  });
+  document.getElementById("refreshAdminProfiles")?.addEventListener("click", () => {
+    loadAdminProfiles()
+      .then(() => showToast("Admin list refreshed."))
+      .catch((error) => showToast(error?.message || "Could not refresh admin list."));
+  });
+  document.getElementById("adminCleanupButton")?.addEventListener("click", () => {
+    const username = document.getElementById("adminCleanupUsername")?.value?.trim() || "";
+    if (!username) {
+      showToast("Enter a username to remove.");
+      return;
+    }
+    deleteAdminProfile(username)
+      .then((deleted) => {
+        if (deleted) {
+          const input = document.getElementById("adminCleanupUsername");
+          if (input) input.value = "";
+          showToast(`Removed ${username}.`);
+        } else {
+          showToast("No matching profile found.");
+        }
+      })
+      .catch((error) => showToast(error?.message || "Could not remove that profile."));
+  });
+  renderAdminProfiles(state.admin.profiles || []);
+}
+
+function renderAdminProfiles(profiles) {
+  state.admin.profiles = profiles || [];
+  const container = document.getElementById("adminProfileList");
+  if (!container) return;
+  if (!state.admin.profiles.length) {
+    container.innerHTML = '<div class="leaderboard-empty">No profiles loaded yet.</div>';
+    return;
+  }
+  container.innerHTML = state.admin.profiles
+    .map(
+      (profile) => `
+        <div class="admin-profile-row">
+          <div>
+            <span class="leaderboard-name">${escapeHtml(profile.username)}</span>
+            <div class="leaderboard-meta">${escapeHtml(profile.auth_provider || "guest")} • ${profile.xp} XP • Best score ${profile.best_score}</div>
+          </div>
+          <div class="admin-profile-actions">
+            <button class="secondary-button admin-remove-button" data-username="${escapeHtml(profile.username)}">Remove</button>
+          </div>
+        </div>
+      `
+    )
+    .join("");
+  container.querySelectorAll(".admin-remove-button").forEach((button) => {
+    button.addEventListener("click", () => {
+      const username = button.getAttribute("data-username") || "";
+      deleteAdminProfile(username)
+        .then((deleted) => {
+          if (deleted) {
+            showToast(`Removed ${username}.`);
+          } else {
+            showToast("No matching profile found.");
+          }
+        })
+        .catch((error) => showToast(error?.message || "Could not remove that profile."));
+    });
+  });
+}
+
+async function loadAdminProfiles() {
+  const analyticsKey = getAnalyticsAdminKey();
+  if (!analyticsKey) {
+    renderAdminProfiles([]);
+    return;
+  }
+  const payload = await fetchJson("/admin/profiles?limit=20", {
+    headers: { "X-Analytics-Key": analyticsKey },
+  });
+  renderAdminProfiles(payload.profiles || []);
+}
+
+async function deleteAdminProfile(username) {
+  const analyticsKey = getAnalyticsAdminKey();
+  if (!analyticsKey) throw new Error("Analytics access denied.");
+  const payload = await fetchJson(`/admin/profiles/${encodeURIComponent(username)}`, {
+    method: "DELETE",
+    headers: { "X-Analytics-Key": analyticsKey },
+  });
+  await loadLeaderboard().catch(() => {});
+  await loadAdminProfiles().catch(() => {});
+  return Boolean(payload.deleted);
 }
 
 function getProfileProgress(profile) {
@@ -1887,8 +2030,39 @@ async function saveProfile(silent = false) {
   updateProfileSummary();
   await loadLeaderboard().catch(() => {});
   if (!silent) {
-    alert(`Saved profile for ${username}`);
+    showToast(`Saved profile for ${username}.`);
   }
+}
+
+async function saveAccountSettings() {
+  if (!state.auth.token) {
+    showToast("Sign in with Google first.");
+    return;
+  }
+
+  const displayName = (els.profileDisplayName.value || "").trim();
+  if (!displayName) {
+    showToast("Enter a display name.");
+    return;
+  }
+
+  els.username.value = displayName;
+  state.profile.username = displayName;
+  els.theme.value = els.profileTheme.value;
+  els.gameMode.value = els.profileDefaultMode.value;
+  els.questionCount.value = els.profileDefaultCount.value;
+  els.answerMode.value = els.profileDefaultAnswerMode.value;
+  els.showHeadshots.checked = els.profileDefaultHeadshots.checked;
+  syncModeFields();
+  applyTheme(els.theme.value);
+  await saveProfile(true);
+
+  if (state.auth.user) {
+    state.auth.user.name = displayName;
+    persistAuthState();
+  }
+  renderAuthPanel();
+  showToast("Account settings saved.");
 }
 
 async function loadLeaderboard() {
@@ -2021,6 +2195,7 @@ async function loadAnalyticsSummary() {
     headers: { "X-Analytics-Key": analyticsKey },
   });
   renderAnalyticsSummary(summary);
+  await loadAdminProfiles().catch(() => {});
 }
 
 async function promptAnalyticsUnlock() {
@@ -2061,7 +2236,7 @@ async function trackAnalytics(eventType = "page_view") {
 async function submitLeaderboard() {
   await saveProfile(true);
   await loadLeaderboard();
-  alert("Season ladder refreshed.");
+  showToast("Season ladder refreshed.");
 }
 
 function playMissedOnly() {
@@ -2099,7 +2274,6 @@ document.getElementById("startQuiz").addEventListener("click", () => {
 document.getElementById("saveProfile").addEventListener("click", () => {
   saveProfile()
     .then(() => loadAnalyticsSummary().catch(() => {}))
-    .then(() => showToast("Profile saved."))
     .catch((error) => showToast(error?.message || "Could not save profile."));
 });
 document.getElementById("loadLeaderboard").addEventListener("click", () => {
@@ -2140,6 +2314,14 @@ els.logoutButton?.addEventListener("click", () => {
   renderAuthPanel();
   showToast("Logged out.");
 });
+els.openProfileSettings?.addEventListener("click", () => {
+  if (els.profileSettingsCard?.classList.contains("hidden")) return;
+  populateProfileSettingsForm();
+  els.profileSettingsCard.scrollIntoView({ behavior: "smooth", block: "start" });
+});
+els.saveProfileSettings?.addEventListener("click", () => {
+  saveAccountSettings().catch((error) => showToast(error?.message || "Could not save account settings."));
+});
 els.siteTitle?.addEventListener("click", () => {
   const now = Date.now();
   if (now - state.admin.lastTitleTapAt > 8000) {
@@ -2159,15 +2341,10 @@ document.addEventListener("keydown", (event) => {
   }
 });
 document.addEventListener("click", (event) => {
-  if (event.target?.id === "refreshAnalytics") {
-    loadAnalyticsSummary()
-      .then(() => showToast("Analytics refreshed."))
-      .catch((error) => showToast(error?.message || "Could not refresh analytics."));
-  }
-
   if (event.target?.id === "clearAnalyticsKey") {
     setAnalyticsAdminKey("");
     renderAnalyticsSummary(null);
+    renderAdminProfiles([]);
     showToast("Analytics hidden.");
   }
 });

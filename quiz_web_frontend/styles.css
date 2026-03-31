@@ -467,9 +467,69 @@ button:hover {
   gap: 14px;
 }
 
-.analytics-grid {
+.settings-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settings-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.settings-note {
+  color: var(--muted);
+  line-height: 1.5;
+  font-size: 0.95rem;
+}
+
+.admin-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--outline) 70%, transparent);
+}
+
+.admin-cleanup-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+}
+
+.admin-profile-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-profile-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
+  border: 1px solid color-mix(in srgb, var(--outline) 74%, transparent);
+}
+
+.admin-profile-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.admin-profile-actions button {
+  width: auto;
+  min-width: 92px;
+}
+
+.analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -582,6 +642,13 @@ button:hover {
 
   .leaderboard-score {
     grid-column: 2;
+  }
+
+  .settings-grid,
+  .analytics-grid,
+  .admin-cleanup-row,
+  .admin-profile-row {
+    grid-template-columns: 1fr;
   }
 }
 

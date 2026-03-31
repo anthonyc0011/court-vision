@@ -253,6 +253,77 @@ def require_authenticated_user(authorization: str | None) -> dict:
     return verify_session_token(get_bearer_token(authorization))
 
 
+def normalized_profile_username(value: str | None) -> str:
+    return str(value or "").strip().lower()
+
+
+def google_account_username(row: dict) -> str:
+    payload = json.loads(row["payload"] or "{}")
+    return str(payload.get("username") or row.get("display_name") or row.get("email") or "").strip()
+
+
+def collect_profile_rows() -> tuple[list[dict], list[dict]]:
+    with get_conn() as conn:
+        rows = conn.execute("SELECT username, payload FROM profiles ORDER BY username ASC").fetchall()
+        google_rows = conn.execute(
+            "SELECT google_sub, email, display_name, picture, payload FROM google_accounts ORDER BY display_name ASC"
+        ).fetchall()
+    return rows, google_rows
+
+
+def build_profile_collection(include_hidden: bool = False) -> list[dict]:
+    rows, google_rows = collect_profile_rows()
+    result = []
+    for row in rows:
+        payload = json.loads(row["payload"])
+        result.append({"username": row["username"], **payload})
+    for row in google_rows:
+        payload = json.loads(row["payload"] or "{}")
+        result.append(
+            {
+                "username": payload.get("username") or row["display_name"] or row["email"] or "Player",
+                "auth_provider": "google",
+                "auth_id": f"google:{row['google_sub']}",
+                "picture": row["picture"],
+                **payload,
+            }
+        )
+
+    def sort_strength(item: dict) -> tuple:
+        progress = item.get("progress") or {}
+        xp = int(progress.get("xp") or 0)
+        best_score = int(progress.get("bestScore") or 0)
+        is_google = 1 if item.get("auth_provider") == "google" else 0
+        return (is_google, xp, best_score)
+
+    deduped: dict[str, dict] = {}
+    for item in result:
+        visible_username = normalized_profile_username(item.get("username"))
+        if not include_hidden and visible_username in HIDDEN_LEADERBOARD_USERNAMES:
+            continue
+        key = str(item.get("auth_id") or item.get("username") or "").strip().lower()
+        if not key:
+            continue
+        existing = deduped.get(key)
+        if existing is None or sort_strength(item) > sort_strength(existing):
+            deduped[key] = item
+
+    return list(deduped.values())
+
+
+def google_username_taken(username: str, ignore_google_sub: str | None = None) -> bool:
+    _, google_rows = collect_profile_rows()
+    wanted = normalized_profile_username(username)
+    if not wanted:
+        return False
+    for row in google_rows:
+        if ignore_google_sub and str(row["google_sub"]) == ignore_google_sub:
+            continue
+        if normalized_profile_username(google_account_username(row)) == wanted:
+            return True
+    return False
+
+
 def init_db():
     with get_conn() as conn:
         if USING_POSTGRES:
@@ -408,6 +479,16 @@ def get_analytics_summary() -> dict:
                 ("quiz_start", last_24h),
             ).fetchone()["value"]
 
+    waiting_rooms = 0
+    live_matches = 0
+    connected_players = 0
+    for room in ONLINE_MATCHES.values():
+        connected_players += len(room.get("connections", {}))
+        if room.get("started"):
+            live_matches += 1
+        else:
+            waiting_rooms += 1
+
     return {
         "live_visitors": int(live_visitors or 0),
         "unique_visitors_24h": int(unique_visitors_24h or 0),
@@ -415,6 +496,9 @@ def get_analytics_summary() -> dict:
         "pageviews_7d": int(pageviews_7d or 0),
         "total_pageviews": int(total_pageviews or 0),
         "quiz_starts_24h": int(quiz_starts_24h or 0),
+        "live_matches": int(live_matches),
+        "waiting_rooms": int(waiting_rooms),
+        "online_players": int(connected_players),
         "generated_at": now,
     }
 
@@ -702,11 +786,28 @@ def auth_google(payload: GoogleLoginPayload):
 @app.get("/api/auth/me")
 def auth_me(authorization: str | None = Header(default=None)):
     user = require_authenticated_user(authorization)
+    google_sub = str(user.get("sub", "")).strip()
+    display_name = user.get("name")
+    if google_sub:
+        with get_conn() as conn:
+            if USING_POSTGRES:
+                row = conn.execute(
+                    "SELECT payload FROM google_accounts WHERE google_sub = %s",
+                    (google_sub,),
+                ).fetchone()
+            else:
+                row = conn.execute(
+                    "SELECT payload FROM google_accounts WHERE google_sub = ?",
+                    (google_sub,),
+                ).fetchone()
+        if row:
+            payload = json.loads(row["payload"] or "{}")
+            display_name = payload.get("username") or display_name
     return {
         "user": {
             "sub": user.get("sub"),
             "email": user.get("email"),
-            "name": user.get("name"),
+            "name": display_name,
             "picture": user.get("picture"),
         }
     }
@@ -1037,60 +1138,14 @@ def post_leaderboard(entry: LeaderboardEntry):
 
 @app.get("/api/profiles")
 def profiles():
-    with get_conn() as conn:
-        rows = conn.execute("SELECT username, payload FROM profiles ORDER BY username ASC").fetchall()
-        google_rows = conn.execute(
-            "SELECT google_sub, email, display_name, picture, payload FROM google_accounts ORDER BY display_name ASC"
-        ).fetchall()
-    result = []
-    for row in rows:
-        payload = json.loads(row["payload"])
-        result.append({"username": row["username"], **payload})
-    for row in google_rows:
-        payload = json.loads(row["payload"] or "{}")
-        result.append(
-            {
-                "username": payload.get("username") or row["display_name"] or row["email"] or "Player",
-                "auth_provider": "google",
-                "auth_id": f"google:{row['google_sub']}",
-                "picture": row["picture"],
-                **payload,
-            }
-        )
-
-    def sort_strength(item: dict) -> tuple:
-        progress = item.get("progress") or {}
-        xp = int(progress.get("xp") or 0)
-        best_score = int(progress.get("bestScore") or 0)
-        is_google = 1 if item.get("auth_provider") == "google" else 0
-        return (is_google, xp, best_score)
-
-    deduped: dict[str, dict] = {}
-    for item in result:
-        visible_username = str(item.get("username") or "").strip().lower()
-        if visible_username in HIDDEN_LEADERBOARD_USERNAMES:
-            continue
-        key = str(item.get("auth_id") or item.get("username") or "").strip().lower()
-        if not key:
-            continue
-        existing = deduped.get(key)
-        if existing is None or sort_strength(item) > sort_strength(existing):
-            deduped[key] = item
-
-    return {"profiles": list(deduped.values())}
+    return {"profiles": build_profile_collection(include_hidden=False)}
 
 
 @app.post("/api/profiles")
 def post_profile(profile: ProfilePayload):
     normalized_username = (profile.username.strip() or "Guest").lower()
-    with get_conn() as conn:
-        google_rows = conn.execute("SELECT email, display_name, payload FROM google_accounts").fetchall()
-
-    for row in google_rows:
-        payload = json.loads(row["payload"] or "{}")
-        claimed_username = str(payload.get("username") or row["display_name"] or row["email"] or "").strip().lower()
-        if claimed_username and claimed_username == normalized_username:
-            raise HTTPException(status_code=409, detail="That username is reserved by a signed-in account.")
+    if google_username_taken(normalized_username):
+        raise HTTPException(status_code=409, detail="That username is reserved by a signed-in account.")
 
     payload = {
         "theme": profile.theme,
@@ -1124,6 +1179,9 @@ def post_authenticated_profile(profile: ProfilePayload, authorization: str | Non
     google_sub = str(user.get("sub", "")).strip()
     if not google_sub:
         raise HTTPException(status_code=401, detail="Invalid authenticated user.")
+    normalized_username = normalized_profile_username(profile.username.strip() or user.get("name") or "Player")
+    if google_username_taken(normalized_username, ignore_google_sub=google_sub):
+        raise HTTPException(status_code=409, detail="That display name is already in use.")
 
     payload = {
         "username": profile.username.strip() or user.get("name") or "Player",
@@ -1153,6 +1211,60 @@ def post_authenticated_profile(profile: ProfilePayload, authorization: str | Non
             )
         conn.commit()
     return {"saved": True}
+
+
+@app.get("/api/admin/profiles")
+def admin_profiles(x_analytics_key: str | None = Header(default=None), limit: int = 25):
+    require_analytics_access(x_analytics_key)
+    profiles = build_profile_collection(include_hidden=True)
+    serialized = []
+    for item in profiles:
+        progress = item.get("progress") or {}
+        serialized.append(
+            {
+                "username": item.get("username") or "Player",
+                "auth_provider": item.get("auth_provider") or "guest",
+                "auth_id": item.get("auth_id") or "",
+                "xp": int(progress.get("xp") or 0),
+                "best_score": int(progress.get("bestScore") or 0),
+            }
+        )
+    serialized.sort(key=lambda item: (-item["xp"], -item["best_score"], item["username"].lower()))
+    return {"profiles": serialized[: max(1, min(limit, 100))]}
+
+
+@app.delete("/api/admin/profiles/{username}")
+def admin_delete_profile(username: str, x_analytics_key: str | None = Header(default=None)):
+    require_analytics_access(x_analytics_key)
+    target = normalized_profile_username(username)
+    if not target:
+        raise HTTPException(status_code=400, detail="Missing username.")
+
+    deleted = 0
+    with get_conn() as conn:
+        if USING_POSTGRES:
+            result = conn.execute("DELETE FROM profiles WHERE LOWER(username) = %s", (target,))
+            deleted += int(getattr(result, "rowcount", 0) or 0)
+            rows = conn.execute(
+                "SELECT google_sub, email, display_name, payload FROM google_accounts"
+            ).fetchall()
+            for row in rows:
+                if normalized_profile_username(google_account_username(row)) == target:
+                    conn.execute("DELETE FROM google_accounts WHERE google_sub = %s", (row["google_sub"],))
+                    deleted += 1
+        else:
+            result = conn.execute("DELETE FROM profiles WHERE LOWER(username) = ?", (target,))
+            deleted += int(getattr(result, "rowcount", 0) or 0)
+            rows = conn.execute(
+                "SELECT google_sub, email, display_name, payload FROM google_accounts"
+            ).fetchall()
+            for row in rows:
+                if normalized_profile_username(google_account_username(row)) == target:
+                    conn.execute("DELETE FROM google_accounts WHERE google_sub = ?", (row["google_sub"],))
+                    deleted += 1
+        conn.commit()
+
+    return {"deleted": deleted > 0, "count": deleted}
 
 
 @app.websocket("/ws/matches/{room_code}")
