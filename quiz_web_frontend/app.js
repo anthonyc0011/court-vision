@@ -24,6 +24,7 @@ const API_ORIGIN = API_BASE.replace(/\/api$/, "");
 const STORAGE_KEY = "courtvision-web-settings";
 const PROGRESS_KEY = "courtvision-web-progress";
 const VISITOR_KEY = "courtvision-web-visitor-id";
+const ANALYTICS_KEY_STORAGE = "courtvision-web-analytics-key";
 const BASE_RANKS = [
   "Freshman",
   "Sophomore",
@@ -219,6 +220,18 @@ function getVisitorId() {
   return visitorId;
 }
 
+function getAnalyticsAdminKey() {
+  return sessionStorage.getItem(ANALYTICS_KEY_STORAGE) || "";
+}
+
+function setAnalyticsAdminKey(value) {
+  if (value) {
+    sessionStorage.setItem(ANALYTICS_KEY_STORAGE, value);
+  } else {
+    sessionStorage.removeItem(ANALYTICS_KEY_STORAGE);
+  }
+}
+
 function getCurrentSeasonTag() {
   const now = new Date();
   const month = now.getMonth();
@@ -388,8 +401,12 @@ function normalizeAnswer(text) {
 }
 
 async function fetchJson(path, options = {}) {
+  const requestHeaders = {
+    "Content-Type": "application/json",
+    ...(options.headers || {}),
+  };
   const response = await fetch(`${API_BASE}${path}`, {
-    headers: { "Content-Type": "application/json" },
+    headers: requestHeaders,
     ...options,
   });
   if (!response.ok) {
@@ -479,10 +496,18 @@ function renderAnalyticsSummary(summary) {
       <div class="leaderboard-header">
         <div>
           <p class="eyebrow">Visitor Analytics</p>
-          <div class="daily-status">Analytics not loaded yet.</div>
+          <div class="daily-status">Locked</div>
         </div>
       </div>
-      <div class="leaderboard-empty">Open the site from a few devices and refresh this card to see visitors show up.</div>
+      <div class="leaderboard-empty">Only you can view analytics. Enter your admin key to unlock this card.</div>
+      <div class="two-player-fields">
+        <label for="analyticsAdminKey">Analytics Admin Key</label>
+        <input id="analyticsAdminKey" type="password" placeholder="Enter analytics key" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
+        <div class="hero-actions">
+          <button id="unlockAnalytics">Unlock Analytics</button>
+          <button id="clearAnalyticsKey" class="secondary-button">Clear Key</button>
+        </div>
+      </div>
     `;
     return;
   }
@@ -1734,7 +1759,14 @@ async function loadLeaderboard() {
 }
 
 async function loadAnalyticsSummary() {
-  const summary = await fetchJson("/analytics/summary");
+  const analyticsKey = getAnalyticsAdminKey();
+  if (!analyticsKey) {
+    renderAnalyticsSummary(null);
+    return;
+  }
+  const summary = await fetchJson("/analytics/summary", {
+    headers: { "X-Analytics-Key": analyticsKey },
+  });
   renderAnalyticsSummary(summary);
 }
 
@@ -1804,6 +1836,30 @@ document.getElementById("loadLeaderboard").addEventListener("click", () => {
   Promise.all([loadLeaderboard(), loadAnalyticsSummary().catch(() => {})])
     .then(() => showToast("Rankings refreshed."))
     .catch((error) => showToast(error?.message || "Could not refresh rankings."));
+});
+document.addEventListener("click", (event) => {
+  if (event.target?.id === "unlockAnalytics") {
+    const input = document.getElementById("analyticsAdminKey");
+    const key = input?.value?.trim() || "";
+    if (!key) {
+      showToast("Enter your analytics key first.");
+      return;
+    }
+    setAnalyticsAdminKey(key);
+    loadAnalyticsSummary()
+      .then(() => showToast("Analytics unlocked."))
+      .catch((error) => {
+        setAnalyticsAdminKey("");
+        renderAnalyticsSummary(null);
+        showToast(error?.message || "Could not unlock analytics.");
+      });
+  }
+
+  if (event.target?.id === "clearAnalyticsKey") {
+    setAnalyticsAdminKey("");
+    renderAnalyticsSummary(null);
+    showToast("Analytics key cleared.");
+  }
 });
 document.getElementById("submitAnswer").addEventListener("click", () => submitAnswer());
 document.getElementById("showHint").addEventListener("click", showHint);

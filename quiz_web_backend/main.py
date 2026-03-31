@@ -7,7 +7,7 @@ import time
 from pathlib import Path
 
 import pandas as pd
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Header, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -26,6 +26,7 @@ DB_PATH = BASE_DIR / "quiz_web_backend" / "quiz_web.db"
 HEADSHOT_DIR = BASE_DIR / "headshots"
 LOGO_DIR = BASE_DIR / "school_logos"
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
+ANALYTICS_ADMIN_KEY = os.getenv("ANALYTICS_ADMIN_KEY", "").strip()
 USING_POSTGRES = DATABASE_URL.startswith("postgres")
 
 if not USING_POSTGRES:
@@ -298,6 +299,13 @@ def get_analytics_summary() -> dict:
     }
 
 
+def require_analytics_access(analytics_key: str | None) -> None:
+    if not ANALYTICS_ADMIN_KEY:
+        raise HTTPException(status_code=503, detail="Analytics access key is not configured.")
+    if (analytics_key or "").strip() != ANALYTICS_ADMIN_KEY:
+        raise HTTPException(status_code=403, detail="Analytics access denied.")
+
+
 class LeaderboardEntry(BaseModel):
     username: str
     score: int
@@ -526,7 +534,8 @@ def post_analytics_event(payload: AnalyticsEventPayload):
 
 
 @app.get("/api/analytics/summary")
-def analytics_summary():
+def analytics_summary(x_analytics_key: str | None = Header(default=None)):
+    require_analytics_access(x_analytics_key)
     return get_analytics_summary()
 
 
