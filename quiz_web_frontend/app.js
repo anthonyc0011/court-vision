@@ -23,6 +23,7 @@ const API_BASE = getApiBase();
 const API_ORIGIN = API_BASE.replace(/\/api$/, "");
 const STORAGE_KEY = "courtvision-web-settings";
 const PROGRESS_KEY = "courtvision-web-progress";
+const VISITOR_KEY = "courtvision-web-visitor-id";
 const BASE_RANKS = [
   "Freshman",
   "Sophomore",
@@ -115,6 +116,7 @@ const els = {
   dailyMode: document.getElementById("dailyMode"),
   profileSummary: document.getElementById("profileSummary"),
   dailyOutput: document.getElementById("dailyOutput"),
+  analyticsOutput: document.getElementById("analyticsOutput"),
   leaderboardOutput: document.getElementById("leaderboardOutput"),
   modeChip: document.getElementById("modeChip"),
   scoreChip: document.getElementById("scoreChip"),
@@ -206,6 +208,15 @@ function getDefaultProgress() {
     highestRankIndex: 0,
     seasonTag: "",
   };
+}
+
+function getVisitorId() {
+  let visitorId = localStorage.getItem(VISITOR_KEY);
+  if (!visitorId) {
+    visitorId = `cv_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+    localStorage.setItem(VISITOR_KEY, visitorId);
+  }
+  return visitorId;
 }
 
 function getCurrentSeasonTag() {
@@ -458,6 +469,57 @@ function renderSeasonStatus() {
       ${nextTarget == null
         ? "You are at the top prestige tier. Keep winning to defend your spot on the ranked board."
         : `${xpToNext} XP until the next prestige step. Clean runs, no-hint games, and online wins are your biggest boosts.`}
+    </div>
+  `;
+}
+
+function renderAnalyticsSummary(summary) {
+  if (!summary) {
+    els.analyticsOutput.innerHTML = `
+      <div class="leaderboard-header">
+        <div>
+          <p class="eyebrow">Visitor Analytics</p>
+          <div class="daily-status">Analytics not loaded yet.</div>
+        </div>
+      </div>
+      <div class="leaderboard-empty">Open the site from a few devices and refresh this card to see visitors show up.</div>
+    `;
+    return;
+  }
+
+  els.analyticsOutput.innerHTML = `
+    <div class="leaderboard-header">
+      <div>
+        <p class="eyebrow">Visitor Analytics</p>
+        <div class="daily-status">Live traffic for your site, tracked by your own backend.</div>
+      </div>
+      <div class="leaderboard-meta">Updated ${formatDateShort(new Date(summary.generated_at * 1000))}</div>
+    </div>
+    <div class="analytics-grid">
+      <div class="analytics-stat">
+        <span class="dashboard-label">Live Now</span>
+        <strong>${summary.live_visitors}</strong>
+      </div>
+      <div class="analytics-stat">
+        <span class="dashboard-label">Unique Visitors (24h)</span>
+        <strong>${summary.unique_visitors_24h}</strong>
+      </div>
+      <div class="analytics-stat">
+        <span class="dashboard-label">Pageviews (24h)</span>
+        <strong>${summary.pageviews_24h}</strong>
+      </div>
+      <div class="analytics-stat">
+        <span class="dashboard-label">Quiz Starts (24h)</span>
+        <strong>${summary.quiz_starts_24h}</strong>
+      </div>
+      <div class="analytics-stat">
+        <span class="dashboard-label">Pageviews (7d)</span>
+        <strong>${summary.pageviews_7d}</strong>
+      </div>
+      <div class="analytics-stat">
+        <span class="dashboard-label">Total Pageviews</span>
+        <strong>${summary.total_pageviews}</strong>
+      </div>
     </div>
   `;
 }
@@ -1213,6 +1275,7 @@ async function fetchQuizData(customQuestions = null) {
 async function startQuiz(customQuestions = null) {
   const username = els.username.value.trim() || "Guest";
   state.profile.username = username;
+  trackAnalytics("quiz_start");
   applyTheme(els.theme.value);
   saveLocalSettings();
   if (els.onlineMode.checked) {
@@ -1670,6 +1733,29 @@ async function loadLeaderboard() {
   `;
 }
 
+async function loadAnalyticsSummary() {
+  const summary = await fetchJson("/analytics/summary");
+  renderAnalyticsSummary(summary);
+}
+
+async function trackAnalytics(eventType = "page_view") {
+  const username = (els.username?.value || state.profile.username || "Guest").trim();
+  try {
+    await fetchJson("/analytics", {
+      method: "POST",
+      body: JSON.stringify({
+        visitor_id: getVisitorId(),
+        event_type: eventType,
+        path: window.location.pathname || "/",
+        username,
+        referrer: document.referrer || "",
+      }),
+    });
+  } catch (_error) {
+    // Ignore analytics failures so they never block gameplay.
+  }
+}
+
 async function submitLeaderboard() {
   await saveProfile(true);
   await loadLeaderboard();
@@ -1709,10 +1795,15 @@ document.getElementById("startQuiz").addEventListener("click", () => {
   startQuiz().catch((error) => showToast(error?.message || "Could not start game."));
 });
 document.getElementById("saveProfile").addEventListener("click", () => {
-  saveProfile().then(() => showToast("Profile saved.")).catch((error) => showToast(error?.message || "Could not save profile."));
+  saveProfile()
+    .then(() => loadAnalyticsSummary().catch(() => {}))
+    .then(() => showToast("Profile saved."))
+    .catch((error) => showToast(error?.message || "Could not save profile."));
 });
 document.getElementById("loadLeaderboard").addEventListener("click", () => {
-  loadLeaderboard().then(() => showToast("Rankings refreshed.")).catch((error) => showToast(error?.message || "Could not refresh rankings."));
+  Promise.all([loadLeaderboard(), loadAnalyticsSummary().catch(() => {})])
+    .then(() => showToast("Rankings refreshed."))
+    .catch((error) => showToast(error?.message || "Could not refresh rankings."));
 });
 document.getElementById("submitAnswer").addEventListener("click", () => submitAnswer());
 document.getElementById("showHint").addEventListener("click", showHint);
@@ -1768,7 +1859,11 @@ loadLocalState();
 applyTheme(els.theme.value);
 updateProfileSummary();
 syncModeFields();
+renderAnalyticsSummary(null);
 populateMeta().catch(() => {});
 loadLeaderboard().catch(() => {
   els.leaderboardOutput.innerHTML = '<div class="leaderboard-empty">Start the backend to load the season ladder.</div>';
+});
+trackAnalytics("page_view").then(() => loadAnalyticsSummary()).catch(() => {
+  els.analyticsOutput.innerHTML = '<div class="leaderboard-empty">Start the backend to load visitor analytics.</div>';
 });

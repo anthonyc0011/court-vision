@@ -178,6 +178,19 @@ def init_db():
                 )
                 """
             )
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS analytics_events (
+                    id BIGSERIAL PRIMARY KEY,
+                    visitor_id TEXT NOT NULL,
+                    event_type TEXT NOT NULL,
+                    path TEXT NOT NULL,
+                    username TEXT,
+                    referrer TEXT,
+                    created_at BIGINT NOT NULL
+                )
+                """
+            )
         else:
             conn.execute(
                 """
@@ -200,7 +213,89 @@ def init_db():
                 )
                 """
             )
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS analytics_events (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    visitor_id TEXT NOT NULL,
+                    event_type TEXT NOT NULL,
+                    path TEXT NOT NULL,
+                    username TEXT,
+                    referrer TEXT,
+                    created_at INTEGER NOT NULL
+                )
+                """
+            )
         conn.commit()
+
+
+def get_analytics_summary() -> dict:
+    now = int(time.time())
+    last_5m = now - 300
+    last_24h = now - 86400
+    last_7d = now - (86400 * 7)
+
+    with get_conn() as conn:
+        if USING_POSTGRES:
+            total_pageviews = conn.execute(
+                "SELECT COUNT(*) AS value FROM analytics_events WHERE event_type = %s",
+                ("page_view",),
+            ).fetchone()["value"]
+            pageviews_24h = conn.execute(
+                "SELECT COUNT(*) AS value FROM analytics_events WHERE event_type = %s AND created_at >= %s",
+                ("page_view", last_24h),
+            ).fetchone()["value"]
+            pageviews_7d = conn.execute(
+                "SELECT COUNT(*) AS value FROM analytics_events WHERE event_type = %s AND created_at >= %s",
+                ("page_view", last_7d),
+            ).fetchone()["value"]
+            unique_visitors_24h = conn.execute(
+                "SELECT COUNT(DISTINCT visitor_id) AS value FROM analytics_events WHERE created_at >= %s",
+                (last_24h,),
+            ).fetchone()["value"]
+            live_visitors = conn.execute(
+                "SELECT COUNT(DISTINCT visitor_id) AS value FROM analytics_events WHERE created_at >= %s",
+                (last_5m,),
+            ).fetchone()["value"]
+            quiz_starts_24h = conn.execute(
+                "SELECT COUNT(*) AS value FROM analytics_events WHERE event_type = %s AND created_at >= %s",
+                ("quiz_start", last_24h),
+            ).fetchone()["value"]
+        else:
+            total_pageviews = conn.execute(
+                "SELECT COUNT(*) AS value FROM analytics_events WHERE event_type = ?",
+                ("page_view",),
+            ).fetchone()["value"]
+            pageviews_24h = conn.execute(
+                "SELECT COUNT(*) AS value FROM analytics_events WHERE event_type = ? AND created_at >= ?",
+                ("page_view", last_24h),
+            ).fetchone()["value"]
+            pageviews_7d = conn.execute(
+                "SELECT COUNT(*) AS value FROM analytics_events WHERE event_type = ? AND created_at >= ?",
+                ("page_view", last_7d),
+            ).fetchone()["value"]
+            unique_visitors_24h = conn.execute(
+                "SELECT COUNT(DISTINCT visitor_id) AS value FROM analytics_events WHERE created_at >= ?",
+                (last_24h,),
+            ).fetchone()["value"]
+            live_visitors = conn.execute(
+                "SELECT COUNT(DISTINCT visitor_id) AS value FROM analytics_events WHERE created_at >= ?",
+                (last_5m,),
+            ).fetchone()["value"]
+            quiz_starts_24h = conn.execute(
+                "SELECT COUNT(*) AS value FROM analytics_events WHERE event_type = ? AND created_at >= ?",
+                ("quiz_start", last_24h),
+            ).fetchone()["value"]
+
+    return {
+        "live_visitors": int(live_visitors or 0),
+        "unique_visitors_24h": int(unique_visitors_24h or 0),
+        "pageviews_24h": int(pageviews_24h or 0),
+        "pageviews_7d": int(pageviews_7d or 0),
+        "total_pageviews": int(total_pageviews or 0),
+        "quiz_starts_24h": int(quiz_starts_24h or 0),
+        "generated_at": now,
+    }
 
 
 class LeaderboardEntry(BaseModel):
@@ -216,6 +311,14 @@ class ProfilePayload(BaseModel):
     theme: str = "Arena Blue"
     settings: dict | None = None
     progress: dict | None = None
+
+
+class AnalyticsEventPayload(BaseModel):
+    visitor_id: str
+    event_type: str = "page_view"
+    path: str = "/"
+    username: str | None = None
+    referrer: str | None = None
 
 
 class QuizRequest(BaseModel):
@@ -384,6 +487,47 @@ async def handle_online_submission(room: dict, username: str, answer: str, skipp
 @app.get("/api/health")
 def health():
     return {"ok": True, "online_rooms": len(ONLINE_MATCHES)}
+
+
+@app.post("/api/analytics")
+def post_analytics_event(payload: AnalyticsEventPayload):
+    visitor_id = re.sub(r"[^a-zA-Z0-9_-]", "", payload.visitor_id.strip())[:64]
+    if not visitor_id:
+        raise HTTPException(status_code=400, detail="Missing visitor ID.")
+
+    event_type = payload.event_type.strip().lower() or "page_view"
+    if event_type not in {"page_view", "quiz_start"}:
+        event_type = "page_view"
+
+    path = str(payload.path or "/").strip()[:255] or "/"
+    username = (payload.username or "").strip()[:80] or None
+    referrer = (payload.referrer or "").strip()[:500] or None
+    created_at = int(time.time())
+
+    with get_conn() as conn:
+        if USING_POSTGRES:
+            conn.execute(
+                """
+                INSERT INTO analytics_events (visitor_id, event_type, path, username, referrer, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                """,
+                (visitor_id, event_type, path, username, referrer, created_at),
+            )
+        else:
+            conn.execute(
+                """
+                INSERT INTO analytics_events (visitor_id, event_type, path, username, referrer, created_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (visitor_id, event_type, path, username, referrer, created_at),
+            )
+        conn.commit()
+    return {"saved": True}
+
+
+@app.get("/api/analytics/summary")
+def analytics_summary():
+    return get_analytics_summary()
 
 
 @app.post("/api/online-match/create")
