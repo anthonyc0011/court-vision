@@ -10,130 +10,172 @@
 <body data-theme="Arena Blue">
   <main class="app-shell">
     <section id="homeScreen" class="screen active">
-      <section class="hero-card">
+      <section class="hero-card home-hero">
         <div class="hero-topbar">
           <button id="loginButton" class="topbar-button secondary-button">Login</button>
           <button id="shareButton" class="topbar-button secondary-button">Share</button>
         </div>
-        <div id="authPanel" class="auth-panel hidden">
-          <div id="authSignedOut">
-            <p class="eyebrow">Account</p>
-            <div class="daily-status">Sign in with Google to make your profile truly yours.</div>
-            <div id="googleSignInButton" class="google-signin-slot"></div>
-            <div id="authStatus" class="online-status"></div>
+        <div class="home-hero-grid">
+          <div class="hero-copy">
+            <p class="eyebrow">NBA College Quiz</p>
+            <h1 id="siteTitle">Court Vision</h1>
+            <p class="subtitle">A sharper way to play: solo runs, private battles, and true ranked online with headshots, history, and live competition.</p>
+            <div class="hero-ribbon">
+              <span class="ribbon-chip">Solo Quiz</span>
+              <span class="ribbon-chip">Private Matchups</span>
+              <span class="ribbon-chip">True Ranked Online</span>
+            </div>
           </div>
-          <div id="authSignedIn" class="hidden">
-            <p class="eyebrow">Signed In</p>
-            <div class="auth-user-row">
-              <img id="authUserPicture" class="auth-avatar" alt="Profile picture" />
-              <div>
-                <div id="authUserName" class="daily-status"></div>
-                <div id="authUserEmail" class="leaderboard-meta"></div>
+          <div id="authPanel" class="auth-panel hidden">
+            <div id="authSignedOut">
+              <p class="eyebrow">Account</p>
+              <div class="daily-status">Sign in with Google to lock your profile, Elo, and ranked identity.</div>
+              <div id="googleSignInButton" class="google-signin-slot"></div>
+              <div id="authStatus" class="online-status"></div>
+            </div>
+            <div id="authSignedIn" class="hidden">
+              <p class="eyebrow">Signed In</p>
+              <div class="auth-user-row">
+                <img id="authUserPicture" class="auth-avatar" alt="Profile picture" />
+                <div>
+                  <div id="authUserName" class="daily-status"></div>
+                  <div id="authUserEmail" class="leaderboard-meta"></div>
+                </div>
+              </div>
+              <div class="hero-actions compact-actions">
+                <button id="openProfileSettings" class="secondary-button">Profile Settings</button>
+                <button id="logoutButton" class="secondary-button">Logout</button>
               </div>
             </div>
-            <div class="hero-actions">
-              <button id="openProfileSettings" class="secondary-button">Profile Settings</button>
-              <button id="logoutButton" class="secondary-button">Logout</button>
-            </div>
           </div>
-        </div>
-        <p class="eyebrow">Playable Web Build</p>
-        <h1 id="siteTitle">Court Vision</h1>
-        <p class="subtitle">Play the NBA college quiz in your browser with headshots, season ranks, profiles, and online matchups.</p>
-        <div class="hero-ribbon">
-          <span class="ribbon-chip">Headshots</span>
-          <span class="ribbon-chip">Ranked Leaderboard</span>
-          <span class="ribbon-chip">Online Matchups</span>
         </div>
       </section>
 
-      <section class="grid">
-        <article class="panel">
-          <h2>Game Setup</h2>
-          <label for="username">Username</label>
-          <input id="username" placeholder="Enter username" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
-
-          <label for="theme">Theme</label>
-          <select id="theme">
-            <option>Arena Blue</option>
-            <option>Classic Gold</option>
-            <option>Emerald Court</option>
-            <option>Midnight Heat</option>
-          </select>
-
-          <label for="gameMode">Mode</label>
-          <select id="gameMode">
-            <option value="Practice">Practice</option>
-            <option value="Timed">Timed</option>
-            <option value="Hard">Hard</option>
-            <option value="Learning">Learning</option>
-          </select>
-
-          <label for="questionCount">Quiz Length</label>
-          <select id="questionCount">
-            <option value="10">10</option>
-            <option value="25" selected>25</option>
-            <option value="50">50</option>
-            <option value="100">100</option>
-            <option value="all">All</option>
-          </select>
-
-          <label for="conferenceFilter">Conference</label>
-          <select id="conferenceFilter">
-            <option value="All">All</option>
-          </select>
-
-          <label for="answerMode">Answer Style</label>
-          <select id="answerMode">
-            <option value="typed">Typed</option>
-            <option value="multiple-choice">Multiple Choice</option>
-          </select>
-
-          <label class="checkbox-row">
-            <input type="checkbox" id="showHeadshots" checked />
-            <span>Show Headshots</span>
-          </label>
-
-          <label class="checkbox-row">
-            <input type="checkbox" id="twoPlayerMode" />
-            <span>2-Player Local</span>
-          </label>
-
-          <div id="twoPlayerFields" class="two-player-fields hidden">
-            <label for="playerOneName">Player 1 Name</label>
-            <input id="playerOneName" placeholder="Player 1" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
-            <label for="playerTwoName">Player 2 Name</label>
-            <input id="playerTwoName" placeholder="Player 2" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
+      <section class="home-grid">
+        <article class="panel play-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Play</p>
+              <h2>Set Up Your Run</h2>
+            </div>
+            <div class="panel-note">Start fast, then fine-tune if you want.</div>
           </div>
 
-          <label class="checkbox-row">
-            <input type="checkbox" id="onlineMode" />
-            <span>Online 1v1</span>
-          </label>
-
-          <div id="onlineFields" class="two-player-fields hidden">
-            <label for="onlineAction">Online Match</label>
-            <select id="onlineAction">
-              <option value="create">Create Match</option>
-              <option value="join">Join Match</option>
-            </select>
-            <label for="onlineCode">Match Code</label>
-            <input id="onlineCode" placeholder="Enter code to join" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" />
-            <div id="onlineStatus" class="online-status">Create a room or join one with a match code.</div>
+          <div class="setup-section">
+            <div class="setup-grid two-col">
+              <div>
+                <label for="username">Username</label>
+                <input id="username" placeholder="Enter username" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
+              </div>
+              <div>
+                <label for="theme">Theme</label>
+                <select id="theme">
+                  <option>Arena Blue</option>
+                  <option>Classic Gold</option>
+                  <option>Emerald Court</option>
+                  <option>Midnight Heat</option>
+                </select>
+              </div>
+            </div>
           </div>
 
-          <label class="checkbox-row">
-            <input type="checkbox" id="rankedMode" />
-            <span>Ranked Queue</span>
-          </label>
+          <div class="setup-section">
+            <div class="section-title-row">
+              <h3>Core Settings</h3>
+              <span class="section-note">Your everyday quiz setup.</span>
+            </div>
+            <div class="setup-grid two-col">
+              <div>
+                <label for="gameMode">Mode</label>
+                <select id="gameMode">
+                  <option value="Practice">Practice</option>
+                  <option value="Timed">Timed</option>
+                  <option value="Hard">Hard</option>
+                  <option value="Learning">Learning</option>
+                </select>
+              </div>
+              <div>
+                <label for="questionCount">Quiz Length</label>
+                <select id="questionCount">
+                  <option value="10">10</option>
+                  <option value="25" selected>25</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                  <option value="all">All</option>
+                </select>
+              </div>
+              <div>
+                <label for="conferenceFilter">Conference</label>
+                <select id="conferenceFilter">
+                  <option value="All">All</option>
+                </select>
+              </div>
+              <div>
+                <label for="answerMode">Answer Style</label>
+                <select id="answerMode">
+                  <option value="typed">Typed</option>
+                  <option value="multiple-choice">Multiple Choice</option>
+                </select>
+              </div>
+            </div>
+            <label class="checkbox-row subtle-checkbox">
+              <input type="checkbox" id="showHeadshots" checked />
+              <span>Show headshots</span>
+            </label>
+          </div>
 
-          <div id="rankedFields" class="two-player-fields hidden">
-            <div class="online-status">Ranked uses 25 questions, multiple choice, no hints, and a 15-second timer. Google sign-in is required.</div>
+          <div class="setup-section">
+            <div class="section-title-row">
+              <h3>Ways To Play</h3>
+              <span class="section-note">Pick one competitive mode when you want to branch out.</span>
+            </div>
+
+            <div class="mode-stack">
+              <div class="mode-card">
+                <label class="checkbox-row">
+                  <input type="checkbox" id="twoPlayerMode" />
+                  <span>2-Player Local</span>
+                </label>
+                <div id="twoPlayerFields" class="two-player-fields hidden">
+                  <label for="playerOneName">Player 1 Name</label>
+                  <input id="playerOneName" placeholder="Player 1" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
+                  <label for="playerTwoName">Player 2 Name</label>
+                  <input id="playerTwoName" placeholder="Player 2" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
+                </div>
+              </div>
+
+              <div class="mode-card">
+                <label class="checkbox-row">
+                  <input type="checkbox" id="onlineMode" />
+                  <span>Private Online 1v1</span>
+                </label>
+                <div id="onlineFields" class="two-player-fields hidden">
+                  <label for="onlineAction">Online Match</label>
+                  <select id="onlineAction">
+                    <option value="create">Create Match</option>
+                    <option value="join">Join Match</option>
+                  </select>
+                  <label for="onlineCode">Match Code</label>
+                  <input id="onlineCode" placeholder="Enter code to join" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" />
+                  <div id="onlineStatus" class="online-status">Create a room or join one with a match code.</div>
+                </div>
+              </div>
+
+              <div class="mode-card ranked-card">
+                <label class="checkbox-row">
+                  <input type="checkbox" id="rankedMode" />
+                  <span>True Ranked Online</span>
+                </label>
+                <div id="rankedFields" class="two-player-fields hidden">
+                  <div class="online-status">Ranked is always 25 questions, multiple choice, no hints, and a 15-second timer. Google sign-in is required.</div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <input type="checkbox" id="dailyMode" hidden />
 
-          <div class="hero-actions">
+          <div class="hero-actions home-primary-actions">
             <button id="startQuiz">Start Game</button>
             <button id="saveProfile">Save Profile</button>
             <button id="loadLeaderboard">Refresh Rankings</button>
@@ -141,16 +183,19 @@
         </article>
 
         <article class="panel dashboard-panel">
-          <div class="dashboard-header">
-            <p class="eyebrow">Player Hub</p>
-            <h2>Profile, Ranked Leaderboard, And Rank History</h2>
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Player Hub</p>
+              <h2>Progress, Ranked Ladder, And Account</h2>
+            </div>
+            <div class="panel-note">Everything important lives here without crowding the start flow.</div>
           </div>
           <div id="profileSummary" class="dashboard-card profile-card">Profile summary will appear here.</div>
           <div id="profileSettingsCard" class="dashboard-card settings-card hidden">
             <div class="leaderboard-header">
               <div>
                 <p class="eyebrow">Profile Settings</p>
-                <div class="daily-status">Set your canonical account name and saved defaults.</div>
+                <div class="daily-status">Choose your canonical account name and defaults.</div>
               </div>
             </div>
             <label for="profileDisplayName">Display Name</label>
@@ -192,12 +237,12 @@
                 </select>
               </div>
             </div>
-            <label class="checkbox-row">
+            <label class="checkbox-row subtle-checkbox">
               <input type="checkbox" id="profileDefaultHeadshots" checked />
               <span>Show headshots by default</span>
             </label>
-            <div class="settings-note">This locks one display name to your Google account and keeps your saved defaults synced across devices.</div>
-            <div class="hero-actions">
+            <div class="settings-note">Your Google account keeps this identity and these defaults synced across devices.</div>
+            <div class="hero-actions compact-actions">
               <button id="saveProfileSettings">Save Account Settings</button>
             </div>
           </div>
