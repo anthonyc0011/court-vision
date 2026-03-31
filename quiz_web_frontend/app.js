@@ -89,6 +89,10 @@ const state = {
     highestRankIndex: 0,
     seasonTag: "",
   },
+  admin: {
+    titleTapCount: 0,
+    lastTitleTapAt: 0,
+  },
 };
 
 const screens = {
@@ -117,8 +121,8 @@ const els = {
   dailyMode: document.getElementById("dailyMode"),
   profileSummary: document.getElementById("profileSummary"),
   dailyOutput: document.getElementById("dailyOutput"),
-  analyticsOutput: document.getElementById("analyticsOutput"),
   leaderboardOutput: document.getElementById("leaderboardOutput"),
+  siteTitle: document.getElementById("siteTitle"),
   modeChip: document.getElementById("modeChip"),
   scoreChip: document.getElementById("scoreChip"),
   timerLabel: document.getElementById("timerLabel"),
@@ -229,6 +233,24 @@ function setAnalyticsAdminKey(value) {
     sessionStorage.setItem(ANALYTICS_KEY_STORAGE, value);
   } else {
     sessionStorage.removeItem(ANALYTICS_KEY_STORAGE);
+  }
+}
+
+function ensureAnalyticsCard() {
+  let card = document.getElementById("analyticsOutput");
+  if (card) return card;
+
+  card = document.createElement("div");
+  card.id = "analyticsOutput";
+  card.className = "dashboard-card analytics-card";
+  els.leaderboardOutput.insertAdjacentElement("beforebegin", card);
+  return card;
+}
+
+function removeAnalyticsCard() {
+  const card = document.getElementById("analyticsOutput");
+  if (card) {
+    card.remove();
   }
 }
 
@@ -492,27 +514,12 @@ function renderSeasonStatus() {
 
 function renderAnalyticsSummary(summary) {
   if (!summary) {
-    els.analyticsOutput.innerHTML = `
-      <div class="leaderboard-header">
-        <div>
-          <p class="eyebrow">Visitor Analytics</p>
-          <div class="daily-status">Locked</div>
-        </div>
-      </div>
-      <div class="leaderboard-empty">Only you can view analytics. Enter your admin key to unlock this card.</div>
-      <div class="two-player-fields">
-        <label for="analyticsAdminKey">Analytics Admin Key</label>
-        <input id="analyticsAdminKey" type="password" placeholder="Enter analytics key" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
-        <div class="hero-actions">
-          <button id="unlockAnalytics">Unlock Analytics</button>
-          <button id="clearAnalyticsKey" class="secondary-button">Clear Key</button>
-        </div>
-      </div>
-    `;
+    removeAnalyticsCard();
     return;
   }
 
-  els.analyticsOutput.innerHTML = `
+  const analyticsOutput = ensureAnalyticsCard();
+  analyticsOutput.innerHTML = `
     <div class="leaderboard-header">
       <div>
         <p class="eyebrow">Visitor Analytics</p>
@@ -545,6 +552,10 @@ function renderAnalyticsSummary(summary) {
         <span class="dashboard-label">Total Pageviews</span>
         <strong>${summary.total_pageviews}</strong>
       </div>
+    </div>
+    <div class="hero-actions">
+      <button id="refreshAnalytics">Refresh Analytics</button>
+      <button id="clearAnalyticsKey" class="secondary-button">Hide Analytics</button>
     </div>
   `;
 }
@@ -1770,6 +1781,23 @@ async function loadAnalyticsSummary() {
   renderAnalyticsSummary(summary);
 }
 
+async function promptAnalyticsUnlock() {
+  const entered = window.prompt("Enter analytics admin key");
+  const key = String(entered || "").trim();
+  if (!key) {
+    return;
+  }
+  setAnalyticsAdminKey(key);
+  try {
+    await loadAnalyticsSummary();
+    showToast("Analytics unlocked.");
+  } catch (error) {
+    setAnalyticsAdminKey("");
+    renderAnalyticsSummary(null);
+    showToast(error?.message || "Could not unlock analytics.");
+  }
+}
+
 async function trackAnalytics(eventType = "page_view") {
   const username = (els.username?.value || state.profile.username || "Guest").trim();
   try {
@@ -1837,28 +1865,35 @@ document.getElementById("loadLeaderboard").addEventListener("click", () => {
     .then(() => showToast("Rankings refreshed."))
     .catch((error) => showToast(error?.message || "Could not refresh rankings."));
 });
+els.siteTitle?.addEventListener("click", () => {
+  const now = Date.now();
+  if (now - state.admin.lastTitleTapAt > 8000) {
+    state.admin.titleTapCount = 0;
+  }
+  state.admin.lastTitleTapAt = now;
+  state.admin.titleTapCount += 1;
+  if (state.admin.titleTapCount >= 5) {
+    state.admin.titleTapCount = 0;
+    promptAnalyticsUnlock();
+  }
+});
+document.addEventListener("keydown", (event) => {
+  if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === "a") {
+    event.preventDefault();
+    promptAnalyticsUnlock();
+  }
+});
 document.addEventListener("click", (event) => {
-  if (event.target?.id === "unlockAnalytics") {
-    const input = document.getElementById("analyticsAdminKey");
-    const key = input?.value?.trim() || "";
-    if (!key) {
-      showToast("Enter your analytics key first.");
-      return;
-    }
-    setAnalyticsAdminKey(key);
+  if (event.target?.id === "refreshAnalytics") {
     loadAnalyticsSummary()
-      .then(() => showToast("Analytics unlocked."))
-      .catch((error) => {
-        setAnalyticsAdminKey("");
-        renderAnalyticsSummary(null);
-        showToast(error?.message || "Could not unlock analytics.");
-      });
+      .then(() => showToast("Analytics refreshed."))
+      .catch((error) => showToast(error?.message || "Could not refresh analytics."));
   }
 
   if (event.target?.id === "clearAnalyticsKey") {
     setAnalyticsAdminKey("");
     renderAnalyticsSummary(null);
-    showToast("Analytics key cleared.");
+    showToast("Analytics hidden.");
   }
 });
 document.getElementById("submitAnswer").addEventListener("click", () => submitAnswer());
@@ -1921,5 +1956,5 @@ loadLeaderboard().catch(() => {
   els.leaderboardOutput.innerHTML = '<div class="leaderboard-empty">Start the backend to load the season ladder.</div>';
 });
 trackAnalytics("page_view").then(() => loadAnalyticsSummary()).catch(() => {
-  els.analyticsOutput.innerHTML = '<div class="leaderboard-empty">Start the backend to load visitor analytics.</div>';
+  renderAnalyticsSummary(null);
 });
