@@ -942,7 +942,24 @@ def profiles():
                 **payload,
             }
         )
-    return {"profiles": result}
+
+    def sort_strength(item: dict) -> tuple:
+        progress = item.get("progress") or {}
+        xp = int(progress.get("xp") or 0)
+        best_score = int(progress.get("bestScore") or 0)
+        is_google = 1 if item.get("auth_provider") == "google" else 0
+        return (is_google, xp, best_score)
+
+    deduped: dict[str, dict] = {}
+    for item in result:
+        key = str(item.get("username") or "").strip().lower()
+        if not key:
+            continue
+        existing = deduped.get(key)
+        if existing is None or sort_strength(item) > sort_strength(existing):
+            deduped[key] = item
+
+    return {"profiles": list(deduped.values())}
 
 
 @app.post("/api/profiles")
