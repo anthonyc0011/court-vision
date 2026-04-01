@@ -188,10 +188,12 @@ def build_question_payload(row, df: pd.DataFrame):
     logo_name = f"{normalize_name(school)}.png"
     headshot_file = str(row.get("Headshot File", "")).strip() if row.get("Headshot File") else ""
     headshot_url = str(row.get("Headshot URL", "")).strip() if row.get("Headshot URL") else ""
-    if headshot_file and (HEADSHOT_DIR / headshot_file).exists():
+    if headshot_url:
+        headshot = headshot_url
+    elif headshot_file and (HEADSHOT_DIR / headshot_file).exists():
         headshot = f"/assets/headshots/{headshot_file}"
     else:
-        headshot = headshot_url or None
+        headshot = None
     return {
         "question_id": register_question_data(row),
         "player_name": row["Player Name"],
