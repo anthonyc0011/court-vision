@@ -105,6 +105,10 @@ const state = {
     lastTitleTapAt: 0,
     profiles: [],
   },
+  directory: {
+    searchTimerId: null,
+    results: [],
+  },
   auth: {
     token: "",
     user: null,
@@ -1318,6 +1322,7 @@ function renderMedia(question) {
 }
 
 function renderDirectoryResults(players = [], query = "") {
+  state.directory.results = players;
   if (!players.length) {
     els.directoryResults.innerHTML = query
       ? `<div class="leaderboard-empty">No players matched "${escapeHtml(query)}".</div>`
@@ -1328,14 +1333,14 @@ function renderDirectoryResults(players = [], query = "") {
   els.directoryResults.innerHTML = players
     .map(
       (player) => `
-        <div class="directory-row">
+        <button class="directory-row" data-player-name="${escapeHtml(player.player_name)}" type="button">
           <img class="directory-headshot" src="${escapeHtml(resolveAssetUrl(player.headshot))}" alt="${escapeHtml(player.player_name)} headshot" />
           <div>
             <span class="directory-name">${escapeHtml(player.player_name)}</span>
             <div class="directory-college">${escapeHtml(player.college)}</div>
             <div class="directory-meta">${escapeHtml(player.conference)}</div>
           </div>
-        </div>
+        </button>
       `
     )
     .join("");
@@ -1351,6 +1356,29 @@ async function searchDirectory() {
   els.directoryResults.innerHTML = '<div class="leaderboard-empty">Searching player directory...</div>';
   const payload = await fetchJson(`/player-directory?q=${encodeURIComponent(query)}&limit=8`);
   renderDirectoryResults(payload.players || [], payload.query || query);
+}
+
+function queueDirectorySearch() {
+  if (state.directory.searchTimerId) {
+    window.clearTimeout(state.directory.searchTimerId);
+  }
+
+  const query = (els.directorySearch?.value || "").trim();
+  if (!query) {
+    renderDirectoryResults([], "");
+    return;
+  }
+
+  state.directory.searchTimerId = window.setTimeout(() => {
+    searchDirectory().catch((error) => showToast(error?.message || "Could not search the directory."));
+  }, 140);
+}
+
+function selectDirectoryPlayer(playerName) {
+  const selected = state.directory.results.find((player) => player.player_name === playerName);
+  if (!selected) return;
+  els.directorySearch.value = selected.player_name;
+  renderDirectoryResults([selected], selected.player_name);
 }
 
 function renderChoices(question) {
@@ -2608,6 +2636,14 @@ els.shareButton?.addEventListener("click", async () => {
 });
 els.directorySearchButton?.addEventListener("click", () => {
   searchDirectory().catch((error) => showToast(error?.message || "Could not search the directory."));
+});
+els.directoryResults?.addEventListener("click", (event) => {
+  const button = event.target.closest(".directory-row[data-player-name]");
+  if (!button) return;
+  selectDirectoryPlayer(button.dataset.playerName || "");
+});
+els.directorySearch?.addEventListener("input", () => {
+  queueDirectorySearch();
 });
 els.directorySearch?.addEventListener("keydown", (event) => {
   if (event.key === "Enter") {

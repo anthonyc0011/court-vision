@@ -778,6 +778,16 @@ button:hover {
   border-radius: 16px;
   background: color-mix(in srgb, var(--surface) 78%, transparent);
   border: 1px solid color-mix(in srgb, var(--outline) 74%, transparent);
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.14s ease, border-color 0.14s ease, background 0.14s ease;
+}
+
+.directory-row:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--accent) 34%, transparent);
+  background: color-mix(in srgb, var(--surface) 72%, var(--accent) 8%);
 }
 
 .directory-headshot {
