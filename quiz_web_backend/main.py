@@ -78,6 +78,13 @@ RANKED_DIVISIONS = [
 RANKED_QUESTION_COUNT = 25
 RANKED_WIN_ELO = 30
 RANKED_LOSS_ELO = 10
+CONFERENCE_ALIASES = {
+    "AAC": "American Athletic Conference",
+    "The American": "American Athletic Conference",
+    "C-USA": "Conference USA",
+    "MVC": "Missouri Valley Conference",
+    "WCC": "West Coast Conference",
+}
 
 
 def normalize_name(text: str) -> str:
@@ -95,9 +102,21 @@ def normalize_answer(text: str) -> str:
     return text
 
 
+def normalize_conference_name(value: str) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return "None"
+    return CONFERENCE_ALIASES.get(text, text)
+
+
 def load_dataframe():
-    df = pd.read_excel(DATA_FILE)
-    df["College / Last School"] = df["College / Last School"].fillna("None")
+    df = pd.read_excel(DATA_FILE, keep_default_na=False)
+    for column in ("Player Name", "College / Last School", "Conference", "Headshot File"):
+        if column in df.columns:
+            df[column] = df[column].astype(str).str.strip()
+    df["College / Last School"] = df["College / Last School"].replace({"": "None"})
+    df["Conference"] = df["Conference"].apply(normalize_conference_name)
+    df.loc[df["College / Last School"].str.lower() == "none", "Conference"] = "None"
     df = df[df["College / Last School"].str.lower() != "none"].copy()
     return df
 
@@ -1586,7 +1605,7 @@ def players(count: int | None = 10):
 @app.get("/api/meta")
 def meta():
     df = load_dataframe()
-    conferences = sorted({str(item).strip() for item in df["Conference"].dropna().tolist()})
+    conferences = sorted({normalize_conference_name(item) for item in df["Conference"].tolist() if normalize_conference_name(item) != "None"})
     return {"conferences": ["All"] + conferences}
 
 

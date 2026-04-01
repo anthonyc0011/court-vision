@@ -30,7 +30,7 @@ headshot_dir = os.path.join(base_dir, "headshots")
 school_logo_dir = os.path.join(base_dir, "school_logos")
 
 try:
-    df = pd.read_excel(file_path)
+    df = pd.read_excel(file_path, keep_default_na=False)
 except Exception as e:
     raise Exception(f"Could not read Excel file: {e}")
 
@@ -39,7 +39,22 @@ for col in required_columns:
     if col not in df.columns:
         raise Exception(f"Excel file must have the column '{col}'. Your columns: {list(df.columns)}")
 
-df["College / Last School"] = df["College / Last School"].fillna("None")
+CONFERENCE_ALIASES = {
+    "AAC": "American Athletic Conference",
+    "The American": "American Athletic Conference",
+    "C-USA": "Conference USA",
+    "MVC": "Missouri Valley Conference",
+    "WCC": "West Coast Conference",
+}
+
+for column in ("Player Name", "College / Last School", "Conference", "Headshot File"):
+    if column in df.columns:
+        df[column] = df[column].astype(str).str.strip()
+
+df["College / Last School"] = df["College / Last School"].replace({"": "None"})
+df["Conference"] = df["Conference"].replace(CONFERENCE_ALIASES)
+df["Conference"] = df["Conference"].replace({"": "None"})
+df.loc[df["College / Last School"].str.lower() == "none", "Conference"] = "None"
 df = df[df["College / Last School"].str.lower() != "none"].copy()
 
 
