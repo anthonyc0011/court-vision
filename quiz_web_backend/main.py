@@ -253,6 +253,24 @@ def build_question_payload(row, df: pd.DataFrame):
     }
 
 
+def build_directory_payload(row) -> dict:
+    school = str(row["College / Last School"]).strip()
+    headshot_file = str(row.get("Headshot File", "")).strip() if row.get("Headshot File") else ""
+    headshot_url = str(row.get("Headshot URL", "")).strip() if row.get("Headshot URL") else ""
+    if headshot_url:
+        headshot = headshot_url
+    elif headshot_file and (HEADSHOT_DIR / headshot_file).exists():
+        headshot = f"/assets/headshots/{headshot_file}"
+    else:
+        headshot = None
+    return {
+        "player_name": row["Player Name"],
+        "college": school,
+        "conference": row["Conference"],
+        "headshot": headshot,
+    }
+
+
 def cleanup_question_store():
     now = time.time()
     expired = [key for key, value in QUESTION_STORE.items() if now - value.get("created_at", now) > QUESTION_TTL_SECONDS]
@@ -1674,6 +1692,29 @@ def players(count: int | None = 10):
     df = load_dataframe()
     sample = choose_random_records(df, count)
     return {"players": [build_question_payload(row, df) for row in sample]}
+
+
+@app.get("/api/player-directory")
+def player_directory(q: str = "", limit: int = 8):
+    df = load_dataframe()
+    query = str(q or "").strip()
+    if not query:
+        return {"players": [], "query": ""}
+
+    normalized_query = normalize_answer(query)
+    search_series = df["Player Name"].astype(str)
+
+    starts_with_mask = search_series.apply(lambda value: normalize_answer(value).startswith(normalized_query))
+    contains_mask = search_series.apply(lambda value: normalized_query in normalize_answer(value))
+
+    starts_with = df[starts_with_mask].copy()
+    contains = df[contains_mask & ~starts_with_mask].copy()
+    results_df = pd.concat([starts_with, contains], ignore_index=True).head(max(1, min(limit, 20)))
+
+    return {
+        "query": query,
+        "players": [build_directory_payload(row) for _, row in results_df.iterrows()],
+    }
 
 
 @app.get("/api/meta")

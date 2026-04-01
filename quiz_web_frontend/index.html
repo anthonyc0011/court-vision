@@ -266,6 +266,21 @@
           </div>
           <div id="dailyOutput" class="dashboard-card daily-card">Season status will appear here.</div>
           <div id="leaderboardOutput" class="dashboard-card leaderboard-card">Ranked leaderboard not loaded yet.</div>
+          <div id="directoryOutput" class="dashboard-card directory-card">
+            <div class="leaderboard-header">
+              <div>
+                <p class="eyebrow">Player Directory</p>
+                <div class="daily-status">Look up any player and see their college.</div>
+              </div>
+            </div>
+            <div class="directory-search-row">
+              <input id="directorySearch" placeholder="Search any NBA player" autocomplete="off" autocapitalize="words" autocorrect="off" spellcheck="false" />
+              <button id="directorySearchButton" class="secondary-button">Search</button>
+            </div>
+            <div id="directoryResults" class="directory-results">
+              <div class="leaderboard-empty">Search for a player to open the directory.</div>
+            </div>
+          </div>
         </article>
       </section>
     </section>

@@ -142,6 +142,10 @@ const els = {
   profileSummary: document.getElementById("profileSummary"),
   dailyOutput: document.getElementById("dailyOutput"),
   leaderboardOutput: document.getElementById("leaderboardOutput"),
+  directoryOutput: document.getElementById("directoryOutput"),
+  directorySearch: document.getElementById("directorySearch"),
+  directorySearchButton: document.getElementById("directorySearchButton"),
+  directoryResults: document.getElementById("directoryResults"),
   loginButton: document.getElementById("loginButton"),
   shareButton: document.getElementById("shareButton"),
   authPanel: document.getElementById("authPanel"),
@@ -742,6 +746,11 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+function resolveAssetUrl(value) {
+  if (!value) return "";
+  return /^https?:\/\//i.test(value) ? value : `${API_ORIGIN}${value}`;
+}
+
 function formatDateShort(value = new Date()) {
   const date = value instanceof Date ? value : new Date(value);
   return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
@@ -1285,10 +1294,6 @@ function renderProgress() {
 
 function renderMedia(question) {
   const showHeadshots = state.online.enabled ? state.online.showHeadshots : els.showHeadshots.checked;
-  const resolveAssetUrl = (value) => {
-    if (!value) return "";
-    return /^https?:\/\//i.test(value) ? value : `${API_ORIGIN}${value}`;
-  };
 
   if (question.headshot && showHeadshots) {
     els.headshotImage.src = resolveAssetUrl(question.headshot);
@@ -1310,6 +1315,42 @@ function renderMedia(question) {
     els.logoImage.classList.add("hidden");
     els.logoFallback.classList.add("hidden");
   }
+}
+
+function renderDirectoryResults(players = [], query = "") {
+  if (!players.length) {
+    els.directoryResults.innerHTML = query
+      ? `<div class="leaderboard-empty">No players matched "${escapeHtml(query)}".</div>`
+      : '<div class="leaderboard-empty">Search for a player to open the directory.</div>';
+    return;
+  }
+
+  els.directoryResults.innerHTML = players
+    .map(
+      (player) => `
+        <div class="directory-row">
+          <img class="directory-headshot" src="${escapeHtml(resolveAssetUrl(player.headshot))}" alt="${escapeHtml(player.player_name)} headshot" />
+          <div>
+            <span class="directory-name">${escapeHtml(player.player_name)}</span>
+            <div class="directory-college">${escapeHtml(player.college)}</div>
+            <div class="directory-meta">${escapeHtml(player.conference)}</div>
+          </div>
+        </div>
+      `
+    )
+    .join("");
+}
+
+async function searchDirectory() {
+  const query = (els.directorySearch?.value || "").trim();
+  if (!query) {
+    renderDirectoryResults([], "");
+    return;
+  }
+
+  els.directoryResults.innerHTML = '<div class="leaderboard-empty">Searching player directory...</div>';
+  const payload = await fetchJson(`/player-directory?q=${encodeURIComponent(query)}&limit=8`);
+  renderDirectoryResults(payload.players || [], payload.query || query);
 }
 
 function renderChoices(question) {
@@ -2563,6 +2604,15 @@ els.shareButton?.addEventListener("click", async () => {
     showToast("Link copied.");
   } catch (_error) {
     showToast("Could not share the link.");
+  }
+});
+els.directorySearchButton?.addEventListener("click", () => {
+  searchDirectory().catch((error) => showToast(error?.message || "Could not search the directory."));
+});
+els.directorySearch?.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    searchDirectory().catch((error) => showToast(error?.message || "Could not search the directory."));
   }
 });
 els.logoutButton?.addEventListener("click", () => {
