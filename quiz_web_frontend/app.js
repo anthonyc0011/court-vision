@@ -124,6 +124,7 @@ const els = {
   gameMode: document.getElementById("gameMode"),
   questionCount: document.getElementById("questionCount"),
   conferenceFilter: document.getElementById("conferenceFilter"),
+  playerPool: document.getElementById("playerPool"),
   answerMode: document.getElementById("answerMode"),
   showHeadshots: document.getElementById("showHeadshots"),
   twoPlayerMode: document.getElementById("twoPlayerMode"),
@@ -160,6 +161,7 @@ const els = {
   profileDefaultMode: document.getElementById("profileDefaultMode"),
   profileDefaultCount: document.getElementById("profileDefaultCount"),
   profileDefaultAnswerMode: document.getElementById("profileDefaultAnswerMode"),
+  profileDefaultPlayerPool: document.getElementById("profileDefaultPlayerPool"),
   profileDefaultHeadshots: document.getElementById("profileDefaultHeadshots"),
   saveProfileSettings: document.getElementById("saveProfileSettings"),
   modeChip: document.getElementById("modeChip"),
@@ -202,6 +204,13 @@ const els = {
   rematchStatus: document.getElementById("rematchStatus"),
 };
 
+const PLAYER_POOL_LABELS = {
+  all: "All Players",
+  rotation: "Rotation Players",
+  starter: "Starters",
+  bench: "Bench Players",
+};
+
 function getDefaultSettings() {
   return {
     username: "Guest",
@@ -209,6 +218,7 @@ function getDefaultSettings() {
     gameMode: "Practice",
     questionCount: "25",
     conferenceFilter: "All",
+    playerPool: "all",
     answerMode: "typed",
     showHeadshots: true,
     twoPlayerMode: false,
@@ -458,6 +468,7 @@ function applyProfilePayload(profile) {
   els.gameMode.value = settings.mode || els.gameMode.value;
   els.questionCount.value = settings.questionCount || els.questionCount.value;
   els.conferenceFilter.value = settings.conferenceFilter || els.conferenceFilter.value;
+  els.playerPool.value = settings.playerPool || els.playerPool.value;
   els.answerMode.value = settings.answerMode || els.answerMode.value;
   els.showHeadshots.checked = settings.showHeadshots !== false;
   els.twoPlayerMode.checked = Boolean(settings.twoPlayerMode);
@@ -492,6 +503,7 @@ function populateProfileSettingsForm() {
   els.profileDefaultMode.value = els.gameMode.value;
   els.profileDefaultCount.value = els.questionCount.value;
   els.profileDefaultAnswerMode.value = els.answerMode.value;
+  els.profileDefaultPlayerPool.value = els.playerPool.value;
   els.profileDefaultHeadshots.checked = els.showHeadshots.checked;
 }
 
@@ -618,6 +630,7 @@ function loadLocalState() {
   els.theme.value = savedSettings.theme || "Arena Blue";
   els.gameMode.value = savedSettings.gameMode || "Practice";
   els.questionCount.value = savedSettings.questionCount || "25";
+  els.playerPool.value = savedSettings.playerPool || "all";
   els.answerMode.value = savedSettings.answerMode || "typed";
   els.showHeadshots.checked = savedSettings.showHeadshots !== false;
   els.twoPlayerMode.checked = Boolean(savedSettings.twoPlayerMode);
@@ -638,6 +651,7 @@ function saveLocalSettings() {
     gameMode: els.gameMode.value,
     questionCount: els.questionCount.value,
     conferenceFilter: els.conferenceFilter.value,
+    playerPool: els.playerPool.value,
     answerMode: els.answerMode.value,
     showHeadshots: els.showHeadshots.checked,
     twoPlayerMode: els.twoPlayerMode.checked,
@@ -1773,6 +1787,7 @@ async function fetchQuizData(customQuestions = null) {
       daily: false,
       mode: els.gameMode.value,
       conference: els.conferenceFilter.value,
+      player_pool: els.playerPool.value,
     }),
   });
   state.questions = data.questions;
@@ -1892,6 +1907,10 @@ function applyOnlineMatchSettings(payload = {}) {
 
   if (payload.conference) {
     els.conferenceFilter.value = payload.conference;
+  }
+
+  if (payload.player_pool) {
+    els.playerPool.value = payload.player_pool;
   }
 }
 
@@ -2237,6 +2256,7 @@ async function startOnlineMatch() {
           room_code: roomCode || null,
           count: getRequestedQuestionCount(),
           conference: els.conferenceFilter.value,
+          player_pool: els.playerPool.value,
           answer_mode: els.answerMode.value,
           show_headshots: els.showHeadshots.checked,
         }),
@@ -2285,12 +2305,13 @@ async function saveProfile(silent = false) {
   const profilePayload = {
     username,
     theme: els.theme.value,
-    settings: {
-      mode: els.gameMode.value,
-      questionCount: els.questionCount.value,
-      conferenceFilter: els.conferenceFilter.value,
-      answerMode: els.answerMode.value,
-      showHeadshots: els.showHeadshots.checked,
+      settings: {
+        mode: els.gameMode.value,
+        questionCount: els.questionCount.value,
+        conferenceFilter: els.conferenceFilter.value,
+        playerPool: els.playerPool.value,
+        answerMode: els.answerMode.value,
+        showHeadshots: els.showHeadshots.checked,
       twoPlayerMode: els.twoPlayerMode.checked,
       playerOneName: els.playerOneName.value.trim() || "Player 1",
       playerTwoName: els.playerTwoName.value.trim() || "Player 2",
@@ -2345,6 +2366,7 @@ async function saveAccountSettings() {
   els.theme.value = els.profileTheme.value;
   els.gameMode.value = els.profileDefaultMode.value;
   els.questionCount.value = els.profileDefaultCount.value;
+  els.playerPool.value = els.profileDefaultPlayerPool.value;
   els.answerMode.value = els.profileDefaultAnswerMode.value;
   els.showHeadshots.checked = els.profileDefaultHeadshots.checked;
   syncModeFields();
@@ -2489,6 +2511,18 @@ async function populateMeta() {
   if (saved?.conferenceFilter) {
     els.conferenceFilter.value = saved.conferenceFilter;
   }
+  const playerPoolCounts = data.player_pools || {};
+  [els.playerPool, els.profileDefaultPlayerPool].forEach((select) => {
+    if (!select) return;
+    Array.from(select.options).forEach((option) => {
+      const baseLabel = PLAYER_POOL_LABELS[option.value] || option.textContent;
+      const count = playerPoolCounts[option.value];
+      option.textContent = Number.isFinite(count) ? `${baseLabel} (${count})` : baseLabel;
+    });
+  });
+  if (saved?.playerPool) {
+    els.playerPool.value = saved.playerPool;
+  }
 }
 
 document.getElementById("startQuiz").addEventListener("click", () => {
@@ -2602,6 +2636,7 @@ els.typedAnswer.addEventListener("keydown", (event) => {
 [els.gameMode, els.questionCount, els.answerMode, els.dailyMode, els.showHeadshots].forEach((element) => {
   element.addEventListener("change", saveLocalSettings);
 });
+els.playerPool.addEventListener("change", saveLocalSettings);
 els.twoPlayerMode.addEventListener("change", () => {
   syncModeFields();
   saveLocalSettings();

@@ -28,6 +28,7 @@ except ImportError:  # pragma: no cover - local sqlite mode works without psycop
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 DATA_FILE = BASE_DIR / "ALL_NBA_PLAYERS_with_headshots.xlsx"
+PLAYER_ROLES_FILE = BASE_DIR / "quiz_web_backend" / "player_roles.json"
 DB_PATH = BASE_DIR / "quiz_web_backend" / "quiz_web.db"
 HEADSHOT_DIR = BASE_DIR / "headshots"
 LOGO_DIR = BASE_DIR / "school_logos"
@@ -78,6 +79,7 @@ RANKED_DIVISIONS = [
 RANKED_QUESTION_COUNT = 25
 RANKED_WIN_ELO = 30
 RANKED_LOSS_ELO = 10
+PLAYER_ROLE_MAP: dict[str, dict] = {}
 CONFERENCE_ALIASES = {
     "AAC": "American Athletic Conference",
     "The American": "American Athletic Conference",
@@ -100,6 +102,24 @@ def normalize_answer(text: str) -> str:
     text = re.sub(r"\bthe\b", "", text)
     text = re.sub(r"\s+", " ", text).strip()
     return text
+
+
+def load_player_role_map() -> dict[str, dict]:
+    if not PLAYER_ROLES_FILE.exists():
+        return {}
+    try:
+        payload = json.loads(PLAYER_ROLES_FILE.read_text(encoding="utf-8"))
+        entries = payload.get("entries", [])
+        role_map = {}
+        for entry in entries:
+            raw_key = str(entry.get("player_key", "")).strip()
+            player_name = str(entry.get("player_name", "")).strip()
+            normalized_key = normalize_name(raw_key or player_name)
+            if normalized_key:
+                role_map[normalized_key] = entry
+        return role_map
+    except Exception:  # pragma: no cover
+        return {}
 
 
 def normalize_conference_name(value: str) -> str:
@@ -128,6 +148,35 @@ def choose_random_records(df: pd.DataFrame, count: int | None = None) -> list[di
     if count is None:
         return records
     return records[: min(count, len(records))]
+
+
+def filter_dataframe_by_player_pool(df: pd.DataFrame, player_pool: str | None) -> pd.DataFrame:
+    pool = str(player_pool or "all").strip().lower()
+    if pool not in {"rotation", "starter", "bench"}:
+        return df
+
+    if not PLAYER_ROLE_MAP:
+        return df
+
+    def matches_pool(player_name: str) -> bool:
+        entry = PLAYER_ROLE_MAP.get(normalize_name(player_name))
+        if not entry:
+            return False
+        if pool == "rotation":
+            return bool(entry.get("rotation"))
+        return entry.get("role") == pool
+
+    filtered = df[df["Player Name"].apply(matches_pool)].copy()
+    return filtered if not filtered.empty else df
+
+
+def get_player_pool_counts(df: pd.DataFrame) -> dict[str, int]:
+    return {
+        "all": len(df),
+        "rotation": len(filter_dataframe_by_player_pool(df, "rotation")),
+        "starter": len(filter_dataframe_by_player_pool(df, "starter")),
+        "bench": len(filter_dataframe_by_player_pool(df, "bench")),
+    }
 
 
 def generate_room_code(length: int = 6) -> str:
@@ -624,6 +673,7 @@ class QuizRequest(BaseModel):
     date: str | None = None
     mode: str = "Practice"
     conference: str = "All"
+    player_pool: str = "all"
 
 
 class AnswerCheckRequest(BaseModel):
@@ -643,6 +693,7 @@ class OnlineMatchCreateRequest(BaseModel):
     room_code: str | None = None
     count: int | None = 10
     conference: str = "All"
+    player_pool: str = "all"
     answer_mode: str = "typed"
     show_headshots: bool = True
 
@@ -658,13 +709,16 @@ class RankedQueueRequest(BaseModel):
 
 @app.on_event("startup")
 def startup():
+    global PLAYER_ROLE_MAP
+    PLAYER_ROLE_MAP = load_player_role_map()
     init_db()
 
 
-def build_online_match_questions(count: int | None, conference: str) -> list[dict]:
+def build_online_match_questions(count: int | None, conference: str, player_pool: str = "all") -> list[dict]:
     df = load_dataframe()
     if conference and conference != "All":
         df = df[df["Conference"] == conference].copy()
+    df = filter_dataframe_by_player_pool(df, player_pool)
     if df.empty:
         df = load_dataframe()
     sample = choose_random_records(df, count)
@@ -1043,6 +1097,7 @@ async def start_online_match_if_ready(room: dict):
             "total_questions": len(room["questions"]),
             "question": serialize_online_question(room),
             "answer_mode": room["answer_mode"],
+            "player_pool": room.get("player_pool", "all"),
         },
     )
 
@@ -1415,7 +1470,7 @@ def create_online_match(payload: OnlineMatchCreateRequest):
         "players": [username, None],
         "connections": {},
         "question_count": payload.count,
-        "questions": build_online_match_questions(payload.count, payload.conference),
+        "questions": build_online_match_questions(payload.count, payload.conference, payload.player_pool),
         "scores": {username: 0},
         "current_index": 0,
         "round_submissions": {},
@@ -1424,6 +1479,7 @@ def create_online_match(payload: OnlineMatchCreateRequest):
         "answer_mode": payload.answer_mode,
         "show_headshots": payload.show_headshots,
         "conference": payload.conference,
+        "player_pool": payload.player_pool,
         "created_at": time.time(),
     }
     return {
@@ -1433,6 +1489,7 @@ def create_online_match(payload: OnlineMatchCreateRequest):
         "show_headshots": payload.show_headshots,
         "question_count": payload.count,
         "conference": payload.conference,
+        "player_pool": payload.player_pool,
     }
 
 
@@ -1566,6 +1623,7 @@ def join_online_match(payload: OnlineMatchJoinRequest):
         "show_headshots": room["show_headshots"],
         "question_count": room["question_count"],
         "conference": room["conference"],
+        "player_pool": room.get("player_pool", "all"),
     }
 
 
@@ -1587,7 +1645,11 @@ async def handle_rematch_request(room: dict, username: str):
         room["scores"] = {player: 0 for player in players}
         room["current_index"] = 0
         room["round_submissions"] = {}
-        room["questions"] = build_online_match_questions(room.get("question_count"), room["conference"])
+        room["questions"] = build_online_match_questions(
+            room.get("question_count"),
+            room["conference"],
+            room.get("player_pool", "all"),
+        )
         room["started"] = True
         room["rematch_requests"] = set()
 
@@ -1602,6 +1664,7 @@ async def handle_rematch_request(room: dict, username: str):
                 "total_questions": len(room["questions"]),
                 "question": serialize_online_question(room),
                 "answer_mode": room["answer_mode"],
+                "player_pool": room.get("player_pool", "all"),
             },
         )
 
@@ -1617,7 +1680,10 @@ def players(count: int | None = 10):
 def meta():
     df = load_dataframe()
     conferences = sorted({normalize_conference_name(item) for item in df["Conference"].tolist() if normalize_conference_name(item) != "None"})
-    return {"conferences": ["All"] + conferences}
+    return {
+        "conferences": ["All"] + conferences,
+        "player_pools": get_player_pool_counts(df),
+    }
 
 
 @app.get("/api/daily-challenge")
@@ -1639,6 +1705,7 @@ def quiz(payload: QuizRequest):
     df = load_dataframe()
     if payload.conference and payload.conference != "All":
         df = df[df["Conference"] == payload.conference].copy()
+    df = filter_dataframe_by_player_pool(df, payload.player_pool)
     if df.empty:
         df = load_dataframe()
     count = len(df) if payload.count is None else min(payload.count, len(df))
@@ -1915,6 +1982,7 @@ async def online_match_socket(websocket: WebSocket, room_code: str, username: st
             "show_headshots": room["show_headshots"],
             "question_count": room["question_count"],
             "conference": room["conference"],
+            "player_pool": room.get("player_pool", "all"),
         },
     )
 

@@ -1,0 +1,1629 @@
+{
+  "generated_at": "2026-04-01T19:24:10.306556",
+  "entries": [
+    {
+      "player_key": "cj mccollum",
+      "player_name": "CJ McCollum",
+      "team": "ATL",
+      "depth_rank": 1,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "nickeil alexander walker",
+      "player_name": "Nickeil Alexander-Walker",
+      "team": "ATL",
+      "depth_rank": 2,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "jalen johnson",
+      "player_name": "Jalen Johnson",
+      "team": "ATL",
+      "depth_rank": 4,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "onyeka okongwu",
+      "player_name": "Onyeka Okongwu",
+      "team": "ATL",
+      "depth_rank": 5,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "gabe vincent",
+      "player_name": "Gabe Vincent",
+      "team": "ATL",
+      "depth_rank": 6,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "drake powell",
+      "player_name": "Drake Powell",
+      "team": "BKN",
+      "depth_rank": 2,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "ziaire williams",
+      "player_name": "Ziaire Williams",
+      "team": "BKN",
+      "depth_rank": 3,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "noah clowney",
+      "player_name": "Noah Clowney",
+      "team": "BKN",
+      "depth_rank": 4,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "nic claxton",
+      "player_name": "Nic Claxton",
+      "team": "BKN",
+      "depth_rank": 5,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "terance mann",
+      "player_name": "Terance Mann",
+      "team": "BKN",
+      "depth_rank": 7,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "ochai agbaji",
+      "player_name": "Ochai Agbaji",
+      "team": "BKN",
+      "depth_rank": 8,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "derrick white",
+      "player_name": "Derrick White",
+      "team": "BOS",
+      "depth_rank": 1,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "jaylen brown",
+      "player_name": "Jaylen Brown",
+      "team": "BOS",
+      "depth_rank": 2,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "sam hauser",
+      "player_name": "Sam Hauser",
+      "team": "BOS",
+      "depth_rank": 3,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "jayson tatum",
+      "player_name": "Jayson Tatum",
+      "team": "BOS",
+      "depth_rank": 4,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "neemias queta",
+      "player_name": "Neemias Queta",
+      "team": "BOS",
+      "depth_rank": 5,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "payton pritchard",
+      "player_name": "Payton Pritchard",
+      "team": "BOS",
+      "depth_rank": 6,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "baylor scheierman",
+      "player_name": "Baylor Scheierman",
+      "team": "BOS",
+      "depth_rank": 7,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "kon knueppel",
+      "player_name": "Kon Knueppel",
+      "team": "CHA",
+      "depth_rank": 2,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "brandon miller",
+      "player_name": "Brandon Miller",
+      "team": "CHA",
+      "depth_rank": 3,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "miles bridges",
+      "player_name": "Miles Bridges",
+      "team": "CHA",
+      "depth_rank": 4,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "moussa diabate",
+      "player_name": "Moussa Diabat\u00e9",
+      "team": "CHA",
+      "depth_rank": 5,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "coby white",
+      "player_name": "Coby White",
+      "team": "CHA",
+      "depth_rank": 6,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "josh green",
+      "player_name": "Josh Green",
+      "team": "CHA",
+      "depth_rank": 7,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "sion james",
+      "player_name": "Sion James",
+      "team": "CHA",
+      "depth_rank": 8,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "tre jones",
+      "player_name": "Tre Jones",
+      "team": "CHI",
+      "depth_rank": 2,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "isaac okoro",
+      "player_name": "Isaac Okoro",
+      "team": "CHI",
+      "depth_rank": 3,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "nick richards",
+      "player_name": "Nick Richards",
+      "team": "CHI",
+      "depth_rank": 5,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "rob dillingham",
+      "player_name": "Rob Dillingham",
+      "team": "CHI",
+      "depth_rank": 6,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "collin sexton",
+      "player_name": "Collin Sexton",
+      "team": "CHI",
+      "depth_rank": 7,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "james harden",
+      "player_name": "James Harden",
+      "team": "CLE",
+      "depth_rank": 1,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "donovan mitchell",
+      "player_name": "Donovan Mitchell",
+      "team": "CLE",
+      "depth_rank": 2,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "dean wade",
+      "player_name": "Dean Wade",
+      "team": "CLE",
+      "depth_rank": 3,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "evan mobley",
+      "player_name": "Evan Mobley",
+      "team": "CLE",
+      "depth_rank": 4,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "jarrett allen",
+      "player_name": "Jarrett Allen",
+      "team": "CLE",
+      "depth_rank": 5,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "sam merrill",
+      "player_name": "Sam Merrill",
+      "team": "CLE",
+      "depth_rank": 7,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "max strus",
+      "player_name": "Max Strus",
+      "team": "CLE",
+      "depth_rank": 8,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "cooper flagg",
+      "player_name": "Cooper Flagg",
+      "team": "DAL",
+      "depth_rank": 1,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "max christie",
+      "player_name": "Max Christie",
+      "team": "DAL",
+      "depth_rank": 2,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "naji marshall",
+      "player_name": "Naji Marshall",
+      "team": "DAL",
+      "depth_rank": 3,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "daniel gafford",
+      "player_name": "Daniel Gafford",
+      "team": "DAL",
+      "depth_rank": 5,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "ryan nembhard",
+      "player_name": "Ryan Nembhard",
+      "team": "DAL",
+      "depth_rank": 6,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "brandon williams",
+      "player_name": "Brandon Williams",
+      "team": "DAL",
+      "depth_rank": 7,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "klay thompson",
+      "player_name": "Klay Thompson",
+      "team": "DAL",
+      "depth_rank": 8,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "jamal murray",
+      "player_name": "Jamal Murray",
+      "team": "DEN",
+      "depth_rank": 1,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "christian braun",
+      "player_name": "Christian Braun",
+      "team": "DEN",
+      "depth_rank": 2,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "cameron johnson",
+      "player_name": "Cameron Johnson",
+      "team": "DEN",
+      "depth_rank": 3,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "aaron gordon",
+      "player_name": "Aaron Gordon",
+      "team": "DEN",
+      "depth_rank": 4,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "bruce brown",
+      "player_name": "Bruce Brown",
+      "team": "DEN",
+      "depth_rank": 6,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "tim hardaway jr",
+      "player_name": "Tim Hardaway Jr.",
+      "team": "DEN",
+      "depth_rank": 7,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "peyton watson",
+      "player_name": "Peyton Watson",
+      "team": "DEN",
+      "depth_rank": 8,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "daniss jenkins",
+      "player_name": "Daniss Jenkins",
+      "team": "DET",
+      "depth_rank": 1,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "duncan robinson",
+      "player_name": "Duncan Robinson",
+      "team": "DET",
+      "depth_rank": 2,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "tobias harris",
+      "player_name": "Tobias Harris",
+      "team": "DET",
+      "depth_rank": 4,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "jalen duren",
+      "player_name": "Jalen Duren",
+      "team": "DET",
+      "depth_rank": 5,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "marcus sasser",
+      "player_name": "Marcus Sasser",
+      "team": "DET",
+      "depth_rank": 6,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "caris levert",
+      "player_name": "Caris LeVert",
+      "team": "DET",
+      "depth_rank": 7,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "kevin huerter",
+      "player_name": "Kevin Huerter",
+      "team": "DET",
+      "depth_rank": 8,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "stephen curry",
+      "player_name": "Stephen Curry",
+      "team": "GS",
+      "depth_rank": 1,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "deanthony melton",
+      "player_name": "De'Anthony Melton",
+      "team": "GS",
+      "depth_rank": 2,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "draymond green",
+      "player_name": "Draymond Green",
+      "team": "GS",
+      "depth_rank": 4,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "brandin podziemski",
+      "player_name": "Brandin Podziemski",
+      "team": "GS",
+      "depth_rank": 6,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "gary payton ii",
+      "player_name": "Gary Payton II",
+      "team": "GS",
+      "depth_rank": 7,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "will richard",
+      "player_name": "Will Richard",
+      "team": "GS",
+      "depth_rank": 8,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "tari eason",
+      "player_name": "Tari Eason",
+      "team": "HOU",
+      "depth_rank": 2,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "kevin durant",
+      "player_name": "Kevin Durant",
+      "team": "HOU",
+      "depth_rank": 3,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "aaron holiday",
+      "player_name": "Aaron Holiday",
+      "team": "HOU",
+      "depth_rank": 6,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "reed sheppard",
+      "player_name": "Reed Sheppard",
+      "team": "HOU",
+      "depth_rank": 7,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "jaesean tate",
+      "player_name": "Jae'Sean Tate",
+      "team": "HOU",
+      "depth_rank": 8,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "andrew nembhard",
+      "player_name": "Andrew Nembhard",
+      "team": "IND",
+      "depth_rank": 1,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "aaron nesmith",
+      "player_name": "Aaron Nesmith",
+      "team": "IND",
+      "depth_rank": 2,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "jarace walker",
+      "player_name": "Jarace Walker",
+      "team": "IND",
+      "depth_rank": 3,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "pascal siakam",
+      "player_name": "Pascal Siakam",
+      "team": "IND",
+      "depth_rank": 4,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "jay huff",
+      "player_name": "Jay Huff",
+      "team": "IND",
+      "depth_rank": 5,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "t j mcconnell",
+      "player_name": "T.J. McConnell",
+      "team": "IND",
+      "depth_rank": 6,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "ben sheppard",
+      "player_name": "Ben Sheppard",
+      "team": "IND",
+      "depth_rank": 7,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "kobe brown",
+      "player_name": "Kobe Brown",
+      "team": "IND",
+      "depth_rank": 8,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "darius garland",
+      "player_name": "Darius Garland",
+      "team": "LAC",
+      "depth_rank": 1,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "kawhi leonard",
+      "player_name": "Kawhi Leonard",
+      "team": "LAC",
+      "depth_rank": 2,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "derrick jones jr",
+      "player_name": "Derrick Jones Jr.",
+      "team": "LAC",
+      "depth_rank": 3,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "john collins",
+      "player_name": "John Collins",
+      "team": "LAC",
+      "depth_rank": 4,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "brook lopez",
+      "player_name": "Brook Lopez",
+      "team": "LAC",
+      "depth_rank": 5,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "kris dunn",
+      "player_name": "Kris Dunn",
+      "team": "LAC",
+      "depth_rank": 6,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "jordan miller",
+      "player_name": "Jordan Miller",
+      "team": "LAC",
+      "depth_rank": 7,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "bennedict mathurin",
+      "player_name": "Bennedict Mathurin",
+      "team": "LAC",
+      "depth_rank": 8,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "austin reaves",
+      "player_name": "Austin Reaves",
+      "team": "LAL",
+      "depth_rank": 2,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "marcus smart",
+      "player_name": "Marcus Smart",
+      "team": "LAL",
+      "depth_rank": 3,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "deandre ayton",
+      "player_name": "Deandre Ayton",
+      "team": "LAL",
+      "depth_rank": 5,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "luke kennard",
+      "player_name": "Luke Kennard",
+      "team": "LAL",
+      "depth_rank": 6,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "jake laravia",
+      "player_name": "Jake LaRavia",
+      "team": "LAL",
+      "depth_rank": 7,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "rui hachimura",
+      "player_name": "Rui Hachimura",
+      "team": "LAL",
+      "depth_rank": 8,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "javon small",
+      "player_name": "Javon Small",
+      "team": "MEM",
+      "depth_rank": 1,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "ty jerome",
+      "player_name": "Ty Jerome",
+      "team": "MEM",
+      "depth_rank": 2,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "cedric coward",
+      "player_name": "Cedric Coward",
+      "team": "MEM",
+      "depth_rank": 3,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "olivier maxence prosper",
+      "player_name": "Olivier-Maxence Prosper",
+      "team": "MEM",
+      "depth_rank": 5,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "walter clayton jr",
+      "player_name": "Walter Clayton Jr.",
+      "team": "MEM",
+      "depth_rank": 6,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "jahmai mashack",
+      "player_name": "Jahmai Mashack",
+      "team": "MEM",
+      "depth_rank": 7,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "cam spencer",
+      "player_name": "Cam Spencer",
+      "team": "MEM",
+      "depth_rank": 8,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "davion mitchell",
+      "player_name": "Davion Mitchell",
+      "team": "MIA",
+      "depth_rank": 1,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "tyler herro",
+      "player_name": "Tyler Herro",
+      "team": "MIA",
+      "depth_rank": 2,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "norman powell",
+      "player_name": "Norman Powell",
+      "team": "MIA",
+      "depth_rank": 3,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "andrew wiggins",
+      "player_name": "Andrew Wiggins",
+      "team": "MIA",
+      "depth_rank": 4,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "bam adebayo",
+      "player_name": "Bam Adebayo",
+      "team": "MIA",
+      "depth_rank": 5,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "dru smith",
+      "player_name": "Dru Smith",
+      "team": "MIA",
+      "depth_rank": 6,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "pelle larsson",
+      "player_name": "Pelle Larsson",
+      "team": "MIA",
+      "depth_rank": 7,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "ryan rollins",
+      "player_name": "Ryan Rollins",
+      "team": "MIL",
+      "depth_rank": 1,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "gary trent jr",
+      "player_name": "Gary Trent Jr.",
+      "team": "MIL",
+      "depth_rank": 2,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "kyle kuzma",
+      "player_name": "Kyle Kuzma",
+      "team": "MIL",
+      "depth_rank": 4,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "myles turner",
+      "player_name": "Myles Turner",
+      "team": "MIL",
+      "depth_rank": 5,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "aj green",
+      "player_name": "AJ Green",
+      "team": "MIL",
+      "depth_rank": 6,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "taurean prince",
+      "player_name": "Taurean Prince",
+      "team": "MIL",
+      "depth_rank": 7,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "pete nance",
+      "player_name": "Pete Nance",
+      "team": "MIL",
+      "depth_rank": 8,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "donte divincenzo",
+      "player_name": "Donte DiVincenzo",
+      "team": "MIN",
+      "depth_rank": 1,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "anthony edwards",
+      "player_name": "Anthony Edwards",
+      "team": "MIN",
+      "depth_rank": 2,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "jaden mcdaniels",
+      "player_name": "Jaden McDaniels",
+      "team": "MIN",
+      "depth_rank": 3,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "julius randle",
+      "player_name": "Julius Randle",
+      "team": "MIN",
+      "depth_rank": 4,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "mike conley",
+      "player_name": "Mike Conley",
+      "team": "MIN",
+      "depth_rank": 6,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "bones hyland",
+      "player_name": "Bones Hyland",
+      "team": "MIN",
+      "depth_rank": 7,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "ayo dosunmu",
+      "player_name": "Ayo Dosunmu",
+      "team": "MIN",
+      "depth_rank": 8,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "dejounte murray",
+      "player_name": "Dejounte Murray",
+      "team": "NO",
+      "depth_rank": 1,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "trey murphy iii",
+      "player_name": "Trey Murphy III",
+      "team": "NO",
+      "depth_rank": 2,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "saddiq bey",
+      "player_name": "Saddiq Bey",
+      "team": "NO",
+      "depth_rank": 3,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "zion williamson",
+      "player_name": "Zion Williamson",
+      "team": "NO",
+      "depth_rank": 4,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "herb jones",
+      "player_name": "Herbert Jones",
+      "team": "NO",
+      "depth_rank": 5,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "jeremiah fears",
+      "player_name": "Jeremiah Fears",
+      "team": "NO",
+      "depth_rank": 6,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "derik queen",
+      "player_name": "Derik Queen",
+      "team": "NO",
+      "depth_rank": 7,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "yves missi",
+      "player_name": "Yves Missi",
+      "team": "NO",
+      "depth_rank": 8,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "jalen brunson",
+      "player_name": "Jalen Brunson",
+      "team": "NY",
+      "depth_rank": 1,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "josh hart",
+      "player_name": "Josh Hart",
+      "team": "NY",
+      "depth_rank": 2,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "mikal bridges",
+      "player_name": "Mikal Bridges",
+      "team": "NY",
+      "depth_rank": 3,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "og anunoby",
+      "player_name": "OG Anunoby",
+      "team": "NY",
+      "depth_rank": 4,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "karl anthony towns",
+      "player_name": "Karl-Anthony Towns",
+      "team": "NY",
+      "depth_rank": 5,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "miles mcbride",
+      "player_name": "Miles McBride",
+      "team": "NY",
+      "depth_rank": 6,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "landry shamet",
+      "player_name": "Landry Shamet",
+      "team": "NY",
+      "depth_rank": 7,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "jordan clarkson",
+      "player_name": "Jordan Clarkson",
+      "team": "NY",
+      "depth_rank": 8,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "shai gilgeous alexander",
+      "player_name": "Shai Gilgeous-Alexander",
+      "team": "OKC",
+      "depth_rank": 1,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "luguentz dort",
+      "player_name": "Luguentz Dort",
+      "team": "OKC",
+      "depth_rank": 2,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "jalen williams",
+      "player_name": "Jalen Williams",
+      "team": "OKC",
+      "depth_rank": 3,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "chet holmgren",
+      "player_name": "Chet Holmgren",
+      "team": "OKC",
+      "depth_rank": 4,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "ajay mitchell",
+      "player_name": "Ajay Mitchell",
+      "team": "OKC",
+      "depth_rank": 6,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "isaiah joe",
+      "player_name": "Isaiah Joe",
+      "team": "OKC",
+      "depth_rank": 7,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "cason wallace",
+      "player_name": "Cason Wallace",
+      "team": "OKC",
+      "depth_rank": 8,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "jalen suggs",
+      "player_name": "Jalen Suggs",
+      "team": "ORL",
+      "depth_rank": 1,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "desmond bane",
+      "player_name": "Desmond Bane",
+      "team": "ORL",
+      "depth_rank": 2,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "franz wagner",
+      "player_name": "Franz Wagner",
+      "team": "ORL",
+      "depth_rank": 3,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "paolo banchero",
+      "player_name": "Paolo Banchero",
+      "team": "ORL",
+      "depth_rank": 4,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "wendell carter jr",
+      "player_name": "Wendell Carter Jr.",
+      "team": "ORL",
+      "depth_rank": 5,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "jevon carter",
+      "player_name": "Jevon Carter",
+      "team": "ORL",
+      "depth_rank": 6,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "anthony black",
+      "player_name": "Anthony Black",
+      "team": "ORL",
+      "depth_rank": 7,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "jamal cain",
+      "player_name": "Jamal Cain",
+      "team": "ORL",
+      "depth_rank": 8,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "tyrese maxey",
+      "player_name": "Tyrese Maxey",
+      "team": "PHI",
+      "depth_rank": 1,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "vj edgecombe",
+      "player_name": "VJ Edgecombe",
+      "team": "PHI",
+      "depth_rank": 2,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "paul george",
+      "player_name": "Paul George",
+      "team": "PHI",
+      "depth_rank": 3,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "joel embiid",
+      "player_name": "Joel Embiid",
+      "team": "PHI",
+      "depth_rank": 5,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "quentin grimes",
+      "player_name": "Quentin Grimes",
+      "team": "PHI",
+      "depth_rank": 6,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "kelly oubre jr",
+      "player_name": "Kelly Oubre Jr.",
+      "team": "PHI",
+      "depth_rank": 7,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "justin edwards",
+      "player_name": "Justin Edwards",
+      "team": "PHI",
+      "depth_rank": 8,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "collin gillespie",
+      "player_name": "Collin Gillespie",
+      "team": "PHO",
+      "depth_rank": 1,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "devin booker",
+      "player_name": "Devin Booker",
+      "team": "PHO",
+      "depth_rank": 2,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "dillon brooks",
+      "player_name": "Dillon Brooks",
+      "team": "PHO",
+      "depth_rank": 4,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "mark williams",
+      "player_name": "Mark Williams",
+      "team": "PHO",
+      "depth_rank": 5,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "jordan goodwin",
+      "player_name": "Jordan Goodwin",
+      "team": "PHO",
+      "depth_rank": 6,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "grayson allen",
+      "player_name": "Grayson Allen",
+      "team": "PHO",
+      "depth_rank": 7,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "haywood highsmith",
+      "player_name": "Haywood Highsmith",
+      "team": "PHO",
+      "depth_rank": 8,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "jrue holiday",
+      "player_name": "Jrue Holiday",
+      "team": "POR",
+      "depth_rank": 1,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "toumani camara",
+      "player_name": "Toumani Camara",
+      "team": "POR",
+      "depth_rank": 2,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "jerami grant",
+      "player_name": "Jerami Grant",
+      "team": "POR",
+      "depth_rank": 4,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "donovan clingan",
+      "player_name": "Donovan Clingan",
+      "team": "POR",
+      "depth_rank": 5,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "kris murray",
+      "player_name": "Kris Murray",
+      "team": "POR",
+      "depth_rank": 8,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "deaaron fox",
+      "player_name": "De'Aaron Fox",
+      "team": "SA",
+      "depth_rank": 1,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "stephon castle",
+      "player_name": "Stephon Castle",
+      "team": "SA",
+      "depth_rank": 2,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "devin vassell",
+      "player_name": "Devin Vassell",
+      "team": "SA",
+      "depth_rank": 3,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "julian champagnie",
+      "player_name": "Julian Champagnie",
+      "team": "SA",
+      "depth_rank": 4,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "dylan harper",
+      "player_name": "Dylan Harper",
+      "team": "SA",
+      "depth_rank": 6,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "keldon johnson",
+      "player_name": "Keldon Johnson",
+      "team": "SA",
+      "depth_rank": 7,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "carter bryant",
+      "player_name": "Carter Bryant",
+      "team": "SA",
+      "depth_rank": 8,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "russell westbrook",
+      "player_name": "Russell Westbrook",
+      "team": "SAC",
+      "depth_rank": 1,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "nique clifford",
+      "player_name": "Nique Clifford",
+      "team": "SAC",
+      "depth_rank": 2,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "demar derozan",
+      "player_name": "DeMar DeRozan",
+      "team": "SAC",
+      "depth_rank": 3,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "precious achiuwa",
+      "player_name": "Precious Achiuwa",
+      "team": "SAC",
+      "depth_rank": 4,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "maxime raynaud",
+      "player_name": "Maxime Raynaud",
+      "team": "SAC",
+      "depth_rank": 5,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "devin carter",
+      "player_name": "Devin Carter",
+      "team": "SAC",
+      "depth_rank": 6,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "malik monk",
+      "player_name": "Malik Monk",
+      "team": "SAC",
+      "depth_rank": 7,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "daeqwon plowden",
+      "player_name": "Daeqwon Plowden",
+      "team": "SAC",
+      "depth_rank": 8,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "immanuel quickley",
+      "player_name": "Immanuel Quickley",
+      "team": "TOR",
+      "depth_rank": 1,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "brandon ingram",
+      "player_name": "Brandon Ingram",
+      "team": "TOR",
+      "depth_rank": 2,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "rj barrett",
+      "player_name": "RJ Barrett",
+      "team": "TOR",
+      "depth_rank": 3,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "scottie barnes",
+      "player_name": "Scottie Barnes",
+      "team": "TOR",
+      "depth_rank": 4,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "jakob poeltl",
+      "player_name": "Jakob Poeltl",
+      "team": "TOR",
+      "depth_rank": 5,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "jamal shead",
+      "player_name": "Jamal Shead",
+      "team": "TOR",
+      "depth_rank": 6,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "jakobe walter",
+      "player_name": "Ja'Kobe Walter",
+      "team": "TOR",
+      "depth_rank": 7,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "collin murray boyles",
+      "player_name": "Collin Murray-Boyles",
+      "team": "TOR",
+      "depth_rank": 8,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "isaiah collier",
+      "player_name": "Isaiah Collier",
+      "team": "UTA",
+      "depth_rank": 1,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "cody williams",
+      "player_name": "Cody Williams",
+      "team": "UTA",
+      "depth_rank": 2,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "brice sensabaugh",
+      "player_name": "Brice Sensabaugh",
+      "team": "UTA",
+      "depth_rank": 3,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "ace bailey",
+      "player_name": "Ace Bailey",
+      "team": "UTA",
+      "depth_rank": 4,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "kyle filipowski",
+      "player_name": "Kyle Filipowski",
+      "team": "UTA",
+      "depth_rank": 5,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "john konchar",
+      "player_name": "John Konchar",
+      "team": "UTA",
+      "depth_rank": 7,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "blake hinson",
+      "player_name": "Blake Hinson",
+      "team": "UTA",
+      "depth_rank": 8,
+      "role": "bench",
+      "rotation": true
+    },
+    {
+      "player_key": "trae young",
+      "player_name": "Trae Young",
+      "team": "WAS",
+      "depth_rank": 1,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "tre johnson",
+      "player_name": "Tre Johnson",
+      "team": "WAS",
+      "depth_rank": 2,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "will riley",
+      "player_name": "Will Riley",
+      "team": "WAS",
+      "depth_rank": 4,
+      "role": "starter",
+      "rotation": true
+    },
+    {
+      "player_key": "jamir watkins",
+      "player_name": "Jamir Watkins",
+      "team": "WAS",
+      "depth_rank": 8,
+      "role": "bench",
+      "rotation": true
+    }
+  ]
+}
