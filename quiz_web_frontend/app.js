@@ -1271,9 +1271,13 @@ function renderProgress() {
 
 function renderMedia(question) {
   const showHeadshots = state.online.enabled ? state.online.showHeadshots : els.showHeadshots.checked;
+  const resolveAssetUrl = (value) => {
+    if (!value) return "";
+    return /^https?:\/\//i.test(value) ? value : `${API_ORIGIN}${value}`;
+  };
 
   if (question.headshot && showHeadshots) {
-    els.headshotImage.src = `${API_ORIGIN}${question.headshot}`;
+    els.headshotImage.src = resolveAssetUrl(question.headshot);
     els.headshotImage.classList.remove("hidden");
     els.headshotFallback.classList.add("hidden");
   } else {
@@ -1284,7 +1288,7 @@ function renderMedia(question) {
 
   if (question.logo) {
     els.logoCard.classList.remove("hidden");
-    els.logoImage.src = `${API_ORIGIN}${question.logo}`;
+    els.logoImage.src = resolveAssetUrl(question.logo);
     els.logoImage.classList.remove("hidden");
     els.logoFallback.classList.add("hidden");
   } else {
