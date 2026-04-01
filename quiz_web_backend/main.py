@@ -187,11 +187,16 @@ def build_question_payload(row, df: pd.DataFrame):
     school = str(row["College / Last School"]).strip()
     logo_name = f"{normalize_name(school)}.png"
     headshot_file = str(row.get("Headshot File", "")).strip() if row.get("Headshot File") else ""
+    headshot_url = str(row.get("Headshot URL", "")).strip() if row.get("Headshot URL") else ""
+    if headshot_file and (HEADSHOT_DIR / headshot_file).exists():
+        headshot = f"/assets/headshots/{headshot_file}"
+    else:
+        headshot = headshot_url or None
     return {
         "question_id": register_question_data(row),
         "player_name": row["Player Name"],
         "conference": row["Conference"],
-        "headshot": f"/assets/headshots/{headshot_file}" if headshot_file else None,
+        "headshot": headshot,
         "logo": f"/assets/school_logos/{logo_name}" if (LOGO_DIR / logo_name).exists() else None,
         "choices": build_choices(df, school),
     }
