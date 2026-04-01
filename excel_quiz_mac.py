@@ -50,8 +50,6 @@ CONFERENCE_ALIASES = {
 for column in ("Player Name", "College / Last School", "Conference", "Headshot File"):
     if column in df.columns:
         df[column] = df[column].astype(str).str.strip()
-
-all_players_df = df.copy()
 df["College / Last School"] = df["College / Last School"].replace({"": "None"})
 df["Conference"] = df["Conference"].replace(CONFERENCE_ALIASES)
 df["Conference"] = df["Conference"].replace({"": "None"})
@@ -1360,8 +1358,7 @@ def initialize_quiz(reset=False):
     cancel_progress_animation()
 
     selected_conf = category_var.get()
-    selected_length = quiz_length_var.get()
-    source_df = all_players_df.copy() if selected_length == "All" and selected_conf == "All" else df.copy()
+    source_df = df.copy()
     if quiz_mode.get() == "Learning" and selected_conf != "All":
         filtered_df = source_df[source_df["Conference"] == selected_conf].copy()
     else:

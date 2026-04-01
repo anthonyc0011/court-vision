@@ -109,7 +109,7 @@ def normalize_conference_name(value: str) -> str:
     return CONFERENCE_ALIASES.get(text, text)
 
 
-def load_dataframe(include_none: bool = False):
+def load_dataframe():
     df = pd.read_excel(DATA_FILE, keep_default_na=False)
     for column in ("Player Name", "College / Last School", "Conference", "Headshot File"):
         if column in df.columns:
@@ -117,8 +117,7 @@ def load_dataframe(include_none: bool = False):
     df["College / Last School"] = df["College / Last School"].replace({"": "None"})
     df["Conference"] = df["Conference"].apply(normalize_conference_name)
     df.loc[df["College / Last School"].str.lower() == "none", "Conference"] = "None"
-    if not include_none:
-        df = df[df["College / Last School"].str.lower() != "none"].copy()
+    df = df[df["College / Last School"].str.lower() != "none"].copy()
     return df
 
 
@@ -148,7 +147,11 @@ def sanitize_room_code(raw_code: str | None) -> str:
 
 
 def build_choices(df: pd.DataFrame, correct_college: str) -> list[str]:
-    colleges = sorted({str(item).strip() for item in df["College / Last School"].dropna().tolist()})
+    colleges = sorted({
+        str(item).strip()
+        for item in df["College / Last School"].dropna().tolist()
+        if str(item).strip() and str(item).strip().lower() != "none"
+    })
     wrong = [college for college in colleges if normalize_answer(college) != normalize_answer(correct_college)]
     sample = wrong[:]
     import random
@@ -1598,7 +1601,7 @@ async def handle_rematch_request(room: dict, username: str):
 
 @app.get("/api/players")
 def players(count: int | None = 10):
-    df = load_dataframe(include_none=count is None)
+    df = load_dataframe()
     sample = choose_random_records(df, count)
     return {"players": [build_question_payload(row, df) for row in sample]}
 
@@ -1612,7 +1615,7 @@ def meta():
 
 @app.get("/api/daily-challenge")
 def daily_challenge(count: int | None = 10, date: str | None = None):
-    df = load_dataframe(include_none=count is None)
+    df = load_dataframe()
     if date is None:
         date = time.strftime("%Y-%m-%d")
     seed = int(date.replace("-", ""))
@@ -1626,12 +1629,11 @@ def daily_challenge(count: int | None = 10, date: str | None = None):
 
 @app.post("/api/quiz")
 def quiz(payload: QuizRequest):
-    use_full_roster = payload.count is None and (not payload.conference or payload.conference == "All")
-    df = load_dataframe(include_none=use_full_roster)
+    df = load_dataframe()
     if payload.conference and payload.conference != "All":
         df = df[df["Conference"] == payload.conference].copy()
     if df.empty:
-        df = load_dataframe(include_none=use_full_roster)
+        df = load_dataframe()
     count = len(df) if payload.count is None else min(payload.count, len(df))
     if payload.daily:
         date = payload.date or time.strftime("%Y-%m-%d")
