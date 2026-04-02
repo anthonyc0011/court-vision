@@ -1003,7 +1003,7 @@ function updateProfileSummary() {
       <div>
         <p class="eyebrow">Saved Profile</p>
         <h3 class="profile-name">${escapeHtml(state.profile.username)}</h3>
-        <div class="profile-subtitle">Season ladder progress, prestige tiers, and recent rank promotions all live here.</div>
+        <div class="profile-subtitle">Your season progress, ranked stats, and recent promotions stay here in one place.</div>
       </div>
       <div class="profile-rank-badge">${escapeHtml(rankInfo.label)}</div>
     </div>

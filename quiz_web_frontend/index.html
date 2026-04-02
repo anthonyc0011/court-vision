@@ -19,11 +19,25 @@
           <div class="hero-copy">
             <p class="eyebrow">NBA College Quiz</p>
             <h1 id="siteTitle">Court Vision</h1>
-            <p class="subtitle">A sharper way to play: solo runs, private battles, and true ranked online with headshots, history, and live competition.</p>
+            <p class="subtitle">Play quick solo runs, look up any player, or jump into private and ranked matchups without the home screen feeling like work.</p>
             <div class="hero-ribbon">
-              <span class="ribbon-chip">Solo Quiz</span>
+              <span class="ribbon-chip">470 Quiz Players</span>
               <span class="ribbon-chip">Private Matchups</span>
               <span class="ribbon-chip">True Ranked Online</span>
+            </div>
+            <div class="hero-stat-row">
+              <div class="hero-stat-card">
+                <span class="dashboard-label">Best For</span>
+                <strong>Quick solo runs</strong>
+              </div>
+              <div class="hero-stat-card">
+                <span class="dashboard-label">Live Modes</span>
+                <strong>Private + Ranked</strong>
+              </div>
+              <div class="hero-stat-card">
+                <span class="dashboard-label">Built In</span>
+                <strong>Headshots + Directory</strong>
+              </div>
             </div>
           </div>
           <div id="authPanel" class="auth-panel hidden">
@@ -43,7 +57,6 @@
                 </div>
               </div>
               <div class="hero-actions compact-actions">
-                <button id="openProfileSettings" class="secondary-button">Profile Settings</button>
                 <button id="logoutButton" class="secondary-button">Logout</button>
               </div>
             </div>
@@ -56,9 +69,9 @@
           <div class="panel-heading">
             <div>
               <p class="eyebrow">Play</p>
-              <h2>Set Up Your Run</h2>
+              <h2>Start A Run</h2>
             </div>
-            <div class="panel-note">Start fast, then fine-tune if you want.</div>
+            <div class="panel-note">The essentials are up top. Everything else stays out of the way until you need it.</div>
           </div>
 
           <div class="setup-section">
@@ -195,77 +208,15 @@
           <div class="panel-heading">
             <div>
               <p class="eyebrow">Player Hub</p>
-              <h2>Progress, Ranked Ladder, And Account</h2>
+              <h2>Progress, Rankings, And Directory</h2>
             </div>
-            <div class="panel-note">Everything important lives here without crowding the start flow.</div>
+            <div class="panel-note">Useful info stays here so the left side can stay focused on starting games.</div>
           </div>
           <div id="profileSummary" class="dashboard-card profile-card">Profile summary will appear here.</div>
-          <div id="profileSettingsCard" class="dashboard-card settings-card hidden">
-            <div class="leaderboard-header">
-              <div>
-                <p class="eyebrow">Profile Settings</p>
-                <div class="daily-status">Choose your canonical account name and defaults.</div>
-              </div>
-            </div>
-            <label for="profileDisplayName">Display Name</label>
-            <input id="profileDisplayName" placeholder="Choose your public profile name" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
-            <div class="settings-grid">
-              <div>
-                <label for="profileTheme">Theme</label>
-                <select id="profileTheme">
-                  <option>Arena Blue</option>
-                  <option>Classic Gold</option>
-                  <option>Emerald Court</option>
-                  <option>Midnight Heat</option>
-                </select>
-              </div>
-              <div>
-                <label for="profileDefaultMode">Default Mode</label>
-                <select id="profileDefaultMode">
-                  <option value="Practice">Practice</option>
-                  <option value="Timed">Timed</option>
-                  <option value="Hard">Hard</option>
-                  <option value="Learning">Learning</option>
-                </select>
-              </div>
-              <div>
-                <label for="profileDefaultCount">Default Quiz Length</label>
-                <select id="profileDefaultCount">
-                  <option value="10">10</option>
-                  <option value="25">25</option>
-                  <option value="50">50</option>
-                  <option value="100">100</option>
-                  <option value="all">All</option>
-                </select>
-              </div>
-              <div>
-                <label for="profileDefaultAnswerMode">Default Answer Style</label>
-                <select id="profileDefaultAnswerMode">
-                  <option value="typed">Typed</option>
-                  <option value="multiple-choice">Multiple Choice</option>
-                </select>
-              </div>
-              <div>
-                <label for="profileDefaultPlayerPool">Default Player Pool</label>
-                <select id="profileDefaultPlayerPool">
-                  <option value="all">All Players</option>
-                  <option value="rotation">Rotation Players</option>
-                  <option value="starter">Starters</option>
-                  <option value="bench">Bench Players</option>
-                </select>
-              </div>
-            </div>
-            <label class="checkbox-row subtle-checkbox">
-              <input type="checkbox" id="profileDefaultHeadshots" checked />
-              <span>Show headshots by default</span>
-            </label>
-            <div class="settings-note">Your Google account keeps this identity and these defaults synced across devices.</div>
-            <div class="hero-actions compact-actions">
-              <button id="saveProfileSettings">Save Account Settings</button>
-            </div>
+          <div class="dashboard-support-grid">
+            <div id="dailyOutput" class="dashboard-card daily-card">Season status will appear here.</div>
+            <div id="leaderboardOutput" class="dashboard-card leaderboard-card">Ranked leaderboard not loaded yet.</div>
           </div>
-          <div id="dailyOutput" class="dashboard-card daily-card">Season status will appear here.</div>
-          <div id="leaderboardOutput" class="dashboard-card leaderboard-card">Ranked leaderboard not loaded yet.</div>
           <div id="directoryOutput" class="dashboard-card directory-card">
             <div class="leaderboard-header">
               <div>
