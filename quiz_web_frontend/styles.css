@@ -144,6 +144,13 @@ body {
   padding: 10px 0 2px;
 }
 
+.made-by {
+  margin: -2px 0 12px;
+  color: var(--gold);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
 .hero-stat-row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

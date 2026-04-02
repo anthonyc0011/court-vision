@@ -1003,7 +1003,6 @@ function updateProfileSummary() {
       <div>
         <p class="eyebrow">Saved Profile</p>
         <h3 class="profile-name">${escapeHtml(state.profile.username)}</h3>
-        <div class="profile-subtitle">Your season progress, ranked stats, and recent promotions stay here in one place.</div>
       </div>
       <div class="profile-rank-badge">${escapeHtml(rankInfo.label)}</div>
     </div>
@@ -1050,10 +1049,6 @@ function updateProfileSummary() {
     <div class="achievement-section">
       <span class="dashboard-label">Achievements</span>
       <div class="achievement-list">${achievements}</div>
-    </div>
-    <div class="history-section">
-      <span class="dashboard-label">Recent Rank History</span>
-      <div class="history-list">${formatRankHistory()}</div>
     </div>
   `;
   if (state.online.enabled) {
