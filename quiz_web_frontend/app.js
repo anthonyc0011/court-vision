@@ -781,21 +781,14 @@ function formatRankHistory() {
 
 function renderSeasonStatus() {
   const rankInfo = getRankInfoFromXp(state.profile.xp);
-  const nextTarget = rankInfo.nextThreshold;
-  const xpToNext = nextTarget == null ? 0 : Math.max(nextTarget - state.profile.xp, 0);
 
   els.dailyOutput.innerHTML = `
     <div class="daily-header">
       <div>
         <p class="eyebrow">Ranked Progress</p>
-        <div class="daily-status">Your current ladder standing is tracked here.</div>
+        <div class="daily-status">Your current ladder standing.</div>
       </div>
       <div class="profile-rank-badge">${escapeHtml(rankInfo.label)}</div>
-    </div>
-    <div class="daily-note">
-      ${nextTarget == null
-        ? "You are at the top prestige tier. Keep winning to defend your spot on the ranked board."
-        : `${xpToNext} XP until the next prestige step. Clean runs, no-hint games, and online wins are your biggest boosts.`}
     </div>
   `;
 }
@@ -992,11 +985,6 @@ function getProfileProgress(profile) {
 function updateProfileSummary() {
   const rankInfo = getRankInfoFromXp(state.profile.xp);
   const rankedProfile = state.online.rankedProfile;
-  const achievements = state.profile.achievements.length
-    ? state.profile.achievements
-        .map((achievement) => `<span class="achievement-pill">${escapeHtml(achievement)}</span>`)
-        .join("")
-    : '<span class="achievement-empty">No achievements unlocked yet.</span>';
 
   els.profileSummary.innerHTML = `
     <div class="profile-hero">
@@ -1041,14 +1029,6 @@ function updateProfileSummary() {
         <span class="dashboard-label">Win Streak</span>
         <strong>${rankedProfile?.win_streak ?? 0}</strong>
       </div>
-    </div>
-    <div class="achievement-section">
-      <span class="dashboard-label">Current Season</span>
-      <div class="achievement-pill">${escapeHtml(state.profile.seasonTag || getCurrentSeasonTag())}</div>
-    </div>
-    <div class="achievement-section">
-      <span class="dashboard-label">Achievements</span>
-      <div class="achievement-list">${achievements}</div>
     </div>
   `;
   if (state.online.enabled) {
