@@ -190,6 +190,9 @@ const els = {
   onlineOpponentScore: document.getElementById("onlineOpponentScore"),
   onlineMatchState: document.getElementById("onlineMatchState"),
   onlineMatchCode: document.getElementById("onlineMatchCode"),
+  onlineInviteActions: document.getElementById("onlineInviteActions"),
+  copyInviteLink: document.getElementById("copyInviteLink"),
+  shareInviteLink: document.getElementById("shareInviteLink"),
   achievementText: document.getElementById("achievementText"),
   rankText: document.getElementById("rankText"),
   progressBar: document.getElementById("progressBar"),
@@ -759,6 +762,24 @@ function applyJoinLinkFromUrl() {
   els.onlineStatus.textContent = `Invite link loaded. Join match ${joinCode} when you're ready.`;
 }
 
+async function shareInviteLink() {
+  if (!state.online.inviteUrl) {
+    showToast("Invite link is not ready yet.");
+    return;
+  }
+
+  try {
+    if (navigator.share) {
+      await navigator.share({ title: "Court Vision Private Match", url: state.online.inviteUrl });
+    } else {
+      await copyText(state.online.inviteUrl);
+    }
+    showToast("Invite link ready to send.");
+  } catch (_error) {
+    showToast("Could not share the invite link.");
+  }
+}
+
 async function copyText(text) {
   if (navigator.clipboard?.writeText) {
     await navigator.clipboard.writeText(text);
@@ -1150,6 +1171,8 @@ function updateTwoPlayerHud() {
       ? (state.online.ranked ? "Searching for ranked opponent" : "Waiting for opponent to join")
       : (state.online.ranked ? `Live ranked match • ${myScore}-${opponentScore}` : "Live online match");
     els.onlineMatchCode.textContent = state.online.ranked ? `${state.online.rankedProfile?.division || "Blacktop"} • Ranked` : `Code ${state.online.roomCode || "----"}`;
+    const showInviteActions = !state.online.ranked && state.online.waiting && Boolean(state.online.inviteUrl);
+    els.onlineInviteActions?.classList.toggle("hidden", !showInviteActions);
     if (state.online.ranked) {
       els.turnTimerText.classList.remove("hidden");
       els.turnTimerText.textContent = `${state.questionTimeLeft || 15}s to answer`;
@@ -1161,6 +1184,7 @@ function updateTwoPlayerHud() {
   if (!state.twoPlayer) {
     els.twoPlayerBanner.classList.add("hidden");
     els.turnTimerText.classList.add("hidden");
+    els.onlineInviteActions?.classList.add("hidden");
     return;
   }
   els.twoPlayerBanner.classList.remove("hidden");
@@ -2652,6 +2676,18 @@ els.shareButton?.addEventListener("click", async () => {
   } catch (_error) {
     showToast("Could not share the link.");
   }
+});
+els.copyInviteLink?.addEventListener("click", () => {
+  if (!state.online.inviteUrl) {
+    showToast("Invite link is not ready yet.");
+    return;
+  }
+  copyText(state.online.inviteUrl)
+    .then(() => showToast("Invite link copied."))
+    .catch(() => showToast("Could not copy the invite link."));
+});
+els.shareInviteLink?.addEventListener("click", () => {
+  shareInviteLink().catch(() => showToast("Could not share the invite link."));
 });
 els.directorySearchButton?.addEventListener("click", () => {
   searchDirectory().catch((error) => showToast(error?.message || "Could not search the directory."));
