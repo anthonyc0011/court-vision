@@ -110,6 +110,10 @@ const state = {
     searchTimerId: null,
     results: [],
   },
+  invite: {
+    joinCode: "",
+    autoJoinAttempted: false,
+  },
   auth: {
     token: "",
     user: null,
@@ -752,6 +756,9 @@ function applyJoinLinkFromUrl() {
   const joinCode = (params.get("join") || "").trim().toUpperCase();
   if (!joinCode) return;
 
+  state.invite.joinCode = joinCode;
+  state.invite.autoJoinAttempted = false;
+
   els.onlineMode.checked = true;
   els.twoPlayerMode.checked = false;
   els.rankedMode.checked = false;
@@ -760,6 +767,13 @@ function applyJoinLinkFromUrl() {
   syncModeFields();
   toggleOnlineFields();
   els.onlineStatus.textContent = `Invite link loaded. Join match ${joinCode} when you're ready.`;
+}
+
+function clearJoinLinkFromUrl() {
+  if (typeof window === "undefined" || !window.location || !window.history?.replaceState) return;
+  const url = new URL(window.location.href);
+  url.searchParams.delete("join");
+  window.history.replaceState({}, "", url.toString());
 }
 
 async function shareInviteLink() {
@@ -2392,6 +2406,10 @@ async function startOnlineMatch() {
   state.online.playerName = roomPayload.player_name || username;
   state.online.inviteUrl = getPrivateMatchLink(roomPayload.room_code);
   applyOnlineMatchSettings(roomPayload);
+  if (action === "join") {
+    clearJoinLinkFromUrl();
+    state.invite.joinCode = "";
+  }
   if (action === "create") {
     copyText(state.online.inviteUrl)
       .then(() => showToast("Invite link copied. Send it to your opponent."))
@@ -2401,6 +2419,15 @@ async function startOnlineMatch() {
   renderOnlineWaiting();
   startTimer();
   attachOnlineSocket(roomPayload.room_code, state.online.playerName);
+}
+
+async function autoJoinInviteIfNeeded() {
+  if (!state.invite.joinCode || state.invite.autoJoinAttempted || state.online.enabled) return;
+  state.invite.autoJoinAttempted = true;
+  await startOnlineMatch();
+  if (state.online.enabled && state.online.roomCode) {
+    showToast(`Joined match ${state.online.roomCode}.`);
+  }
 }
 
 async function saveProfile(silent = false) {
@@ -2811,10 +2838,12 @@ restoreAuthenticatedUser()
   .then(() => {
     renderAuthPanel();
     updateProfileSummary();
+    autoJoinInviteIfNeeded().catch(() => {});
   })
   .catch(() => {
     renderAuthPanel();
     updateProfileSummary();
+    autoJoinInviteIfNeeded().catch(() => {});
   });
 updateProfileSummary();
 syncModeFields();
