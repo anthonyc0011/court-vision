@@ -84,6 +84,7 @@ const state = {
     playerId: "",
     rematchRequested: false,
     showHeadshots: true,
+    inviteUrl: "",
     queuePollId: null,
     rankedProfile: null,
   },
@@ -649,6 +650,7 @@ function loadLocalState() {
   els.playerOneName.value = savedSettings.playerOneName || "Player 1";
   els.playerTwoName.value = savedSettings.playerTwoName || "Player 2";
   els.dailyMode.checked = false;
+  applyJoinLinkFromUrl();
   syncModeFields();
 }
 
@@ -733,6 +735,41 @@ function switchScreen(target) {
   Object.values(screens).forEach((screen) => screen.classList.remove("active"));
   target.classList.add("active");
   window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function getPrivateMatchLink(roomCode) {
+  const url = new URL(window.location.href);
+  url.searchParams.set("join", roomCode);
+  return url.toString();
+}
+
+function applyJoinLinkFromUrl() {
+  if (typeof window === "undefined" || !window.location) return;
+  const params = new URLSearchParams(window.location.search);
+  const joinCode = (params.get("join") || "").trim().toUpperCase();
+  if (!joinCode) return;
+
+  els.onlineMode.checked = true;
+  els.twoPlayerMode.checked = false;
+  els.rankedMode.checked = false;
+  els.onlineAction.value = "join";
+  els.onlineCode.value = joinCode;
+  syncModeFields();
+  toggleOnlineFields();
+  els.onlineStatus.textContent = `Invite link loaded. Join match ${joinCode} when you're ready.`;
+}
+
+async function copyText(text) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+  const temp = document.createElement("input");
+  temp.value = text;
+  document.body.appendChild(temp);
+  temp.select();
+  document.execCommand("copy");
+  temp.remove();
 }
 
 function applyTheme(themeName) {
@@ -1924,6 +1961,7 @@ function resetOnlineState() {
     playerId: "",
     rematchRequested: false,
     showHeadshots: true,
+    inviteUrl: "",
     queuePollId: null,
     rankedProfile: state.online.rankedProfile || null,
     opponentElo: 0,
@@ -2328,7 +2366,13 @@ async function startOnlineMatch() {
 
   state.online.roomCode = roomPayload.room_code;
   state.online.playerName = roomPayload.player_name || username;
+  state.online.inviteUrl = getPrivateMatchLink(roomPayload.room_code);
   applyOnlineMatchSettings(roomPayload);
+  if (action === "create") {
+    copyText(state.online.inviteUrl)
+      .then(() => showToast("Invite link copied. Send it to your opponent."))
+      .catch(() => showToast(`Match created. Share code ${roomPayload.room_code}.`));
+  }
   switchScreen(screens.quiz);
   renderOnlineWaiting();
   startTimer();
