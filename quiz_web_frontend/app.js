@@ -2420,7 +2420,7 @@ async function startOnlineMatch() {
     state.invite.joinCode = "";
   }
   if (action === "create") {
-    copyText(getInviteMessage())
+    copyText(state.online.inviteUrl)
       .then(() => showToast("Invite link copied. Send it to your opponent."))
       .catch(() => showToast(`Match created. Share code ${roomPayload.room_code}.`));
   }
@@ -2718,7 +2718,7 @@ els.copyInviteLink?.addEventListener("click", () => {
     showToast("Invite link is not ready yet.");
     return;
   }
-  copyText(getInviteMessage())
+  copyText(state.online.inviteUrl)
     .then(() => showToast("Invite link copied."))
     .catch(() => showToast("Could not copy the invite link."));
 });
