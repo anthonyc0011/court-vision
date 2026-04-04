@@ -1258,7 +1258,10 @@ async def handle_online_submission(room: dict, username: str, answer: str, skipp
         return
 
     current_question = room["questions"][room["current_index"]]
-    accepted = {normalize_answer(item) for item in current_question["accepted_answers"]}
+    accepted = {
+        normalize_answer(item)
+        for item in get_registered_question(current_question["question_id"])["accepted_answers"]
+    }
     normalized_answer = normalize_answer(answer)
     correct = False if skipped else normalized_answer in accepted
 
