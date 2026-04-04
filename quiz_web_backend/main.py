@@ -388,6 +388,11 @@ def google_account_username_locked(row: dict) -> bool:
     return bool(str(payload.get("username") or "").strip())
 
 
+def google_account_username_change_available(row: dict) -> bool:
+    payload = google_account_payload(row)
+    return google_account_username_locked(row) and not bool(payload.get("username_change_used"))
+
+
 def google_account_username(row: dict) -> str:
     payload = google_account_payload(row)
     if google_account_username_locked(row):
@@ -513,6 +518,7 @@ def merge_google_profile_payload(existing_payload: dict, incoming_payload: dict,
     return {
         "username": locked_username,
         "username_locked": True,
+        "username_change_used": bool(existing_payload.get("username_change_used")),
         "theme": incoming_payload.get("theme") or existing_payload.get("theme") or "Arena Blue",
         "settings": {**existing_settings, **incoming_settings},
         "progress": merge_progress_payload(existing_payload.get("progress"), incoming_payload.get("progress")),
@@ -1429,6 +1435,7 @@ def auth_google(payload: GoogleLoginPayload):
     stored_payload = json.loads((row["payload"] if row else "{}") or "{}")
     locked_username = str(stored_payload.get("username") or "").strip()
     username_locked = bool(stored_payload.get("username_locked")) or bool(locked_username)
+    username_change_available = username_locked and not bool(stored_payload.get("username_change_used"))
     auth_token = sign_session_payload(
         {
             "sub": google_sub,
@@ -1449,6 +1456,7 @@ def auth_google(payload: GoogleLoginPayload):
             "picture": picture,
             "username": locked_username,
             "username_locked": username_locked,
+            "username_change_available": username_change_available,
         },
     }
 
@@ -1460,6 +1468,7 @@ def auth_me(authorization: str | None = Header(default=None)):
     google_name = user.get("name")
     username = ""
     username_locked = False
+    username_change_available = False
     if google_sub:
         with get_conn() as conn:
             if USING_POSTGRES:
@@ -1476,6 +1485,7 @@ def auth_me(authorization: str | None = Header(default=None)):
             payload = json.loads(row["payload"] or "{}")
             username = str(payload.get("username") or "").strip()
             username_locked = bool(payload.get("username_locked")) or bool(username)
+            username_change_available = username_locked and not bool(payload.get("username_change_used"))
             google_name = row["display_name"] or google_name
     return {
         "user": {
@@ -1486,6 +1496,7 @@ def auth_me(authorization: str | None = Header(default=None)):
             "picture": user.get("picture"),
             "username": username,
             "username_locked": username_locked,
+            "username_change_available": username_change_available,
         }
     }
 
@@ -1523,11 +1534,13 @@ def auth_profile(authorization: str | None = Header(default=None)):
     payload = json.loads(row["payload"] or "{}")
     username = str(payload.get("username") or "").strip()
     username_locked = bool(payload.get("username_locked")) or bool(username)
+    username_change_available = username_locked and not bool(payload.get("username_change_used"))
     return {
         "profile": {
             "has_saved_profile": bool(payload),
             "username": username,
             "username_locked": username_locked,
+            "username_change_available": username_change_available,
             "google_name": row["display_name"] or row["email"] or "Player",
             "theme": payload.get("theme", "Arena Blue"),
             "settings": payload.get("settings", {}),
@@ -2027,21 +2040,34 @@ def post_authenticated_profile(profile: ProfilePayload, authorization: str | Non
         existing_payload = json.loads((row["payload"] if row else "{}") or "{}")
         existing_username = str(existing_payload.get("username") or "").strip()
         username_locked = bool(existing_payload.get("username_locked")) or bool(existing_username)
+        username_change_available = username_locked and not bool(existing_payload.get("username_change_used"))
+        normalized_existing_username = normalized_profile_username(existing_username)
+        normalized_requested_username = normalized_profile_username(requested_username)
+        is_rename = bool(
+            username_locked
+            and requested_username
+            and normalized_requested_username
+            and normalized_requested_username != normalized_existing_username
+        )
 
-        if username_locked:
-            if requested_username and normalized_profile_username(requested_username) != normalized_profile_username(existing_username):
-                raise HTTPException(status_code=409, detail="This Google account already locked in a username.")
+        if username_locked and not is_rename:
             locked_username = existing_username
+        elif username_locked and is_rename:
+            if not username_change_available:
+                raise HTTPException(status_code=409, detail="This Google account already used its one username change.")
+            locked_username = requested_username
+            if google_username_taken(normalized_requested_username, ignore_google_sub=google_sub):
+                raise HTTPException(status_code=409, detail="That username is already in use.")
         else:
             locked_username = requested_username
             if not locked_username:
                 raise HTTPException(status_code=400, detail="Choose a username first.")
-            normalized_username = normalized_profile_username(locked_username)
-            if google_username_taken(normalized_username, ignore_google_sub=google_sub):
+            if google_username_taken(normalized_requested_username, ignore_google_sub=google_sub):
                 raise HTTPException(status_code=409, detail="That username is already in use.")
 
         guest_payload = {}
-        if not username_locked and locked_username:
+        should_merge_guest_profile = bool(locked_username and ((not username_locked) or is_rename))
+        if should_merge_guest_profile:
             if USING_POSTGRES:
                 guest_row = conn.execute(
                     "SELECT payload FROM profiles WHERE username = %s",
@@ -2065,6 +2091,8 @@ def post_authenticated_profile(profile: ProfilePayload, authorization: str | Non
             },
             locked_username,
         )
+        if is_rename:
+            payload["username_change_used"] = True
 
         if USING_POSTGRES:
             conn.execute(
@@ -2083,7 +2111,7 @@ def post_authenticated_profile(profile: ProfilePayload, authorization: str | Non
                 """,
                 (payload["username"], int(time.time()), f"google:{google_sub}"),
             )
-            if not username_locked and guest_payload:
+            if should_merge_guest_profile and guest_payload:
                 conn.execute("DELETE FROM profiles WHERE username = %s", (locked_username,))
         else:
             conn.execute(
@@ -2102,7 +2130,7 @@ def post_authenticated_profile(profile: ProfilePayload, authorization: str | Non
                 """,
                 (payload["username"], int(time.time()), f"google:{google_sub}"),
             )
-            if not username_locked and guest_payload:
+            if should_merge_guest_profile and guest_payload:
                 conn.execute("DELETE FROM profiles WHERE username = ?", (locked_username,))
         conn.commit()
     return {"saved": True}

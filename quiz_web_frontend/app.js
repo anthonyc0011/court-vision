@@ -356,6 +356,10 @@ function isGoogleUsernameLocked() {
   return Boolean(state.auth.user?.username_locked);
 }
 
+function canChangeGoogleUsernameOnce() {
+  return Boolean(state.auth.user?.username_change_available);
+}
+
 function getGoogleDisplayName() {
   return state.auth.user?.google_name || state.auth.user?.name || "Account";
 }
@@ -372,9 +376,12 @@ function renderAuthPanel() {
   els.profileSettingsCard?.classList.toggle("hidden", !signedIn);
   if (els.username) {
     const usernameLocked = signedIn && isGoogleUsernameLocked();
-    els.username.readOnly = usernameLocked;
-    els.username.title = usernameLocked
+    const canRename = signedIn && canChangeGoogleUsernameOnce();
+    els.username.readOnly = usernameLocked && !canRename;
+    els.username.title = usernameLocked && !canRename
       ? "This username is locked to your signed-in Google account."
+      : canRename
+      ? "You can change this Google account username one time. Save profile to lock the new name."
       : signedIn
       ? "Choose your Court Vision username, then save profile to lock it in."
       : "";
@@ -382,11 +389,14 @@ function renderAuthPanel() {
 
   if (signedIn) {
     const usernameLocked = isGoogleUsernameLocked();
+    const canRename = canChangeGoogleUsernameOnce();
     const lockedUsername = getLockedUsername();
     els.loginButton.textContent = usernameLocked ? lockedUsername : "Account";
     els.authUserName.textContent = usernameLocked ? lockedUsername : getGoogleDisplayName();
-    els.authUserEmail.textContent = usernameLocked
+    els.authUserEmail.textContent = usernameLocked && !canRename
       ? state.auth.user.email || ""
+      : canRename
+      ? "You can rename this Google-backed account one time. Enter the new username on the left, then save profile."
       : "Choose a username in the field on the left, then press Save Profile to lock it in.";
     if (state.auth.user.picture) {
       els.authUserPicture.src = state.auth.user.picture;
@@ -511,6 +521,7 @@ function applyProfilePayload(profile) {
     highestRankIndex: progress.highestRankIndex ?? getRankInfoFromXp(progress.xp || 0).rankIndex,
     seasonTag: progress.seasonTag || getCurrentSeasonTag(),
     usernameLocked,
+    usernameChangeAvailable: Boolean(profile.username_change_available || state.auth.user?.username_change_available),
   };
 
   if (profile.auth_id && state.auth.user?.sub && profile.auth_id === `google:${state.auth.user.sub}`) {
@@ -520,6 +531,9 @@ function applyProfilePayload(profile) {
   if (state.auth.user) {
     state.auth.user.username = usernameLocked ? resolvedUsername : "";
     state.auth.user.username_locked = usernameLocked;
+    state.auth.user.username_change_available = Boolean(
+      profile.username_change_available ?? state.auth.user.username_change_available
+    );
   }
 
   els.username.value = state.profile.username;
