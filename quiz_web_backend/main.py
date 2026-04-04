@@ -1122,6 +1122,7 @@ async def start_online_match_if_ready(room: dict):
 
 async def finalize_online_round(room: dict):
     current_question = room["questions"][room["current_index"]]
+    registered_question = get_registered_question(current_question["question_id"])
     results = room["round_submissions"]
     next_index = room["current_index"] + 1
     finished = next_index >= len(room["questions"])
@@ -1135,7 +1136,7 @@ async def finalize_online_round(room: dict):
         "scores": summarize_online_scores(room),
         "current_index": next_index,
         "total_questions": len(room["questions"]),
-        "correct_answer": current_question["college"],
+        "correct_answer": registered_question["college"],
         "round_results": results,
         "finished": finished,
         "question": None if finished else serialize_online_question(room),
@@ -1184,6 +1185,7 @@ async def send_ranked_match_started(match: dict):
 
 async def finalize_ranked_round(match: dict):
     current_question = match["questions"][match["current_index"]]
+    registered_question = get_registered_question(current_question["question_id"])
     results = match["round_submissions"]
     next_index = match["current_index"] + 1
     finished = next_index >= len(match["questions"])
@@ -1199,7 +1201,7 @@ async def finalize_ranked_round(match: dict):
         "scores": summarize_ranked_scores(match),
         "current_index": next_index,
         "total_questions": len(match["questions"]),
-        "correct_answer": current_question["college"],
+        "correct_answer": registered_question["college"],
         "round_results": results,
         "finished": finished,
         "question": None if finished else serialize_ranked_question(match),
