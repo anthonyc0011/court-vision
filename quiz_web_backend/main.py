@@ -2002,9 +2002,26 @@ def admin_delete_profile(username: str, x_analytics_key: str | None = Header(def
 async def online_match_socket(websocket: WebSocket, room_code: str, username: str):
     room = ONLINE_MATCHES.get(room_code.upper())
     normalized_username = username.strip() or "Guest"
-    if not room or normalized_username not in room["players"]:
+    if not room:
         await websocket.close(code=4404)
         return
+
+    host_username = room["players"][0]
+    guest_username = room["players"][1]
+    if normalized_username not in room["players"]:
+        if normalized_username == host_username:
+            await websocket.close(code=4404)
+            return
+        if guest_username is None:
+            room["players"][1] = normalized_username
+            room["scores"].setdefault(normalized_username, 0)
+        elif guest_username not in room["connections"]:
+            room["scores"].pop(guest_username, None)
+            room["players"][1] = normalized_username
+            room["scores"].setdefault(normalized_username, 0)
+        else:
+            await websocket.close(code=4404)
+            return
 
     await websocket.accept()
     room["connections"][normalized_username] = websocket
