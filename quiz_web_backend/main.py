@@ -253,6 +253,13 @@ def build_question_payload(row, df: pd.DataFrame):
     }
 
 
+def build_match_question_payload(row, df: pd.DataFrame) -> dict:
+    payload = build_question_payload(row, df)
+    payload["college"] = str(row["College / Last School"]).strip()
+    payload["accepted_answers"] = get_answer_variants(row)
+    return payload
+
+
 def build_directory_payload(row) -> dict:
     school = str(row["College / Last School"]).strip()
     headshot_file = str(row.get("Headshot File", "")).strip() if row.get("Headshot File") else ""
@@ -370,9 +377,30 @@ def normalized_profile_username(value: str | None) -> str:
     return str(value or "").strip().lower()
 
 
+def google_account_payload(row: dict) -> dict:
+    return json.loads(row["payload"] or "{}")
+
+
+def google_account_username_locked(row: dict) -> bool:
+    payload = google_account_payload(row)
+    if "username_locked" in payload:
+        return bool(payload.get("username_locked"))
+    return bool(str(payload.get("username") or "").strip())
+
+
 def google_account_username(row: dict) -> str:
+    payload = google_account_payload(row)
+    if google_account_username_locked(row):
+        return str(payload.get("username") or "").strip()
+    return ""
+
+
+def google_account_public_username(row: dict) -> str:
     payload = json.loads(row["payload"] or "{}")
-    return str(payload.get("username") or row.get("display_name") or row.get("email") or "").strip()
+    locked_username = str(payload.get("username") or "").strip()
+    if locked_username:
+        return locked_username
+    return str(row.get("display_name") or row.get("email") or "").strip()
 
 
 def collect_profile_rows() -> tuple[list[dict], list[dict]]:
@@ -391,10 +419,12 @@ def build_profile_collection(include_hidden: bool = False) -> list[dict]:
         payload = json.loads(row["payload"])
         result.append({"username": row["username"], **payload})
     for row in google_rows:
-        payload = json.loads(row["payload"] or "{}")
+        payload = google_account_payload(row)
+        if not google_account_username_locked(row):
+            continue
         result.append(
             {
-                "username": payload.get("username") or row["display_name"] or row["email"] or "Player",
+                "username": google_account_public_username(row) or "Player",
                 "auth_provider": "google",
                 "auth_id": f"google:{row['google_sub']}",
                 "picture": row["picture"],
@@ -421,7 +451,16 @@ def build_profile_collection(include_hidden: bool = False) -> list[dict]:
         if existing is None or sort_strength(item) > sort_strength(existing):
             deduped[key] = item
 
-    return list(deduped.values())
+    username_deduped: dict[str, dict] = {}
+    for item in deduped.values():
+        visible_username = normalized_profile_username(item.get("username"))
+        if not visible_username:
+            continue
+        existing = username_deduped.get(visible_username)
+        if existing is None or sort_strength(item) > sort_strength(existing):
+            username_deduped[visible_username] = item
+
+    return list(username_deduped.values())
 
 
 def google_username_taken(username: str, ignore_google_sub: str | None = None) -> bool:
@@ -435,6 +474,49 @@ def google_username_taken(username: str, ignore_google_sub: str | None = None) -
         if normalized_profile_username(google_account_username(row)) == wanted:
             return True
     return False
+
+
+def merge_progress_payload(base_progress: dict | None, incoming_progress: dict | None) -> dict:
+    base = dict(base_progress or {})
+    incoming = dict(incoming_progress or {})
+
+    merged = dict(base)
+    numeric_max_fields = ("xp", "gamesPlayed", "bestScore", "onlineWins", "highestRankIndex")
+    for key in numeric_max_fields:
+        merged[key] = max(int(base.get(key) or 0), int(incoming.get(key) or 0))
+
+    achievements = []
+    for source in (base.get("achievements") or [], incoming.get("achievements") or []):
+        if source not in achievements:
+            achievements.append(source)
+    merged["achievements"] = achievements
+
+    rank_history = []
+    seen = set()
+    for item in (incoming.get("rankHistory") or []) + (base.get("rankHistory") or []):
+        key = json.dumps(item, sort_keys=True) if isinstance(item, dict) else str(item)
+        if key in seen:
+            continue
+        seen.add(key)
+        rank_history.append(item)
+    merged["rankHistory"] = rank_history[:25]
+
+    for field in ("rank", "seasonTag"):
+        merged[field] = incoming.get(field) or base.get(field) or ""
+
+    return merged
+
+
+def merge_google_profile_payload(existing_payload: dict, incoming_payload: dict, locked_username: str) -> dict:
+    existing_settings = existing_payload.get("settings") or {}
+    incoming_settings = incoming_payload.get("settings") or {}
+    return {
+        "username": locked_username,
+        "username_locked": True,
+        "theme": incoming_payload.get("theme") or existing_payload.get("theme") or "Arena Blue",
+        "settings": {**existing_settings, **incoming_settings},
+        "progress": merge_progress_payload(existing_payload.get("progress"), incoming_payload.get("progress")),
+    }
 
 
 def init_db():
@@ -740,13 +822,13 @@ def build_online_match_questions(count: int | None, conference: str, player_pool
     if df.empty:
         df = load_dataframe()
     sample = choose_random_records(df, count)
-    return [build_question_payload(row, df) for row in sample]
+    return [build_match_question_payload(row, df) for row in sample]
 
 
 def build_ranked_questions() -> list[dict]:
     df = load_dataframe()
     sample = choose_random_records(df, RANKED_QUESTION_COUNT)
-    return [build_question_payload(row, df) for row in sample]
+    return [build_match_question_payload(row, df) for row in sample]
 
 
 def get_online_room(room_code: str) -> dict:
@@ -919,7 +1001,10 @@ def summarize_ranked_scores(match: dict) -> dict:
 def serialize_ranked_question(match: dict) -> dict | None:
     if match["current_index"] >= len(match["questions"]):
         return None
-    return dict(match["questions"][match["current_index"]])
+    question = dict(match["questions"][match["current_index"]])
+    question.pop("accepted_answers", None)
+    question.pop("college", None)
+    return question
 
 
 def compute_ranked_gain_from_streak(next_streak: int) -> int:
@@ -1122,7 +1207,6 @@ async def start_online_match_if_ready(room: dict):
 
 async def finalize_online_round(room: dict):
     current_question = room["questions"][room["current_index"]]
-    registered_question = get_registered_question(current_question["question_id"])
     results = room["round_submissions"]
     next_index = room["current_index"] + 1
     finished = next_index >= len(room["questions"])
@@ -1136,7 +1220,7 @@ async def finalize_online_round(room: dict):
         "scores": summarize_online_scores(room),
         "current_index": next_index,
         "total_questions": len(room["questions"]),
-        "correct_answer": registered_question["college"],
+        "correct_answer": current_question["college"],
         "round_results": results,
         "finished": finished,
         "question": None if finished else serialize_online_question(room),
@@ -1185,7 +1269,6 @@ async def send_ranked_match_started(match: dict):
 
 async def finalize_ranked_round(match: dict):
     current_question = match["questions"][match["current_index"]]
-    registered_question = get_registered_question(current_question["question_id"])
     results = match["round_submissions"]
     next_index = match["current_index"] + 1
     finished = next_index >= len(match["questions"])
@@ -1201,7 +1284,7 @@ async def finalize_ranked_round(match: dict):
         "scores": summarize_ranked_scores(match),
         "current_index": next_index,
         "total_questions": len(match["questions"]),
-        "correct_answer": registered_question["college"],
+        "correct_answer": current_question["college"],
         "round_results": results,
         "finished": finished,
         "question": None if finished else serialize_ranked_question(match),
@@ -1232,7 +1315,7 @@ async def handle_ranked_submission(match: dict, player_id: str, answer: str, ski
         return
 
     current_question = match["questions"][match["current_index"]]
-    accepted = {normalize_answer(item) for item in get_registered_question(current_question["question_id"])["accepted_answers"]}
+    accepted = {normalize_answer(item) for item in current_question["accepted_answers"]}
     normalized_answer = normalize_answer(answer)
     correct = False if skipped else normalized_answer in accepted
 
@@ -1260,10 +1343,7 @@ async def handle_online_submission(room: dict, username: str, answer: str, skipp
         return
 
     current_question = room["questions"][room["current_index"]]
-    accepted = {
-        normalize_answer(item)
-        for item in get_registered_question(current_question["question_id"])["accepted_answers"]
-    }
+    accepted = {normalize_answer(item) for item in current_question["accepted_answers"]}
     normalized_answer = normalize_answer(answer)
     correct = False if skipped else normalized_answer in accepted
 
@@ -1308,7 +1388,7 @@ def auth_google(payload: GoogleLoginPayload):
         raise HTTPException(status_code=401, detail="Google sign-in failed.")
 
     email = str(token_info.get("email", "")).strip()
-    display_name = str(token_info.get("name") or email.split("@")[0] or "Player").strip()
+    google_name = str(token_info.get("name") or email.split("@")[0] or "Player").strip()
     picture = str(token_info.get("picture", "")).strip()
 
     with get_conn() as conn:
@@ -1322,8 +1402,12 @@ def auth_google(payload: GoogleLoginPayload):
                     display_name = excluded.display_name,
                     picture = excluded.picture
                 """,
-                (google_sub, email, display_name, picture, google_sub),
+                (google_sub, email, google_name, picture, google_sub),
             )
+            row = conn.execute(
+                "SELECT payload FROM google_accounts WHERE google_sub = %s",
+                (google_sub,),
+            ).fetchone()
         else:
             conn.execute(
                 """
@@ -1334,15 +1418,22 @@ def auth_google(payload: GoogleLoginPayload):
                     display_name = excluded.display_name,
                     picture = excluded.picture
                 """,
-                (google_sub, email, display_name, picture, google_sub),
+                (google_sub, email, google_name, picture, google_sub),
             )
+            row = conn.execute(
+                "SELECT payload FROM google_accounts WHERE google_sub = ?",
+                (google_sub,),
+            ).fetchone()
         conn.commit()
 
+    stored_payload = json.loads((row["payload"] if row else "{}") or "{}")
+    locked_username = str(stored_payload.get("username") or "").strip()
+    username_locked = bool(stored_payload.get("username_locked")) or bool(locked_username)
     auth_token = sign_session_payload(
         {
             "sub": google_sub,
             "email": email,
-            "name": display_name,
+            "name": google_name,
             "picture": picture,
             "exp": int(time.time()) + (60 * 60 * 24 * 30),
         }
@@ -1353,8 +1444,11 @@ def auth_google(payload: GoogleLoginPayload):
         "user": {
             "sub": google_sub,
             "email": email,
-            "name": display_name,
+            "name": locked_username or google_name,
+            "google_name": google_name,
             "picture": picture,
+            "username": locked_username,
+            "username_locked": username_locked,
         },
     }
 
@@ -1363,28 +1457,35 @@ def auth_google(payload: GoogleLoginPayload):
 def auth_me(authorization: str | None = Header(default=None)):
     user = require_authenticated_user(authorization)
     google_sub = str(user.get("sub", "")).strip()
-    display_name = user.get("name")
+    google_name = user.get("name")
+    username = ""
+    username_locked = False
     if google_sub:
         with get_conn() as conn:
             if USING_POSTGRES:
                 row = conn.execute(
-                    "SELECT payload FROM google_accounts WHERE google_sub = %s",
+                    "SELECT display_name, payload FROM google_accounts WHERE google_sub = %s",
                     (google_sub,),
                 ).fetchone()
             else:
                 row = conn.execute(
-                    "SELECT payload FROM google_accounts WHERE google_sub = ?",
+                    "SELECT display_name, payload FROM google_accounts WHERE google_sub = ?",
                     (google_sub,),
                 ).fetchone()
         if row:
             payload = json.loads(row["payload"] or "{}")
-            display_name = payload.get("username") or display_name
+            username = str(payload.get("username") or "").strip()
+            username_locked = bool(payload.get("username_locked")) or bool(username)
+            google_name = row["display_name"] or google_name
     return {
         "user": {
             "sub": user.get("sub"),
             "email": user.get("email"),
-            "name": display_name,
+            "name": username or google_name,
+            "google_name": google_name,
             "picture": user.get("picture"),
+            "username": username,
+            "username_locked": username_locked,
         }
     }
 
@@ -1420,10 +1521,14 @@ def auth_profile(authorization: str | None = Header(default=None)):
         raise HTTPException(status_code=404, detail="Authenticated profile not found.")
 
     payload = json.loads(row["payload"] or "{}")
-    username = payload.get("username") or row["display_name"] or row["email"] or "Player"
+    username = str(payload.get("username") or "").strip()
+    username_locked = bool(payload.get("username_locked")) or bool(username)
     return {
         "profile": {
+            "has_saved_profile": bool(payload),
             "username": username,
+            "username_locked": username_locked,
+            "google_name": row["display_name"] or row["email"] or "Player",
             "theme": payload.get("theme", "Arena Blue"),
             "settings": payload.get("settings", {}),
             "progress": payload.get("progress", {}),
@@ -1899,18 +2004,68 @@ def post_authenticated_profile(profile: ProfilePayload, authorization: str | Non
     google_sub = str(user.get("sub", "")).strip()
     if not google_sub:
         raise HTTPException(status_code=401, detail="Invalid authenticated user.")
-    normalized_username = normalized_profile_username(profile.username.strip() or user.get("name") or "Player")
-    if google_username_taken(normalized_username, ignore_google_sub=google_sub):
-        raise HTTPException(status_code=409, detail="That display name is already in use.")
-
-    payload = {
-        "username": profile.username.strip() or user.get("name") or "Player",
+    requested_username = profile.username.strip()
+    incoming_payload = {
+        "username": requested_username,
         "theme": profile.theme,
         "settings": profile.settings or {},
         "progress": profile.progress or {},
     }
 
     with get_conn() as conn:
+        if USING_POSTGRES:
+            row = conn.execute(
+                "SELECT payload FROM google_accounts WHERE google_sub = %s",
+                (google_sub,),
+            ).fetchone()
+        else:
+            row = conn.execute(
+                "SELECT payload FROM google_accounts WHERE google_sub = ?",
+                (google_sub,),
+            ).fetchone()
+
+        existing_payload = json.loads((row["payload"] if row else "{}") or "{}")
+        existing_username = str(existing_payload.get("username") or "").strip()
+        username_locked = bool(existing_payload.get("username_locked")) or bool(existing_username)
+
+        if username_locked:
+            if requested_username and normalized_profile_username(requested_username) != normalized_profile_username(existing_username):
+                raise HTTPException(status_code=409, detail="This Google account already locked in a username.")
+            locked_username = existing_username
+        else:
+            locked_username = requested_username
+            if not locked_username:
+                raise HTTPException(status_code=400, detail="Choose a username first.")
+            normalized_username = normalized_profile_username(locked_username)
+            if google_username_taken(normalized_username, ignore_google_sub=google_sub):
+                raise HTTPException(status_code=409, detail="That username is already in use.")
+
+        guest_payload = {}
+        if not username_locked and locked_username:
+            if USING_POSTGRES:
+                guest_row = conn.execute(
+                    "SELECT payload FROM profiles WHERE username = %s",
+                    (locked_username,),
+                ).fetchone()
+            else:
+                guest_row = conn.execute(
+                    "SELECT payload FROM profiles WHERE username = ?",
+                    (locked_username,),
+                ).fetchone()
+            if guest_row:
+                guest_payload = json.loads(guest_row["payload"] or "{}")
+
+        payload = merge_google_profile_payload(
+            existing_payload,
+            {
+                **incoming_payload,
+                "theme": incoming_payload["theme"] or guest_payload.get("theme") or existing_payload.get("theme") or "Arena Blue",
+                "settings": {**(guest_payload.get("settings") or {}), **incoming_payload.get("settings", {})},
+                "progress": merge_progress_payload(guest_payload.get("progress"), incoming_payload.get("progress")),
+            },
+            locked_username,
+        )
+
         if USING_POSTGRES:
             conn.execute(
                 """
@@ -1928,6 +2083,8 @@ def post_authenticated_profile(profile: ProfilePayload, authorization: str | Non
                 """,
                 (payload["username"], int(time.time()), f"google:{google_sub}"),
             )
+            if not username_locked and guest_payload:
+                conn.execute("DELETE FROM profiles WHERE username = %s", (locked_username,))
         else:
             conn.execute(
                 """
@@ -1945,6 +2102,8 @@ def post_authenticated_profile(profile: ProfilePayload, authorization: str | Non
                 """,
                 (payload["username"], int(time.time()), f"google:{google_sub}"),
             )
+            if not username_locked and guest_payload:
+                conn.execute("DELETE FROM profiles WHERE username = ?", (locked_username,))
         conn.commit()
     return {"saved": True}
 

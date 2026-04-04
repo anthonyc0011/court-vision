@@ -352,6 +352,18 @@ function removeAnalyticsCard() {
   }
 }
 
+function isGoogleUsernameLocked() {
+  return Boolean(state.auth.user?.username_locked);
+}
+
+function getGoogleDisplayName() {
+  return state.auth.user?.google_name || state.auth.user?.name || "Account";
+}
+
+function getLockedUsername() {
+  return (state.auth.user?.username || state.profile.username || "").trim();
+}
+
 function renderAuthPanel() {
   const signedIn = Boolean(state.auth.user && state.auth.token);
   els.authPanel?.classList.toggle("hidden", !state.auth.panelOpen);
@@ -359,14 +371,23 @@ function renderAuthPanel() {
   els.authSignedIn?.classList.toggle("hidden", !signedIn);
   els.profileSettingsCard?.classList.toggle("hidden", !signedIn);
   if (els.username) {
-    els.username.readOnly = signedIn;
-    els.username.title = signedIn ? "This profile is locked to your signed-in Google account." : "";
+    const usernameLocked = signedIn && isGoogleUsernameLocked();
+    els.username.readOnly = usernameLocked;
+    els.username.title = usernameLocked
+      ? "This username is locked to your signed-in Google account."
+      : signedIn
+      ? "Choose your Court Vision username, then save profile to lock it in."
+      : "";
   }
 
   if (signedIn) {
-    els.loginButton.textContent = state.auth.user.name || "Account";
-    els.authUserName.textContent = state.auth.user.name || "Signed in";
-    els.authUserEmail.textContent = state.auth.user.email || "";
+    const usernameLocked = isGoogleUsernameLocked();
+    const lockedUsername = getLockedUsername();
+    els.loginButton.textContent = usernameLocked ? lockedUsername : "Account";
+    els.authUserName.textContent = usernameLocked ? lockedUsername : getGoogleDisplayName();
+    els.authUserEmail.textContent = usernameLocked
+      ? state.auth.user.email || ""
+      : "Choose a username in the field on the left, then press Save Profile to lock it in.";
     if (state.auth.user.picture) {
       els.authUserPicture.src = state.auth.user.picture;
       els.authUserPicture.classList.remove("hidden");
@@ -419,15 +440,18 @@ async function handleGoogleCredentialResponse(response) {
     state.auth.token = payload.token;
     state.auth.user = payload.user;
     persistAuthState();
-    if (payload.user?.name) {
-      els.username.value = payload.user.name;
-      state.profile.username = payload.user.name;
+    if (payload.user?.username_locked && payload.user?.username) {
+      els.username.value = payload.user.username;
+      state.profile.username = payload.user.username;
+    } else if (!els.username.value.trim() || ["guest", payload.user?.google_name?.toLowerCase?.() || ""].includes(els.username.value.trim().toLowerCase())) {
+      els.username.value = "";
+      state.profile.username = "";
     }
     await loadAuthenticatedProfile();
     await loadRankedProfile();
     state.auth.panelOpen = false;
     renderAuthPanel();
-    showToast("Signed in with Google.");
+    showToast(payload.user?.username_locked ? "Signed in with Google." : "Signed in. Choose a username and save profile to lock it in.");
   } catch (error) {
     if (els.authStatus) {
       els.authStatus.textContent = error?.message || "Google sign-in failed.";
@@ -443,9 +467,12 @@ async function restoreAuthenticatedUser() {
       headers: getAuthHeaders(),
     });
     state.auth.user = payload.user;
-    if (payload.user?.name) {
-      els.username.value = payload.user.name;
-      state.profile.username = payload.user.name;
+    if (payload.user?.username_locked && payload.user?.username) {
+      els.username.value = payload.user.username;
+      state.profile.username = payload.user.username;
+    } else if ((els.username.value || "").trim().toLowerCase() === "guest") {
+      els.username.value = "";
+      state.profile.username = "";
     }
     await loadAuthenticatedProfile();
     await loadRankedProfile();
@@ -460,9 +487,19 @@ function applyProfilePayload(profile) {
   if (!profile) return;
   const settings = profile.settings || {};
   const progress = getProfileProgress(profile);
+  const usernameLocked = Boolean(profile.username_locked || state.auth.user?.username_locked);
+  let resolvedUsername = (profile.username || "").trim();
+  if (!resolvedUsername && usernameLocked) {
+    resolvedUsername = getLockedUsername();
+  } else if (!resolvedUsername && state.auth.token) {
+    const currentValue = (els.username.value || state.profile.username || "").trim();
+    resolvedUsername = currentValue.toLowerCase() === "guest" ? "" : currentValue;
+  } else if (!resolvedUsername) {
+    resolvedUsername = state.profile.username || "Guest";
+  }
 
   state.profile = {
-    username: profile.username || state.auth.user?.name || state.profile.username || "Guest",
+    username: resolvedUsername,
     theme: profile.theme || state.profile.theme || "Arena Blue",
     xp: progress.xp,
     rank: getRankFromXp(progress.xp || 0),
@@ -473,10 +510,16 @@ function applyProfilePayload(profile) {
     rankHistory: progress.rankHistory || [],
     highestRankIndex: progress.highestRankIndex ?? getRankInfoFromXp(progress.xp || 0).rankIndex,
     seasonTag: progress.seasonTag || getCurrentSeasonTag(),
+    usernameLocked,
   };
 
   if (profile.auth_id && state.auth.user?.sub && profile.auth_id === `google:${state.auth.user.sub}`) {
     state.profile.authId = profile.auth_id;
+  }
+
+  if (state.auth.user) {
+    state.auth.user.username = usernameLocked ? resolvedUsername : "";
+    state.auth.user.username_locked = usernameLocked;
   }
 
   els.username.value = state.profile.username;
@@ -505,6 +548,14 @@ async function loadAuthenticatedProfile() {
     const payload = await fetchJson("/auth/profile", {
       headers: getAuthHeaders(),
     });
+    if (!payload.profile?.has_saved_profile) {
+      if (state.auth.user) {
+        state.auth.user.username = payload.profile?.username || "";
+        state.auth.user.username_locked = Boolean(payload.profile?.username_locked);
+      }
+      renderAuthPanel();
+      return;
+    }
     applyProfilePayload(payload.profile);
   } catch (_error) {
     // Keep local state when the signed-in account has not saved a profile yet.
@@ -2440,7 +2491,10 @@ async function autoJoinInviteIfNeeded() {
 }
 
 async function saveProfile(silent = false) {
-  const username = els.username.value.trim() || "Guest";
+  const username = els.username.value.trim() || (state.auth.token ? "" : "Guest");
+  if (state.auth.token && !isGoogleUsernameLocked() && !username) {
+    throw new Error("Choose a username first.");
+  }
   state.profile.username = username;
   state.profile.seasonTag = state.profile.seasonTag || getCurrentSeasonTag();
   state.profile.rank = getRankFromXp(state.profile.xp);
@@ -2484,6 +2538,12 @@ async function saveProfile(silent = false) {
       headers: getAuthHeaders(),
       body: JSON.stringify(profilePayload),
     });
+    const authPayload = await fetchJson("/auth/me", {
+      headers: getAuthHeaders(),
+    });
+    state.auth.user = authPayload.user;
+    persistAuthState();
+    await loadAuthenticatedProfile();
   } else {
     await fetchJson("/profiles", {
       method: "POST",
@@ -2522,7 +2582,8 @@ async function saveAccountSettings() {
   await saveProfile(true);
 
   if (state.auth.user) {
-    state.auth.user.name = displayName;
+    state.auth.user.username = displayName;
+    state.auth.user.username_locked = true;
     persistAuthState();
   }
   renderAuthPanel();
