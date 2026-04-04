@@ -776,6 +776,11 @@ function clearJoinLinkFromUrl() {
   window.history.replaceState({}, "", url.toString());
 }
 
+function getInviteMessage() {
+  const roomCode = state.online.roomCode || "----";
+  return `Join my Court Vision game: ${state.online.inviteUrl}\nCode: ${roomCode}`;
+}
+
 async function shareInviteLink() {
   if (!state.online.inviteUrl) {
     showToast("Invite link is not ready yet.");
@@ -784,9 +789,13 @@ async function shareInviteLink() {
 
   try {
     if (navigator.share) {
-      await navigator.share({ title: "Court Vision Private Match", url: state.online.inviteUrl });
+      await navigator.share({
+        title: "Join Game",
+        text: getInviteMessage(),
+        url: state.online.inviteUrl,
+      });
     } else {
-      await copyText(state.online.inviteUrl);
+      await copyText(getInviteMessage());
     }
     showToast("Invite link ready to send.");
   } catch (_error) {
@@ -2411,7 +2420,7 @@ async function startOnlineMatch() {
     state.invite.joinCode = "";
   }
   if (action === "create") {
-    copyText(state.online.inviteUrl)
+    copyText(getInviteMessage())
       .then(() => showToast("Invite link copied. Send it to your opponent."))
       .catch(() => showToast(`Match created. Share code ${roomPayload.room_code}.`));
   }
@@ -2709,7 +2718,7 @@ els.copyInviteLink?.addEventListener("click", () => {
     showToast("Invite link is not ready yet.");
     return;
   }
-  copyText(state.online.inviteUrl)
+  copyText(getInviteMessage())
     .then(() => showToast("Invite link copied."))
     .catch(() => showToast("Could not copy the invite link."));
 });
