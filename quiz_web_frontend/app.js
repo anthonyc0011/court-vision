@@ -1000,7 +1000,11 @@ function handleIncomingChatMessage(message) {
 
 function sendChatMessage() {
   const text = (els.chatInput?.value || "").trim();
-  if (!text || !state.online.socket || state.online.socket.readyState !== WebSocket.OPEN) return;
+  if (!text) return;
+  if (!state.online.socket || state.online.socket.readyState !== WebSocket.OPEN) {
+    showToast("Chat is not connected yet.");
+    return;
+  }
   state.online.socket.send(JSON.stringify({ type: "chat_message", text }));
   els.chatInput.value = "";
 }
@@ -1501,6 +1505,9 @@ function renderProgress() {
   state.questions.forEach((_, index) => {
     const segment = document.createElement("div");
     segment.className = "progress-segment";
+    if (index === state.currentIndex && !state.results[index]) {
+      segment.classList.add("current");
+    }
     const fill = document.createElement("div");
     fill.className = "progress-fill";
     if (state.results[index] === "correct") fill.classList.add("correct");
