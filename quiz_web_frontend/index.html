@@ -20,26 +20,6 @@
             <p class="eyebrow">NBA College Quiz</p>
             <h1 id="siteTitle">Court Vision</h1>
             <p class="subtitle made-by">Made by Anthony</p>
-            <p class="subtitle">Play quick solo runs, look up any player, or jump into private and ranked matchups without the home screen feeling like work.</p>
-            <div class="hero-ribbon">
-              <span class="ribbon-chip">470 Quiz Players</span>
-              <span class="ribbon-chip">Private Matchups</span>
-              <span class="ribbon-chip">True Ranked Online</span>
-            </div>
-            <div class="hero-stat-row">
-              <div class="hero-stat-card">
-                <span class="dashboard-label">Best For</span>
-                <strong>Quick solo runs</strong>
-              </div>
-              <div class="hero-stat-card">
-                <span class="dashboard-label">Live Modes</span>
-                <strong>Private + Ranked</strong>
-              </div>
-              <div class="hero-stat-card">
-                <span class="dashboard-label">Built In</span>
-                <strong>Headshots + Directory</strong>
-              </div>
-            </div>
           </div>
           <div id="authPanel" class="auth-panel hidden">
             <div id="authSignedOut">
@@ -198,7 +178,6 @@
           <div class="hero-actions home-primary-actions">
             <button id="startQuiz">Start Game</button>
             <button id="saveProfile">Save Profile</button>
-            <button id="loadLeaderboard">Refresh Rankings</button>
           </div>
         </article>
 
@@ -206,13 +185,12 @@
           <div class="panel-heading">
             <div>
               <p class="eyebrow">Player Hub</p>
-              <h2>Progress, Rankings, And Directory</h2>
+              <h2>Progress And Directory</h2>
             </div>
           </div>
           <div id="profileSummary" class="dashboard-card profile-card">Profile summary will appear here.</div>
           <div class="dashboard-support-grid">
             <div id="dailyOutput" class="dashboard-card daily-card">Season status will appear here.</div>
-            <div id="leaderboardOutput" class="dashboard-card leaderboard-card">Ranked leaderboard not loaded yet.</div>
           </div>
           <div id="directoryOutput" class="dashboard-card directory-card">
             <div class="leaderboard-header">
@@ -273,7 +251,7 @@
           </div>
         </div>
         <div class="hud-sub hud-meta">
-          <span id="achievementText">Achievements: none yet</span>
+          <span id="achievementText">Solo run</span>
           <span id="rankText">XP 0 | Rank Rookie</span>
         </div>
         <div id="turnTimerText" class="turn-timer hidden">15s to answer</div>
@@ -324,7 +302,7 @@
           <span class="ribbon-chip">Play Again</span>
         </div>
         <p id="endSummary" class="subtitle large-copy"></p>
-        <div id="rewardSummary" class="scroll-box compact-box">Rewards and achievements will appear here.</div>
+        <div id="rewardSummary" class="scroll-box compact-box">Run recap will appear here.</div>
         <div id="missedSummary" class="scroll-box compact-box"></div>
         <div class="hero-actions">
           <button id="playAgain">Play Again</button>

@@ -341,7 +341,11 @@ function ensureAnalyticsCard() {
   card = document.createElement("div");
   card.id = "analyticsOutput";
   card.className = "dashboard-card analytics-card";
-  els.leaderboardOutput.insertAdjacentElement("beforebegin", card);
+  if (els.directoryOutput) {
+    els.directoryOutput.insertAdjacentElement("beforebegin", card);
+  } else if (els.profileSummary?.parentElement) {
+    els.profileSummary.parentElement.appendChild(card);
+  }
   return card;
 }
 
@@ -1185,7 +1189,10 @@ function updateProfileSummary() {
     els.achievementText.textContent = "Hints disabled in versus mode";
   } else {
     els.rankText.textContent = `${state.profile.rank} | ${state.profile.xp} XP`;
-    els.achievementText.textContent = `Achievements: ${state.profile.achievements.length ? state.profile.achievements.slice(-2).join(" • ") : "none yet"}`;
+    els.achievementText.textContent =
+      els.answerMode.value === "multiple-choice"
+        ? "Multiple choice mode"
+        : `${PLAYER_POOL_LABELS[els.playerPool.value] || "All Players"} • Typed mode`;
   }
   renderSeasonStatus();
 }
@@ -1305,24 +1312,8 @@ function showRoundOverlay(message, duration = 900) {
 }
 
 function unlockAchievements(summary) {
-  const earned = [];
-  const existing = new Set(state.profile.achievements);
-  const rules = [
-    ["First Win", summary.correct > 0],
-    ["Perfect Game", summary.correct === summary.total && summary.total > 0],
-    ["On Fire", summary.bestStreak >= 5],
-    ["No Skips", summary.skipped === 0 && summary.total > 0],
-    ["No Hints", summary.hintsUsed === 0 && summary.correct > 0],
-    ["Road Warrior", summary.online && summary.wonOnline],
-    ["Hardcore Hero", summary.mode === "Hard" && summary.accuracy >= 80],
-  ];
-  rules.forEach(([name, ok]) => {
-    if (ok && !existing.has(name)) {
-      state.profile.achievements.push(name);
-      earned.push(name);
-    }
-  });
-  return earned;
+  void summary;
+  return [];
 }
 
 function recordRankPromotions(previousXp, newXp) {
@@ -1937,7 +1928,7 @@ function finishQuiz() {
     const s2 = state.playerScores[p2];
     const winner = s1 === s2 ? `Tie game: ${s1}-${s2}` : `Winner: ${s1 > s2 ? p1 : p2} (${Math.max(s1, s2)}-${Math.min(s1, s2)})`;
     els.endSummary.textContent = `${winner} | Total questions ${summary.total}`;
-    els.rewardSummary.textContent = `${p1}: ${s1}\n${p2}: ${s2}\n2-player local mode does not change XP or achievements.`;
+    els.rewardSummary.textContent = `${p1}: ${s1}\n${p2}: ${s2}\n2-player local mode does not change season XP.`;
   } else {
     els.endSummary.textContent = `${summary.correct}/${summary.total} correct | Accuracy ${summary.accuracy}% | Wrong ${summary.wrong} | Skipped ${summary.skipped}`;
     const breakdownLines = reward.breakdown?.length
@@ -1950,8 +1941,7 @@ function finishQuiz() {
       `Season XP Gained: ${reward.xpGain}\n` +
       `Current Rank: ${state.profile.rank}\n` +
       `${promotionLines}` +
-      `XP Breakdown:\n${breakdownLines}\n` +
-      `New Achievements: ${reward.earned.length ? reward.earned.join(", ") : "None this run"}`;
+      `XP Breakdown:\n${breakdownLines}`;
   }
   if (!state.online.enabled) {
     const missed = state.missedQuestions
@@ -2605,6 +2595,7 @@ async function saveAccountSettings() {
 }
 
 async function loadLeaderboard() {
+  if (!els.leaderboardOutput) return;
   const data = await fetchJson("/ranked/leaderboard?limit=5");
   const entries = data.entries || [];
 
@@ -2756,7 +2747,7 @@ document.getElementById("saveProfile").addEventListener("click", () => {
     .then(() => loadAnalyticsSummary().catch(() => {}))
     .catch((error) => showToast(error?.message || "Could not save profile."));
 });
-document.getElementById("loadLeaderboard").addEventListener("click", () => {
+document.getElementById("loadLeaderboard")?.addEventListener("click", () => {
   Promise.all([loadLeaderboard(), loadAnalyticsSummary().catch(() => {})])
     .then(() => showToast("Rankings refreshed."))
     .catch((error) => showToast(error?.message || "Could not refresh rankings."));
@@ -2934,7 +2925,9 @@ syncModeFields();
 renderAnalyticsSummary(null);
 populateMeta().catch(() => {});
 loadLeaderboard().catch(() => {
-  els.leaderboardOutput.innerHTML = '<div class="leaderboard-empty">Start the backend to load the ranked ladder.</div>';
+  if (els.leaderboardOutput) {
+    els.leaderboardOutput.innerHTML = '<div class="leaderboard-empty">Start the backend to load the ranked ladder.</div>';
+  }
 });
 trackAnalytics("page_view").then(() => loadAnalyticsSummary()).catch(() => {
   renderAnalyticsSummary(null);
