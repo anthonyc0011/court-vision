@@ -212,6 +212,7 @@ const els = {
   achievementText: document.getElementById("achievementText"),
   rankText: document.getElementById("rankText"),
   progressBar: document.getElementById("progressBar"),
+  quizLayout: document.getElementById("quizLayout"),
   headshotImage: document.getElementById("headshotImage"),
   headshotFallback: document.getElementById("headshotFallback"),
   logoCard: document.querySelector(".logo-card"),
@@ -932,11 +933,13 @@ function createChatMessageId() {
 }
 
 function renderChatPanel() {
-  if (!els.chatPanel || !els.chatMessages || !els.muteChat) return;
+  if (!els.chatPanel || !els.chatMessages || !els.muteChat || !els.quizLayout) return;
 
   const chatAvailable = state.online.enabled && !state.online.ranked;
   els.toggleChat?.classList.toggle("hidden", !chatAvailable);
   els.chatPanel.classList.toggle("hidden", !chatAvailable || !state.online.chatOpen);
+  els.quizLayout.classList.toggle("online-private-layout", chatAvailable);
+  els.quizLayout.classList.toggle("private-chat-open", chatAvailable && state.online.chatOpen);
   els.muteChat.textContent = state.online.chatMuted ? "Unmute" : "Mute";
 
   if (!chatAvailable) {
