@@ -1422,6 +1422,13 @@ button:hover {
   display: flex;
   flex-direction: column;
   min-height: 100%;
+  overflow: hidden;
+}
+
+.quiz-layout.online-private-layout.private-chat-open .chat-panel {
+  height: 640px;
+  min-height: 640px;
+  max-height: 640px;
 }
 
 .chat-panel-title {
@@ -1457,7 +1464,7 @@ button:hover {
   max-height: none;
   overflow-y: auto;
   padding-right: 4px;
-  min-height: 260px;
+  min-height: 0;
 }
 
 .chat-empty {
@@ -1632,5 +1639,11 @@ button:hover {
 
   .chat-messages {
     min-height: 170px;
+  }
+
+  .quiz-layout.online-private-layout.private-chat-open .chat-panel {
+    height: auto;
+    min-height: 0;
+    max-height: none;
   }
 }
