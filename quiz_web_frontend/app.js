@@ -927,6 +927,10 @@ function formatChatTime(timestampSeconds) {
   return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
+function createChatMessageId() {
+  return `chat_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 9)}`;
+}
+
 function renderChatPanel() {
   if (!els.chatPanel || !els.chatMessages || !els.muteChat) return;
 
@@ -985,6 +989,12 @@ function closeChatPanel() {
 
 function handleIncomingChatMessage(message) {
   if (!message) return;
+  if (
+    message.id &&
+    state.online.chatMessages.some((existing) => existing && existing.id && existing.id === message.id)
+  ) {
+    return;
+  }
   state.online.chatMessages.push(message);
   state.online.chatMessages = state.online.chatMessages.slice(-100);
   const fromOpponent = message.sender && message.sender !== state.online.playerName;
@@ -1005,7 +1015,14 @@ function sendChatMessage() {
     showToast("Chat is not connected yet.");
     return;
   }
-  state.online.socket.send(JSON.stringify({ type: "chat_message", text }));
+  const clientMessageId = createChatMessageId();
+  handleIncomingChatMessage({
+    id: clientMessageId,
+    sender: state.online.playerName || state.profile.username,
+    text,
+    created_at: Math.floor(Date.now() / 1000),
+  });
+  state.online.socket.send(JSON.stringify({ type: "chat_message", text, client_message_id: clientMessageId }));
   els.chatInput.value = "";
 }
 

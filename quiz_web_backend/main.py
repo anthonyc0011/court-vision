@@ -1176,8 +1176,9 @@ def summarize_online_scores(room: dict) -> dict:
     return {player: room["scores"].get(player, 0) for player in room["players"] if player}
 
 
-def build_chat_message_payload(sender: str, text: str) -> dict:
+def build_chat_message_payload(sender: str, text: str, message_id: str | None = None) -> dict:
     return {
+        "id": message_id or secrets.token_urlsafe(8),
         "sender": sender,
         "text": text,
         "created_at": int(time.time()),
@@ -1378,11 +1379,15 @@ async def handle_online_submission(room: dict, username: str, answer: str, skipp
     await finalize_online_round(room)
 
 
-async def handle_online_chat_message(room: dict, username: str, text: str):
+async def handle_online_chat_message(room: dict, username: str, text: str, message_id: str | None = None):
     cleaned = re.sub(r"\s+", " ", str(text or "")).strip()
     if not cleaned:
         return
-    message = build_chat_message_payload(username, cleaned[:280])
+    normalized_message_id = re.sub(r"[^a-zA-Z0-9_-]", "", str(message_id or "").strip())[:48] or None
+    message = build_chat_message_payload(username, cleaned[:280], normalized_message_id)
+    existing_ids = {item.get("id") for item in room.get("chat_messages", []) if isinstance(item, dict)}
+    if message["id"] in existing_ids:
+        return
     room.setdefault("chat_messages", []).append(message)
     room["chat_messages"] = room["chat_messages"][-100:]
     await broadcast_room(
@@ -2274,7 +2279,12 @@ async def online_match_socket(websocket: WebSocket, room_code: str, username: st
             elif event_type == "skip_question":
                 await handle_online_submission(room, normalized_username, "", skipped=True)
             elif event_type == "chat_message":
-                await handle_online_chat_message(room, normalized_username, payload.get("text", ""))
+                await handle_online_chat_message(
+                    room,
+                    normalized_username,
+                    payload.get("text", ""),
+                    payload.get("client_message_id"),
+                )
             elif event_type == "request_rematch":
                 await handle_rematch_request(room, normalized_username)
     except WebSocketDisconnect:
