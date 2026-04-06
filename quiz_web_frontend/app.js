@@ -87,6 +87,10 @@ const state = {
     inviteUrl: "",
     queuePollId: null,
     rankedProfile: null,
+    chatMessages: [],
+    chatOpen: false,
+    chatMuted: false,
+    unreadCount: 0,
   },
   profile: {
     username: "Guest",
@@ -197,6 +201,14 @@ const els = {
   onlineInviteActions: document.getElementById("onlineInviteActions"),
   copyInviteLink: document.getElementById("copyInviteLink"),
   shareInviteLink: document.getElementById("shareInviteLink"),
+  toggleChat: document.getElementById("toggleChat"),
+  chatUnreadBadge: document.getElementById("chatUnreadBadge"),
+  chatPanel: document.getElementById("chatPanel"),
+  chatMessages: document.getElementById("chatMessages"),
+  chatInput: document.getElementById("chatInput"),
+  sendChatMessage: document.getElementById("sendChatMessage"),
+  muteChat: document.getElementById("muteChat"),
+  closeChat: document.getElementById("closeChat"),
   achievementText: document.getElementById("achievementText"),
   rankText: document.getElementById("rankText"),
   progressBar: document.getElementById("progressBar"),
@@ -910,6 +922,89 @@ function formatDateShort(value = new Date()) {
   return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
+function formatChatTime(timestampSeconds) {
+  const date = new Date(Number(timestampSeconds || 0) * 1000 || Date.now());
+  return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
+function renderChatPanel() {
+  if (!els.chatPanel || !els.chatMessages || !els.muteChat) return;
+
+  const chatAvailable = state.online.enabled && !state.online.ranked;
+  els.toggleChat?.classList.toggle("hidden", !chatAvailable);
+  els.chatPanel.classList.toggle("hidden", !chatAvailable || !state.online.chatOpen);
+  els.muteChat.textContent = state.online.chatMuted ? "Unmute" : "Mute";
+
+  if (!chatAvailable) {
+    return;
+  }
+
+  if (!state.online.chatMessages.length) {
+    els.chatMessages.innerHTML = '<div class="chat-empty">Messages from your opponent will show up here.</div>';
+  } else {
+    els.chatMessages.innerHTML = state.online.chatMessages
+      .map((message) => {
+        const own = message.sender === state.online.playerName;
+        return `
+          <div class="chat-message ${own ? "own-message" : ""}">
+            <div class="chat-message-header">
+              <strong>${escapeHtml(own ? "You" : message.sender || "Opponent")}</strong>
+              <span>${escapeHtml(formatChatTime(message.created_at))}</span>
+            </div>
+            <div class="chat-message-text">${escapeHtml(message.text || "")}</div>
+          </div>
+        `;
+      })
+      .join("");
+  }
+
+  els.chatMessages.scrollTop = els.chatMessages.scrollHeight;
+}
+
+function updateChatBadge() {
+  if (!els.chatUnreadBadge || !els.toggleChat) return;
+  const chatAvailable = state.online.enabled && !state.online.ranked;
+  els.toggleChat.classList.toggle("hidden", !chatAvailable);
+  const count = state.online.unreadCount || 0;
+  els.chatUnreadBadge.textContent = String(count);
+  els.chatUnreadBadge.classList.toggle("hidden", !chatAvailable || count <= 0);
+}
+
+function openChatPanel() {
+  state.online.chatOpen = true;
+  state.online.unreadCount = 0;
+  updateChatBadge();
+  renderChatPanel();
+  els.chatInput?.focus();
+}
+
+function closeChatPanel() {
+  state.online.chatOpen = false;
+  renderChatPanel();
+}
+
+function handleIncomingChatMessage(message) {
+  if (!message) return;
+  state.online.chatMessages.push(message);
+  state.online.chatMessages = state.online.chatMessages.slice(-100);
+  const fromOpponent = message.sender && message.sender !== state.online.playerName;
+  if (fromOpponent && !state.online.chatOpen) {
+    state.online.unreadCount += 1;
+  }
+  updateChatBadge();
+  renderChatPanel();
+  if (fromOpponent && !state.online.chatMuted) {
+    showToast(`New message from ${message.sender}.`);
+  }
+}
+
+function sendChatMessage() {
+  const text = (els.chatInput?.value || "").trim();
+  if (!text || !state.online.socket || state.online.socket.readyState !== WebSocket.OPEN) return;
+  state.online.socket.send(JSON.stringify({ type: "chat_message", text }));
+  els.chatInput.value = "";
+}
+
 function formatRankHistory() {
   if (!state.profile.rankHistory.length) {
     return '<div class="achievement-empty">No rank promotions yet. Win games and stack bonuses to climb the ladder.</div>';
@@ -1274,12 +1369,17 @@ function updateTwoPlayerHud() {
     } else {
       els.turnTimerText.classList.add("hidden");
     }
+    updateChatBadge();
+    renderChatPanel();
     return;
   }
   if (!state.twoPlayer) {
     els.twoPlayerBanner.classList.add("hidden");
     els.turnTimerText.classList.add("hidden");
     els.onlineInviteActions?.classList.add("hidden");
+    els.toggleChat?.classList.add("hidden");
+    els.chatPanel?.classList.add("hidden");
+    updateChatBadge();
     return;
   }
   els.twoPlayerBanner.classList.remove("hidden");
@@ -2067,7 +2167,14 @@ function resetOnlineState() {
     queuePollId: null,
     rankedProfile: state.online.rankedProfile || null,
     opponentElo: 0,
+    chatMessages: [],
+    chatOpen: false,
+    chatMuted: false,
+    unreadCount: 0,
   };
+  if (els.chatInput) {
+    els.chatInput.value = "";
+  }
   updateProfileSummary();
 }
 
@@ -2352,8 +2459,12 @@ function attachOnlineSocket(roomCode, username) {
       state.online.playerName = payload.player_name;
       state.online.opponentName = payload.opponent_name || "";
       state.online.scores = payload.scores || {};
+      state.online.chatMessages = Array.isArray(payload.chat_history) ? payload.chat_history : [];
+      state.online.unreadCount = 0;
       applyOnlineMatchSettings(payload);
       renderOnlineWaiting();
+      renderChatPanel();
+      updateChatBadge();
       if (payload.waiting) {
         els.onlineStatus.textContent = `Match code ${payload.room_code} created. Share it with a friend.`;
       }
@@ -2399,6 +2510,11 @@ function attachOnlineSocket(roomCode, username) {
       showRoundOverlay("Rematch Start");
       renderQuestion();
       showToast("Rematch started.");
+      return;
+    }
+
+    if (payload.type === "chat_message") {
+      handleIncomingChatMessage(payload.message);
       return;
     }
 
@@ -2790,6 +2906,26 @@ els.copyInviteLink?.addEventListener("click", () => {
 });
 els.shareInviteLink?.addEventListener("click", () => {
   shareInviteLink().catch(() => showToast("Could not share the invite link."));
+});
+els.toggleChat?.addEventListener("click", () => {
+  if (state.online.chatOpen) {
+    closeChatPanel();
+  } else {
+    openChatPanel();
+  }
+});
+els.closeChat?.addEventListener("click", closeChatPanel);
+els.muteChat?.addEventListener("click", () => {
+  state.online.chatMuted = !state.online.chatMuted;
+  renderChatPanel();
+  showToast(state.online.chatMuted ? "Chat muted." : "Chat unmuted.");
+});
+els.sendChatMessage?.addEventListener("click", sendChatMessage);
+els.chatInput?.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    sendChatMessage();
+  }
 });
 els.directorySearchButton?.addEventListener("click", () => {
   searchDirectory().catch((error) => showToast(error?.message || "Could not search the directory."));

@@ -1176,6 +1176,14 @@ def summarize_online_scores(room: dict) -> dict:
     return {player: room["scores"].get(player, 0) for player in room["players"] if player}
 
 
+def build_chat_message_payload(sender: str, text: str) -> dict:
+    return {
+        "sender": sender,
+        "text": text,
+        "created_at": int(time.time()),
+    }
+
+
 def serialize_online_question(room: dict) -> dict | None:
     if room["current_index"] >= len(room["questions"]):
         return None
@@ -1368,6 +1376,22 @@ async def handle_online_submission(room: dict, username: str, answer: str, skipp
         return
 
     await finalize_online_round(room)
+
+
+async def handle_online_chat_message(room: dict, username: str, text: str):
+    cleaned = re.sub(r"\s+", " ", str(text or "")).strip()
+    if not cleaned:
+        return
+    message = build_chat_message_payload(username, cleaned[:280])
+    room.setdefault("chat_messages", []).append(message)
+    room["chat_messages"] = room["chat_messages"][-100:]
+    await broadcast_room(
+        room,
+        {
+            "type": "chat_message",
+            "message": message,
+        },
+    )
 
 
 @app.get("/api/health")
@@ -1622,6 +1646,7 @@ def create_online_match(payload: OnlineMatchCreateRequest):
         "conference": payload.conference,
         "player_pool": payload.player_pool,
         "created_at": time.time(),
+        "chat_messages": [],
     }
     return {
         "room_code": room_code,
@@ -2233,6 +2258,7 @@ async def online_match_socket(websocket: WebSocket, room_code: str, username: st
             "question_count": room["question_count"],
             "conference": room["conference"],
             "player_pool": room.get("player_pool", "all"),
+            "chat_history": room.get("chat_messages", []),
         },
     )
 
@@ -2247,6 +2273,8 @@ async def online_match_socket(websocket: WebSocket, room_code: str, username: st
                 await handle_online_submission(room, normalized_username, str(payload.get("answer", "")), skipped=False)
             elif event_type == "skip_question":
                 await handle_online_submission(room, normalized_username, "", skipped=True)
+            elif event_type == "chat_message":
+                await handle_online_chat_message(room, normalized_username, payload.get("text", ""))
             elif event_type == "request_rematch":
                 await handle_rematch_request(room, normalized_username)
     except WebSocketDisconnect:
