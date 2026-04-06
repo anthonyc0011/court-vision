@@ -79,9 +79,11 @@ const state = {
     currentQuestion: null,
     opponentName: "",
     opponentId: "",
+    opponentAuthId: "",
     scores: {},
     playerName: "",
     playerId: "",
+    playerAuthId: "",
     rematchRequested: false,
     showHeadshots: true,
     inviteUrl: "",
@@ -109,6 +111,8 @@ const state = {
     titleTapCount: 0,
     lastTitleTapAt: 0,
     profiles: [],
+    liveSummary: null,
+    userResults: [],
   },
   directory: {
     searchTimerId: null,
@@ -117,6 +121,13 @@ const state = {
   invite: {
     joinCode: "",
     autoJoinAttempted: false,
+  },
+  friends: {
+    panelOpen: false,
+    friends: [],
+    incomingRequests: [],
+    outgoingRequests: [],
+    loaded: false,
   },
   auth: {
     token: "",
@@ -160,8 +171,13 @@ const els = {
   directorySearchButton: document.getElementById("directorySearchButton"),
   directoryResults: document.getElementById("directoryResults"),
   loginButton: document.getElementById("loginButton"),
+  friendsButton: document.getElementById("friendsButton"),
   shareButton: document.getElementById("shareButton"),
   authPanel: document.getElementById("authPanel"),
+  friendsPanel: document.getElementById("friendsPanel"),
+  friendsStatus: document.getElementById("friendsStatus"),
+  friendsContent: document.getElementById("friendsContent"),
+  refreshFriends: document.getElementById("refreshFriends"),
   authSignedOut: document.getElementById("authSignedOut"),
   authSignedIn: document.getElementById("authSignedIn"),
   authStatus: document.getElementById("authStatus"),
@@ -230,6 +246,7 @@ const els = {
   rewardSummary: document.getElementById("rewardSummary"),
   missedSummary: document.getElementById("missedSummary"),
   requestRematch: document.getElementById("requestRematch"),
+  sendFriendRequest: document.getElementById("sendFriendRequest"),
   rematchStatus: document.getElementById("rematchStatus"),
 };
 
@@ -388,6 +405,9 @@ function getLockedUsername() {
 function renderAuthPanel() {
   const signedIn = Boolean(state.auth.user && state.auth.token);
   els.authPanel?.classList.toggle("hidden", !state.auth.panelOpen);
+  if (state.auth.panelOpen) {
+    state.friends.panelOpen = false;
+  }
   els.authSignedOut?.classList.toggle("hidden", signedIn);
   els.authSignedIn?.classList.toggle("hidden", !signedIn);
   els.profileSettingsCard?.classList.toggle("hidden", !signedIn);
@@ -422,7 +442,7 @@ function renderAuthPanel() {
       els.authUserPicture.classList.add("hidden");
     }
   } else {
-    els.loginButton.textContent = "Login";
+    els.loginButton.textContent = "Profile";
     if (els.authStatus) {
       els.authStatus.textContent = GOOGLE_CLIENT_ID
         ? "Sign in to save a profile that belongs to your Google account."
@@ -476,8 +496,10 @@ async function handleGoogleCredentialResponse(response) {
     }
     await loadAuthenticatedProfile();
     await loadRankedProfile();
+    await loadFriendsSummary().catch(() => {});
     state.auth.panelOpen = false;
     renderAuthPanel();
+    renderFriendsPanel();
     showToast(payload.user?.username_locked ? "Signed in with Google." : "Signed in. Choose a username and save profile to lock it in.");
   } catch (error) {
     if (els.authStatus) {
@@ -485,6 +507,245 @@ async function handleGoogleCredentialResponse(response) {
     }
     showToast(error?.message || "Google sign-in failed.");
   }
+}
+
+function getFriendOnlineLabel(friend) {
+  return friend?.online ? "Online" : "Offline";
+}
+
+function renderFriendsPanel() {
+  if (!els.friendsPanel || !els.friendsContent || !els.friendsStatus) return;
+  const signedIn = Boolean(state.auth.user && state.auth.token);
+  els.friendsPanel.classList.toggle("hidden", !state.friends.panelOpen);
+  if (state.friends.panelOpen) {
+    state.auth.panelOpen = false;
+  }
+  if (!signedIn) {
+    els.friendsStatus.textContent = "Sign in to build your friends list.";
+    els.friendsContent.innerHTML = '<div class="leaderboard-empty">Friends, requests, and direct 1v1 challenges are available for signed-in players.</div>';
+    return;
+  }
+
+  const incoming = state.friends.incomingRequests || [];
+  const outgoing = state.friends.outgoingRequests || [];
+  const friends = state.friends.friends || [];
+  els.friendsStatus.textContent = `${friends.length} friend${friends.length === 1 ? "" : "s"} • ${friends.filter((friend) => friend.online).length} online`;
+
+  const incomingHtml = incoming.length
+    ? `
+      <div class="friends-section">
+        <p class="eyebrow">Incoming Requests</p>
+        <div class="friends-list">
+          ${incoming
+            .map(
+              (request) => `
+                <div class="friend-row request-row">
+                  <div>
+                    <strong>${escapeHtml(request.username)}</strong>
+                    <div class="leaderboard-meta">${escapeHtml(formatDateShort(request.created_at * 1000))}</div>
+                  </div>
+                  <div class="friend-actions">
+                    <button class="secondary-button compact-button friend-respond-button" data-request-id="${request.id}" data-action="accept">Accept</button>
+                    <button class="secondary-button compact-button friend-respond-button" data-request-id="${request.id}" data-action="decline">Decline</button>
+                  </div>
+                </div>
+              `
+            )
+            .join("")}
+        </div>
+      </div>
+    `
+    : "";
+
+  const outgoingHtml = outgoing.length
+    ? `
+      <div class="friends-section">
+        <p class="eyebrow">Sent Requests</p>
+        <div class="friends-list">
+          ${outgoing
+            .map(
+              (request) => `
+                <div class="friend-row request-row">
+                  <div>
+                    <strong>${escapeHtml(request.username)}</strong>
+                    <div class="leaderboard-meta">Pending</div>
+                  </div>
+                </div>
+              `
+            )
+            .join("")}
+        </div>
+      </div>
+    `
+    : "";
+
+  const friendsHtml = friends.length
+    ? friends
+        .map(
+          (friend) => `
+            <div class="friend-row">
+              <div class="friend-main">
+                ${friend.picture ? `<img src="${escapeHtml(friend.picture)}" alt="${escapeHtml(friend.username)}" class="friend-avatar" />` : '<div class="friend-avatar friend-avatar-fallback">CV</div>'}
+                <div>
+                  <div class="friend-name-row">
+                    <strong>${escapeHtml(friend.username)}</strong>
+                    <span class="friend-status ${friend.online ? "is-online" : "is-offline"}">${escapeHtml(getFriendOnlineLabel(friend))}</span>
+                  </div>
+                  <div class="leaderboard-meta">${escapeHtml(friend.rank || "Unranked")} • ${friend.xp || 0} XP • Best ${friend.best_score || 0}</div>
+                  <div class="leaderboard-meta">Ranked: ${escapeHtml(friend.ranked?.division || "Unranked")} • ${friend.ranked?.elo ?? 0} Elo • ${friend.ranked?.wins ?? 0}-${friend.ranked?.losses ?? 0}</div>
+                  ${
+                    friend.incoming_challenge
+                      ? `<div class="friend-challenge-banner">Challenge waiting: code ${escapeHtml(friend.incoming_challenge.room_code)}</div>`
+                      : ""
+                  }
+                </div>
+              </div>
+              <div class="friend-actions">
+                ${
+                  friend.incoming_challenge
+                    ? `<button class="secondary-button compact-button join-friend-challenge" data-room-code="${escapeHtml(friend.incoming_challenge.room_code)}">Join Challenge</button>`
+                    : ""
+                }
+                <button class="secondary-button compact-button challenge-friend-button" data-username="${escapeHtml(friend.username)}" ${friend.online ? "" : "disabled"}>Challenge</button>
+              </div>
+            </div>
+          `
+        )
+        .join("")
+    : '<div class="leaderboard-empty">No friends yet. Finish a private match and add someone, or accept a request here.</div>';
+
+  els.friendsContent.innerHTML = `
+    ${incomingHtml}
+    ${outgoingHtml}
+    <div class="friends-section">
+      <p class="eyebrow">Friends List</p>
+      <div class="friends-list">${friendsHtml}</div>
+    </div>
+  `;
+
+  els.friendsContent.querySelectorAll(".friend-respond-button").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const requestId = Number(button.getAttribute("data-request-id") || 0);
+      const action = button.getAttribute("data-action") || "decline";
+      try {
+        await fetchJson("/friends/respond", {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ request_id: requestId, action }),
+        });
+        await loadFriendsSummary(true);
+        showToast(action === "accept" ? "Friend request accepted." : "Friend request declined.");
+      } catch (error) {
+        showToast(error?.message || "Could not update that friend request.");
+      }
+    });
+  });
+
+  els.friendsContent.querySelectorAll(".challenge-friend-button").forEach((button) => {
+    button.addEventListener("click", () => {
+      const username = button.getAttribute("data-username") || "";
+      challengeFriend(username).catch((error) => showToast(error?.message || "Could not challenge that friend."));
+    });
+  });
+
+  els.friendsContent.querySelectorAll(".join-friend-challenge").forEach((button) => {
+    button.addEventListener("click", () => {
+      const roomCode = button.getAttribute("data-room-code") || "";
+      if (!roomCode) return;
+      els.onlineMode.checked = true;
+      els.onlineAction.value = "join";
+      els.onlineCode.value = roomCode;
+      syncModeFields();
+      toggleOnlineFields();
+      startOnlineMatch().catch((error) => showToast(error?.message || "Could not join that challenge."));
+    });
+  });
+}
+
+async function loadFriendsSummary(showFeedback = false) {
+  if (!state.auth.token) {
+    state.friends.friends = [];
+    state.friends.incomingRequests = [];
+    state.friends.outgoingRequests = [];
+    state.friends.loaded = false;
+    renderFriendsPanel();
+    return;
+  }
+  const payload = await fetchJson("/friends", {
+    headers: getAuthHeaders(),
+  });
+  state.friends.friends = payload.friends || [];
+  state.friends.incomingRequests = payload.incoming_requests || [];
+  state.friends.outgoingRequests = payload.outgoing_requests || [];
+  state.friends.loaded = true;
+  renderFriendsPanel();
+  if (showFeedback) {
+    showToast("Friends refreshed.");
+  }
+}
+
+async function sendFriendRequestTo(username) {
+  if (!state.auth.token) {
+    showToast("Sign in with Google to add friends.");
+    return;
+  }
+  await fetchJson("/friends/request", {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ target_username: username }),
+  });
+  await loadFriendsSummary().catch(() => {});
+}
+
+async function challengeFriend(username) {
+  if (!state.auth.token) {
+    throw new Error("Sign in with Google to challenge friends.");
+  }
+  els.onlineMode.checked = true;
+  els.twoPlayerMode.checked = false;
+  els.rankedMode.checked = false;
+  els.onlineAction.value = "create";
+  syncModeFields();
+  const roomPayload = await fetchJson("/online-match/create", {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({
+      username: els.username.value.trim() || state.profile.username || "Host",
+      room_code: null,
+      count: getRequestedQuestionCount(),
+      conference: els.conferenceFilter.value,
+      player_pool: els.playerPool.value,
+      answer_mode: els.answerMode.value,
+      show_headshots: els.showHeadshots.checked,
+    }),
+  });
+  resetOnlineState();
+  await fetchJson("/friends/challenge", {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({
+      target_username: username,
+      room_code: roomPayload.room_code,
+    }),
+  });
+  state.friends.panelOpen = false;
+  renderFriendsPanel();
+  state.online.enabled = true;
+  state.online.action = "create";
+  state.online.playerName = roomPayload.player_name;
+  state.online.playerAuthId = roomPayload.player_auth_id || "";
+  state.mode = "Online 1v1";
+  state.answerMode = roomPayload.answer_mode || els.answerMode.value;
+  state.twoPlayer = false;
+  state.daily = false;
+  state.online.roomCode = roomPayload.room_code;
+  state.online.inviteUrl = getPrivateMatchLink(roomPayload.room_code);
+  applyOnlineMatchSettings(roomPayload);
+  switchScreen(screens.quiz);
+  renderOnlineWaiting();
+  startTimer();
+  attachOnlineSocket(roomPayload.room_code, state.online.playerName);
+  showToast(`Challenge sent to ${username}.`);
 }
 
 async function restoreAuthenticatedUser() {
@@ -503,10 +764,14 @@ async function restoreAuthenticatedUser() {
     }
     await loadAuthenticatedProfile();
     await loadRankedProfile();
+    await loadFriendsSummary().catch(() => {});
     persistAuthState();
   } catch (_error) {
     clearAuthState();
     state.online.rankedProfile = null;
+    state.friends.friends = [];
+    state.friends.incomingRequests = [];
+    state.friends.outgoingRequests = [];
   }
 }
 
@@ -1128,9 +1393,36 @@ function renderAnalyticsSummary(summary) {
       </div>
       <div id="adminProfileList" class="admin-profile-list"></div>
     </div>
+    <div class="admin-section">
+      <div class="leaderboard-header">
+        <div>
+          <p class="eyebrow">Live Match Monitor</p>
+          <div class="daily-status">See private rooms, ranked games, and queue activity in real time.</div>
+        </div>
+      </div>
+      <div id="adminLiveMonitor" class="admin-profile-list">
+        <div class="leaderboard-empty">Load live match data.</div>
+      </div>
+    </div>
+    <div class="admin-section">
+      <div class="leaderboard-header">
+        <div>
+          <p class="eyebrow">User Lookup</p>
+          <div class="daily-status">Search a player account, inspect progress, and reset ranked if needed.</div>
+        </div>
+      </div>
+      <div class="admin-cleanup-row">
+        <input id="adminUserLookup" placeholder="Search username" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
+        <button id="adminLookupButton" class="secondary-button">Search</button>
+      </div>
+      <div id="adminUserResults" class="admin-profile-list">
+        <div class="leaderboard-empty">Search for a user to inspect their account.</div>
+      </div>
+    </div>
     <div class="hero-actions">
       <button id="refreshAnalytics">Refresh Analytics</button>
       <button id="refreshAdminProfiles" class="secondary-button">Refresh Admin List</button>
+      <button id="refreshAdminLive" class="secondary-button">Refresh Live</button>
       <button id="clearAnalyticsKey" class="secondary-button">Hide Analytics</button>
     </div>
   `;
@@ -1144,6 +1436,15 @@ function renderAnalyticsSummary(summary) {
     loadAdminProfiles()
       .then(() => showToast("Admin list refreshed."))
       .catch((error) => showToast(error?.message || "Could not refresh admin list."));
+  });
+  document.getElementById("refreshAdminLive")?.addEventListener("click", () => {
+    Promise.all([loadAdminLiveMonitor(), loadAdminUserLookup()])
+      .then(() => showToast("Admin monitor refreshed."))
+      .catch((error) => showToast(error?.message || "Could not refresh admin monitor."));
+  });
+  document.getElementById("adminLookupButton")?.addEventListener("click", () => {
+    loadAdminUserLookup(document.getElementById("adminUserLookup")?.value || "")
+      .catch((error) => showToast(error?.message || "Could not search users."));
   });
   document.getElementById("adminCleanupButton")?.addEventListener("click", () => {
     const username = document.getElementById("adminCleanupUsername")?.value?.trim() || "";
@@ -1164,6 +1465,8 @@ function renderAnalyticsSummary(summary) {
       .catch((error) => showToast(error?.message || "Could not remove that profile."));
   });
   renderAdminProfiles(state.admin.profiles || []);
+  renderAdminLive(state.admin.liveSummary || null);
+  renderAdminUsers(state.admin.userResults || []);
 }
 
 function renderAdminProfiles(profiles) {
@@ -1205,6 +1508,80 @@ function renderAdminProfiles(profiles) {
   });
 }
 
+function renderAdminLive(payload) {
+  state.admin.liveSummary = payload || null;
+  const container = document.getElementById("adminLiveMonitor");
+  if (!container) return;
+  if (!payload) {
+    container.innerHTML = '<div class="leaderboard-empty">Load live match data.</div>';
+    return;
+  }
+  const online = payload.online_matches || [];
+  const ranked = payload.ranked_matches || [];
+  const queue = payload.ranked_queue || [];
+  container.innerHTML = `
+    <div class="admin-profile-row">
+      <div>
+        <span class="leaderboard-name">Private Matches</span>
+        <div class="leaderboard-meta">${online.length} active</div>
+      </div>
+    </div>
+    ${online.length ? online.map((room) => `
+      <div class="admin-profile-row">
+        <div>
+          <span class="leaderboard-name">Code ${escapeHtml(room.room_code)}</span>
+          <div class="leaderboard-meta">${escapeHtml((room.players || []).join(" vs "))} • ${room.started ? "live" : "waiting"} • Q${room.current_index}/${room.total_questions}</div>
+        </div>
+      </div>
+    `).join("") : '<div class="leaderboard-empty">No active private matches.</div>'}
+    <div class="admin-profile-row">
+      <div>
+        <span class="leaderboard-name">Ranked Matches</span>
+        <div class="leaderboard-meta">${ranked.length} live • ${queue.length} in queue</div>
+      </div>
+    </div>
+    ${ranked.length ? ranked.map((match) => `
+      <div class="admin-profile-row">
+        <div>
+          <span class="leaderboard-name">${escapeHtml((match.players || []).join(" vs "))}</span>
+          <div class="leaderboard-meta">Q${match.current_index}/${match.total_questions} • ${match.started ? "live" : "starting"}</div>
+        </div>
+      </div>
+    `).join("") : '<div class="leaderboard-empty">No ranked matches live.</div>'}
+  `;
+}
+
+function renderAdminUsers(users) {
+  state.admin.userResults = users || [];
+  const container = document.getElementById("adminUserResults");
+  if (!container) return;
+  if (!state.admin.userResults.length) {
+    container.innerHTML = '<div class="leaderboard-empty">Search for a user to inspect their account.</div>';
+    return;
+  }
+  container.innerHTML = state.admin.userResults
+    .map((user) => `
+      <div class="admin-profile-row">
+        <div>
+          <span class="leaderboard-name">${escapeHtml(user.username)}</span>
+          <div class="leaderboard-meta">${escapeHtml(user.auth_provider || "guest")} • ${(user.progress?.xp ?? 0)} XP • ${(user.ranked?.division || "Unranked")} • ${(user.ranked?.elo ?? 0)} Elo</div>
+        </div>
+        <div class="admin-profile-actions">
+          <button class="secondary-button admin-reset-ranked" data-username="${escapeHtml(user.username)}">Reset Ranked</button>
+        </div>
+      </div>
+    `)
+    .join("");
+  container.querySelectorAll(".admin-reset-ranked").forEach((button) => {
+    button.addEventListener("click", () => {
+      const username = button.getAttribute("data-username") || "";
+      resetAdminRankedUser(username)
+        .then(() => showToast(`Reset ranked for ${username}.`))
+        .catch((error) => showToast(error?.message || "Could not reset ranked data."));
+    });
+  });
+}
+
 async function loadAdminProfiles() {
   const analyticsKey = getAnalyticsAdminKey();
   if (!analyticsKey) {
@@ -1217,6 +1594,30 @@ async function loadAdminProfiles() {
   renderAdminProfiles(payload.profiles || []);
 }
 
+async function loadAdminLiveMonitor() {
+  const analyticsKey = getAnalyticsAdminKey();
+  if (!analyticsKey) {
+    renderAdminLive(null);
+    return;
+  }
+  const payload = await fetchJson("/admin/live", {
+    headers: { "X-Analytics-Key": analyticsKey },
+  });
+  renderAdminLive(payload);
+}
+
+async function loadAdminUserLookup(query = "") {
+  const analyticsKey = getAnalyticsAdminKey();
+  if (!analyticsKey) {
+    renderAdminUsers([]);
+    return;
+  }
+  const payload = await fetchJson(`/admin/users?q=${encodeURIComponent(query)}&limit=20`, {
+    headers: { "X-Analytics-Key": analyticsKey },
+  });
+  renderAdminUsers(payload.users || []);
+}
+
 async function deleteAdminProfile(username) {
   const analyticsKey = getAnalyticsAdminKey();
   if (!analyticsKey) throw new Error("Analytics access denied.");
@@ -1227,6 +1628,17 @@ async function deleteAdminProfile(username) {
   await loadLeaderboard().catch(() => {});
   await loadAdminProfiles().catch(() => {});
   return Boolean(payload.deleted);
+}
+
+async function resetAdminRankedUser(username) {
+  const analyticsKey = getAnalyticsAdminKey();
+  if (!analyticsKey) throw new Error("Analytics access denied.");
+  const payload = await fetchJson(`/admin/ranked/reset/${encodeURIComponent(username)}`, {
+    method: "POST",
+    headers: { "X-Analytics-Key": analyticsKey },
+  });
+  await loadAdminUserLookup(username).catch(() => {});
+  return payload;
 }
 
 function getProfileProgress(profile) {
@@ -1991,6 +2403,7 @@ function finishQuiz() {
   document.getElementById("playMissedOnly").classList.remove("hidden");
   els.rematchStatus.classList.add("hidden");
   els.requestRematch.classList.add("hidden");
+  els.sendFriendRequest?.classList.add("hidden");
   if (!state.twoPlayer && !state.online.enabled) {
     reward = grantRewards(summary);
   }
@@ -2046,6 +2459,11 @@ function finishQuiz() {
       els.requestRematch.textContent = state.online.rematchRequested ? "Rematch Requested" : "Request Rematch";
       els.requestRematch.disabled = state.online.rematchRequested;
       els.requestRematch.classList.remove("hidden");
+      if (state.auth.token && state.online.opponentName && (state.online.opponentAuthId || state.online.ranked)) {
+        els.sendFriendRequest.textContent = `Add ${state.online.opponentName}`;
+        els.sendFriendRequest.disabled = false;
+        els.sendFriendRequest.classList.remove("hidden");
+      }
       document.getElementById("playAgain").classList.add("hidden");
       document.getElementById("playMissedOnly").classList.add("hidden");
     }
@@ -2185,9 +2603,11 @@ function resetOnlineState() {
     currentQuestion: null,
     opponentName: "",
     opponentId: "",
+    opponentAuthId: "",
     scores: {},
     playerName: "",
     playerId: "",
+    playerAuthId: "",
     rematchRequested: false,
     showHeadshots: true,
     inviteUrl: "",
@@ -2261,6 +2681,9 @@ function prepareOnlineQuizState(totalQuestions, payload) {
       state.online.opponentName = payload.player_names[opponentId];
     }
   }
+  if (payload.opponent_auth_id) {
+    state.online.opponentAuthId = payload.opponent_auth_id;
+  }
   if (payload.ranked_profile) {
     state.online.rankedProfile = {
       ...(state.online.rankedProfile || {}),
@@ -2273,6 +2696,7 @@ function prepareOnlineQuizState(totalQuestions, payload) {
   els.modeChip.textContent = payload.ranked ? "Ranked Online" : "Online 1v1";
   els.endTitle.textContent = payload.ranked ? "Ranked Match Recap" : "Online Match Recap";
   els.requestRematch.classList.toggle("hidden", Boolean(payload.ranked));
+  els.sendFriendRequest?.classList.add("hidden");
   els.rematchStatus.classList.add("hidden");
 }
 
@@ -2484,7 +2908,9 @@ function attachOnlineSocket(roomCode, username) {
     if (payload.type === "room_joined") {
       state.online.roomCode = payload.room_code;
       state.online.playerName = payload.player_name;
+      state.online.playerAuthId = payload.player_auth_id || "";
       state.online.opponentName = payload.opponent_name || "";
+      state.online.opponentAuthId = payload.opponent_auth_id || "";
       state.online.scores = payload.scores || {};
       state.online.chatMessages = Array.isArray(payload.chat_history) ? payload.chat_history : [];
       state.online.unreadCount = 0;
@@ -2578,6 +3004,7 @@ async function startOnlineMatch() {
     if (action === "create") {
       roomPayload = await fetchJson("/online-match/create", {
         method: "POST",
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           username,
           room_code: roomCode || null,
@@ -2596,6 +3023,7 @@ async function startOnlineMatch() {
       }
       roomPayload = await fetchJson("/online-match/join", {
         method: "POST",
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           room_code: roomCode,
           username,
@@ -2611,6 +3039,7 @@ async function startOnlineMatch() {
 
   state.online.roomCode = roomPayload.room_code;
   state.online.playerName = roomPayload.player_name || username;
+  state.online.playerAuthId = roomPayload.player_auth_id || "";
   state.online.inviteUrl = getPrivateMatchLink(roomPayload.room_code);
   applyOnlineMatchSettings(roomPayload);
   if (action === "join") {
@@ -2691,6 +3120,7 @@ async function saveProfile(silent = false) {
     state.auth.user = authPayload.user;
     persistAuthState();
     await loadAuthenticatedProfile();
+    await loadFriendsSummary().catch(() => {});
   } else {
     await fetchJson("/profiles", {
       method: "POST",
@@ -2791,7 +3221,11 @@ async function loadAnalyticsSummary() {
     headers: { "X-Analytics-Key": analyticsKey },
   });
   renderAnalyticsSummary(summary);
-  await loadAdminProfiles().catch(() => {});
+  await Promise.all([
+    loadAdminProfiles().catch(() => {}),
+    loadAdminLiveMonitor().catch(() => {}),
+    loadAdminUserLookup().catch(() => {}),
+  ]);
 }
 
 async function promptAnalyticsUnlock() {
@@ -2897,9 +3331,20 @@ document.getElementById("loadLeaderboard")?.addEventListener("click", () => {
 });
 els.loginButton?.addEventListener("click", () => {
   state.auth.panelOpen = !state.auth.panelOpen;
+  state.friends.panelOpen = false;
   renderAuthPanel();
+  renderFriendsPanel();
   if (state.auth.panelOpen) {
     initializeGoogleButton();
+  }
+});
+els.friendsButton?.addEventListener("click", () => {
+  state.friends.panelOpen = !state.friends.panelOpen;
+  state.auth.panelOpen = false;
+  renderAuthPanel();
+  renderFriendsPanel();
+  if (state.friends.panelOpen) {
+    loadFriendsSummary().catch((error) => showToast(error?.message || "Could not load friends."));
   }
 });
 els.shareButton?.addEventListener("click", async () => {
@@ -2921,6 +3366,9 @@ els.shareButton?.addEventListener("click", async () => {
   } catch (_error) {
     showToast("Could not share the link.");
   }
+});
+els.refreshFriends?.addEventListener("click", () => {
+  loadFriendsSummary(true).catch((error) => showToast(error?.message || "Could not refresh friends."));
 });
 els.copyInviteLink?.addEventListener("click", () => {
   if (!state.online.inviteUrl) {
@@ -2975,7 +3423,12 @@ els.logoutButton?.addEventListener("click", () => {
   clearAuthState();
   state.online.rankedProfile = null;
   state.auth.panelOpen = false;
+  state.friends.panelOpen = false;
+  state.friends.friends = [];
+  state.friends.incomingRequests = [];
+  state.friends.outgoingRequests = [];
   renderAuthPanel();
+  renderFriendsPanel();
   updateProfileSummary();
   showToast("Logged out.");
 });
@@ -3032,6 +3485,17 @@ document.getElementById("requestRematch").addEventListener("click", () => {
   els.rematchStatus.textContent = "Rematch requested. Waiting for your opponent to accept.";
   state.online.socket?.send(JSON.stringify({ type: "request_rematch" }));
 });
+els.sendFriendRequest?.addEventListener("click", () => {
+  const target = state.online.opponentName || "";
+  if (!target) return;
+  sendFriendRequestTo(target)
+    .then(() => {
+      els.sendFriendRequest.disabled = true;
+      els.sendFriendRequest.textContent = "Friend Request Sent";
+      showToast(`Friend request sent to ${target}.`);
+    })
+    .catch((error) => showToast(error?.message || "Could not send that friend request."));
+});
 els.theme.addEventListener("change", (event) => {
   applyTheme(event.target.value);
   saveLocalSettings();
@@ -3072,14 +3536,17 @@ loadLocalState();
 loadAuthState();
 applyTheme(els.theme.value);
 renderAuthPanel();
+renderFriendsPanel();
 restoreAuthenticatedUser()
   .then(() => {
     renderAuthPanel();
+    renderFriendsPanel();
     updateProfileSummary();
     autoJoinInviteIfNeeded().catch(() => {});
   })
   .catch(() => {
     renderAuthPanel();
+    renderFriendsPanel();
     updateProfileSummary();
     autoJoinInviteIfNeeded().catch(() => {});
   });

@@ -66,6 +66,8 @@ HIDDEN_LEADERBOARD_USERNAMES = {"ant", "test", "guest"}
 RANKED_QUEUE: list[dict] = []
 RANKED_PENDING_MATCHES: dict[str, str] = {}
 RANKED_MATCHES: dict[str, dict] = {}
+FRIEND_CHALLENGES: dict[str, dict] = {}
+FRIEND_CHALLENGE_TTL_SECONDS = 60 * 60
 RANKED_DIVISIONS = [
     ("Blacktop", 0),
     ("Gym", 200),
@@ -481,6 +483,165 @@ def google_username_taken(username: str, ignore_google_sub: str | None = None) -
     return False
 
 
+def get_google_account_row_by_sub(google_sub: str) -> dict | None:
+    if not google_sub:
+        return None
+    with get_conn() as conn:
+        if USING_POSTGRES:
+            row = conn.execute(
+                "SELECT google_sub, email, display_name, picture, payload FROM google_accounts WHERE google_sub = %s",
+                (google_sub,),
+            ).fetchone()
+        else:
+            row = conn.execute(
+                "SELECT google_sub, email, display_name, picture, payload FROM google_accounts WHERE google_sub = ?",
+                (google_sub,),
+            ).fetchone()
+    return dict(row) if row else None
+
+
+def get_google_account_row_by_username(username: str) -> dict | None:
+    wanted = normalized_profile_username(username)
+    if not wanted:
+        return None
+    _, google_rows = collect_profile_rows()
+    for row in google_rows:
+        if normalized_profile_username(google_account_username(row)) == wanted:
+            return dict(row)
+    return None
+
+
+def get_authenticated_google_identity(authorization: str | None, fallback_username: str = "Player") -> dict | None:
+    try:
+        user = require_authenticated_user(authorization)
+    except HTTPException:
+        return None
+    google_sub = str(user.get("sub", "")).strip()
+    if not google_sub:
+        return None
+    row = get_google_account_row_by_sub(google_sub)
+    if not row:
+        return None
+    payload = json.loads(row["payload"] or "{}")
+    locked_username = str(payload.get("username") or "").strip()
+    username = locked_username or fallback_username.strip() or row.get("display_name") or "Player"
+    return {
+        "google_sub": google_sub,
+        "auth_id": f"google:{google_sub}",
+        "username": username,
+        "picture": row.get("picture"),
+        "email": row.get("email"),
+    }
+
+
+def normalize_friend_pair(sub_a: str, sub_b: str) -> tuple[str, str]:
+    first = str(sub_a or "").strip()
+    second = str(sub_b or "").strip()
+    return (first, second) if first <= second else (second, first)
+
+
+def cleanup_friend_challenges():
+    now = time.time()
+    expired = [key for key, value in FRIEND_CHALLENGES.items() if now - value.get("created_at", now) > FRIEND_CHALLENGE_TTL_SECONDS]
+    for key in expired:
+        FRIEND_CHALLENGES.pop(key, None)
+
+
+def get_active_google_presence() -> tuple[set[str], set[str]]:
+    active_subs: set[str] = set()
+    active_usernames: set[str] = set()
+    cleanup_friend_challenges()
+
+    for room in ONLINE_MATCHES.values():
+        for meta in (room.get("player_meta") or {}).values():
+            auth_id = str(meta.get("auth_id") or "")
+            username = str(meta.get("username") or "")
+            if auth_id.startswith("google:"):
+                active_subs.add(auth_id.split(":", 1)[1])
+            if username:
+                active_usernames.add(normalized_profile_username(username))
+
+    for entry in RANKED_QUEUE:
+        player_id = str(entry.get("player_id") or "")
+        if player_id.startswith("google:"):
+            active_subs.add(player_id.split(":", 1)[1])
+        username = str(entry.get("username") or "")
+        if username:
+            active_usernames.add(normalized_profile_username(username))
+
+    for match in RANKED_MATCHES.values():
+        for player_id, username in (match.get("player_names") or {}).items():
+            if str(player_id).startswith("google:"):
+                active_subs.add(str(player_id).split(":", 1)[1])
+            if username:
+                active_usernames.add(normalized_profile_username(username))
+
+    now = int(time.time())
+    last_5m = now - 300
+    with get_conn() as conn:
+        if USING_POSTGRES:
+            rows = conn.execute(
+                """
+                SELECT DISTINCT LOWER(username) AS username
+                FROM analytics_events
+                WHERE username IS NOT NULL AND created_at >= %s
+                """,
+                (last_5m,),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                """
+                SELECT DISTINCT LOWER(username) AS username
+                FROM analytics_events
+                WHERE username IS NOT NULL AND created_at >= ?
+                """,
+                (last_5m,),
+            ).fetchall()
+    for row in rows:
+        username = str(row["username"] or "").strip()
+        if username:
+            active_usernames.add(username)
+    return active_subs, active_usernames
+
+
+def get_profile_payload_by_username(username: str) -> dict:
+    target = normalized_profile_username(username)
+    for item in build_profile_collection(include_hidden=True):
+        if normalized_profile_username(item.get("username")) == target:
+            return item
+    return {}
+
+
+def get_ranked_profile_by_username(username: str) -> dict:
+    target = normalized_profile_username(username)
+    with get_conn() as conn:
+        if USING_POSTGRES:
+            row = conn.execute(
+                """
+                SELECT player_id, username, elo, wins, losses, win_streak, best_win_streak
+                FROM ranked_players
+                WHERE LOWER(username) = %s
+                ORDER BY updated_at DESC
+                LIMIT 1
+                """,
+                (target,),
+            ).fetchone()
+        else:
+            row = conn.execute(
+                """
+                SELECT player_id, username, elo, wins, losses, win_streak, best_win_streak
+                FROM ranked_players
+                WHERE LOWER(username) = ?
+                ORDER BY updated_at DESC
+                LIMIT 1
+                """,
+                (target,),
+            ).fetchone()
+    if not row:
+        return {}
+    return get_ranked_profile(row["player_id"], row["username"])
+
+
 def merge_progress_payload(base_progress: dict | None, incoming_progress: dict | None) -> dict:
     base = dict(base_progress or {})
     incoming = dict(incoming_progress or {})
@@ -587,6 +748,33 @@ def init_db():
                 )
                 """
             )
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS friend_requests (
+                    id BIGSERIAL PRIMARY KEY,
+                    requester_sub TEXT NOT NULL,
+                    target_sub TEXT NOT NULL,
+                    requester_username TEXT NOT NULL,
+                    target_username TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    created_at BIGINT NOT NULL,
+                    responded_at BIGINT
+                )
+                """
+            )
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS friendships (
+                    id BIGSERIAL PRIMARY KEY,
+                    user_a_sub TEXT NOT NULL,
+                    user_b_sub TEXT NOT NULL,
+                    user_a_username TEXT NOT NULL,
+                    user_b_username TEXT NOT NULL,
+                    created_at BIGINT NOT NULL,
+                    UNIQUE (user_a_sub, user_b_sub)
+                )
+                """
+            )
         else:
             conn.execute(
                 """
@@ -644,6 +832,33 @@ def init_db():
                     win_streak INTEGER NOT NULL DEFAULT 0,
                     best_win_streak INTEGER NOT NULL DEFAULT 0,
                     updated_at INTEGER NOT NULL
+                )
+                """
+            )
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS friend_requests (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    requester_sub TEXT NOT NULL,
+                    target_sub TEXT NOT NULL,
+                    requester_username TEXT NOT NULL,
+                    target_username TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    created_at INTEGER NOT NULL,
+                    responded_at INTEGER
+                )
+                """
+            )
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS friendships (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_a_sub TEXT NOT NULL,
+                    user_b_sub TEXT NOT NULL,
+                    user_a_username TEXT NOT NULL,
+                    user_b_username TEXT NOT NULL,
+                    created_at INTEGER NOT NULL,
+                    UNIQUE (user_a_sub, user_b_sub)
                 )
                 """
             )
@@ -811,6 +1026,20 @@ class OnlineMatchJoinRequest(BaseModel):
 
 class RankedQueueRequest(BaseModel):
     pass
+
+
+class FriendRequestPayload(BaseModel):
+    target_username: str
+
+
+class FriendResponsePayload(BaseModel):
+    request_id: int
+    action: str
+
+
+class FriendChallengePayload(BaseModel):
+    target_username: str
+    room_code: str
 
 
 @app.on_event("startup")
@@ -1204,20 +1433,31 @@ async def start_online_match_if_ready(room: dict):
     room["started"] = True
     room["current_index"] = 0
     room["round_submissions"] = {}
-    await broadcast_room(
-        room,
-        {
-            "type": "match_started",
-            "room_code": room["room_code"],
-            "players": players,
-            "scores": summarize_online_scores(room),
-            "current_index": 0,
-            "total_questions": len(room["questions"]),
-            "question": serialize_online_question(room),
-            "answer_mode": room["answer_mode"],
-            "player_pool": room.get("player_pool", "all"),
-        },
-    )
+    base_payload = {
+        "type": "match_started",
+        "room_code": room["room_code"],
+        "players": players,
+        "scores": summarize_online_scores(room),
+        "current_index": 0,
+        "total_questions": len(room["questions"]),
+        "question": serialize_online_question(room),
+        "answer_mode": room["answer_mode"],
+        "player_pool": room.get("player_pool", "all"),
+    }
+    for player in players:
+        ws = room["connections"].get(player)
+        if not ws:
+            continue
+        opponent = next((item for item in players if item != player), None)
+        opponent_meta = (room.get("player_meta") or {}).get(opponent, {}) if opponent else {}
+        await send_ws(
+            ws,
+            {
+                **base_payload,
+                "opponent_auth_id": opponent_meta.get("auth_id", ""),
+                "opponent_picture": opponent_meta.get("picture", ""),
+            },
+        )
 
 
 async def finalize_online_round(room: dict):
@@ -1623,8 +1863,316 @@ def analytics_summary(x_analytics_key: str | None = Header(default=None)):
     return get_analytics_summary()
 
 
+def build_friend_user_summary(username: str, google_sub: str, picture: str | None = None) -> dict:
+    profile = get_profile_payload_by_username(username)
+    progress = (profile.get("progress") or {}) if profile else {}
+    ranked = get_ranked_profile_by_username(username)
+    active_subs, active_usernames = get_active_google_presence()
+    return {
+        "username": username,
+        "auth_id": f"google:{google_sub}",
+        "picture": picture,
+        "online": google_sub in active_subs or normalized_profile_username(username) in active_usernames,
+        "xp": int(progress.get("xp") or 0),
+        "rank": str(progress.get("rank") or ""),
+        "best_score": int(progress.get("bestScore") or 0),
+        "games_played": int(progress.get("gamesPlayed") or 0),
+        "online_wins": int(progress.get("onlineWins") or 0),
+        "ranked": ranked or {
+            "elo": 0,
+            "division": "Unranked",
+            "wins": 0,
+            "losses": 0,
+            "win_streak": 0,
+        },
+    }
+
+
+@app.get("/api/friends")
+def friends_summary(authorization: str | None = Header(default=None)):
+    identity = get_authenticated_google_identity(authorization)
+    if not identity:
+        raise HTTPException(status_code=401, detail="Sign in with Google to use friends.")
+
+    google_sub = identity["google_sub"]
+    with get_conn() as conn:
+        if USING_POSTGRES:
+            friendships = conn.execute(
+                """
+                SELECT user_a_sub, user_b_sub, user_a_username, user_b_username, created_at
+                FROM friendships
+                WHERE user_a_sub = %s OR user_b_sub = %s
+                ORDER BY created_at DESC
+                """,
+                (google_sub, google_sub),
+            ).fetchall()
+            incoming = conn.execute(
+                """
+                SELECT id, requester_sub, requester_username, created_at
+                FROM friend_requests
+                WHERE target_sub = %s AND status = %s
+                ORDER BY created_at DESC
+                """,
+                (google_sub, "pending"),
+            ).fetchall()
+            outgoing = conn.execute(
+                """
+                SELECT id, target_sub, target_username, created_at
+                FROM friend_requests
+                WHERE requester_sub = %s AND status = %s
+                ORDER BY created_at DESC
+                """,
+                (google_sub, "pending"),
+            ).fetchall()
+        else:
+            friendships = conn.execute(
+                """
+                SELECT user_a_sub, user_b_sub, user_a_username, user_b_username, created_at
+                FROM friendships
+                WHERE user_a_sub = ? OR user_b_sub = ?
+                ORDER BY created_at DESC
+                """,
+                (google_sub, google_sub),
+            ).fetchall()
+            incoming = conn.execute(
+                """
+                SELECT id, requester_sub, requester_username, created_at
+                FROM friend_requests
+                WHERE target_sub = ? AND status = ?
+                ORDER BY created_at DESC
+                """,
+                (google_sub, "pending"),
+            ).fetchall()
+            outgoing = conn.execute(
+                """
+                SELECT id, target_sub, target_username, created_at
+                FROM friend_requests
+                WHERE requester_sub = ? AND status = ?
+                ORDER BY created_at DESC
+                """,
+                (google_sub, "pending"),
+            ).fetchall()
+
+    cleanup_friend_challenges()
+    friend_entries = []
+    for row in friendships:
+        if row["user_a_sub"] == google_sub:
+            friend_sub = row["user_b_sub"]
+            friend_username = row["user_b_username"]
+        else:
+            friend_sub = row["user_a_sub"]
+            friend_username = row["user_a_username"]
+        friend_row = get_google_account_row_by_sub(friend_sub)
+        picture = friend_row.get("picture") if friend_row else None
+        summary = build_friend_user_summary(friend_username, friend_sub, picture)
+        summary["friends_since"] = int(row["created_at"] or 0)
+        incoming_challenge = next(
+            (
+                {
+                    "challenge_id": challenge["id"],
+                    "from_username": challenge["from_username"],
+                    "room_code": challenge["room_code"],
+                    "created_at": int(challenge["created_at"]),
+                }
+                for challenge in FRIEND_CHALLENGES.values()
+                if challenge.get("target_sub") == google_sub and challenge.get("from_sub") == friend_sub
+            ),
+            None,
+        )
+        summary["incoming_challenge"] = incoming_challenge
+        friend_entries.append(summary)
+
+    return {
+        "friends": friend_entries,
+        "incoming_requests": [
+            {
+                "id": int(row["id"]),
+                "username": row["requester_username"],
+                "created_at": int(row["created_at"] or 0),
+            }
+            for row in incoming
+        ],
+        "outgoing_requests": [
+            {
+                "id": int(row["id"]),
+                "username": row["target_username"],
+                "created_at": int(row["created_at"] or 0),
+            }
+            for row in outgoing
+        ],
+    }
+
+
+@app.post("/api/friends/request")
+def create_friend_request(payload: FriendRequestPayload, authorization: str | None = Header(default=None)):
+    identity = get_authenticated_google_identity(authorization)
+    if not identity:
+        raise HTTPException(status_code=401, detail="Sign in with Google to send friend requests.")
+    target_row = get_google_account_row_by_username(payload.target_username)
+    if not target_row:
+        raise HTTPException(status_code=404, detail="That player does not have a Google-backed account.")
+    target_sub = str(target_row["google_sub"])
+    if target_sub == identity["google_sub"]:
+        raise HTTPException(status_code=400, detail="You cannot add yourself.")
+    user_a_sub, user_b_sub = normalize_friend_pair(identity["google_sub"], target_sub)
+    with get_conn() as conn:
+        if USING_POSTGRES:
+            existing_friend = conn.execute(
+                "SELECT id FROM friendships WHERE user_a_sub = %s AND user_b_sub = %s",
+                (user_a_sub, user_b_sub),
+            ).fetchone()
+            existing_request = conn.execute(
+                """
+                SELECT id, requester_sub, target_sub
+                FROM friend_requests
+                WHERE ((requester_sub = %s AND target_sub = %s) OR (requester_sub = %s AND target_sub = %s))
+                  AND status = %s
+                ORDER BY created_at DESC
+                LIMIT 1
+                """,
+                (identity["google_sub"], target_sub, target_sub, identity["google_sub"], "pending"),
+            ).fetchone()
+        else:
+            existing_friend = conn.execute(
+                "SELECT id FROM friendships WHERE user_a_sub = ? AND user_b_sub = ?",
+                (user_a_sub, user_b_sub),
+            ).fetchone()
+            existing_request = conn.execute(
+                """
+                SELECT id, requester_sub, target_sub
+                FROM friend_requests
+                WHERE ((requester_sub = ? AND target_sub = ?) OR (requester_sub = ? AND target_sub = ?))
+                  AND status = ?
+                ORDER BY created_at DESC
+                LIMIT 1
+                """,
+                (identity["google_sub"], target_sub, target_sub, identity["google_sub"], "pending"),
+            ).fetchone()
+        if existing_friend:
+            return {"saved": True, "status": "already_friends"}
+        if existing_request:
+            if existing_request["requester_sub"] == target_sub:
+                raise HTTPException(status_code=409, detail="That player already sent you a friend request.")
+            return {"saved": True, "status": "already_sent"}
+        now = int(time.time())
+        if USING_POSTGRES:
+            conn.execute(
+                """
+                INSERT INTO friend_requests (requester_sub, target_sub, requester_username, target_username, status, created_at, responded_at)
+                VALUES (%s, %s, %s, %s, %s, %s, NULL)
+                """,
+                (identity["google_sub"], target_sub, identity["username"], google_account_username(target_row), "pending", now),
+            )
+        else:
+            conn.execute(
+                """
+                INSERT INTO friend_requests (requester_sub, target_sub, requester_username, target_username, status, created_at, responded_at)
+                VALUES (?, ?, ?, ?, ?, ?, NULL)
+                """,
+                (identity["google_sub"], target_sub, identity["username"], google_account_username(target_row), "pending", now),
+            )
+        conn.commit()
+    return {"saved": True, "status": "sent"}
+
+
+@app.post("/api/friends/respond")
+def respond_friend_request(payload: FriendResponsePayload, authorization: str | None = Header(default=None)):
+    identity = get_authenticated_google_identity(authorization)
+    if not identity:
+        raise HTTPException(status_code=401, detail="Sign in with Google to manage friend requests.")
+    action = str(payload.action or "").strip().lower()
+    if action not in {"accept", "decline"}:
+        raise HTTPException(status_code=400, detail="Invalid friend request action.")
+    with get_conn() as conn:
+        if USING_POSTGRES:
+            row = conn.execute(
+                "SELECT id, requester_sub, requester_username, target_sub, target_username, status FROM friend_requests WHERE id = %s",
+                (payload.request_id,),
+            ).fetchone()
+        else:
+            row = conn.execute(
+                "SELECT id, requester_sub, requester_username, target_sub, target_username, status FROM friend_requests WHERE id = ?",
+                (payload.request_id,),
+            ).fetchone()
+        if not row or row["target_sub"] != identity["google_sub"] or row["status"] != "pending":
+            raise HTTPException(status_code=404, detail="Friend request not found.")
+        now = int(time.time())
+        if USING_POSTGRES:
+            conn.execute(
+                "UPDATE friend_requests SET status = %s, responded_at = %s WHERE id = %s",
+                (action, now, payload.request_id),
+            )
+        else:
+            conn.execute(
+                "UPDATE friend_requests SET status = ?, responded_at = ? WHERE id = ?",
+                (action, now, payload.request_id),
+            )
+        if action == "accept":
+            user_a_sub, user_b_sub = normalize_friend_pair(row["requester_sub"], row["target_sub"])
+            user_a_username = row["requester_username"] if user_a_sub == row["requester_sub"] else row["target_username"]
+            user_b_username = row["target_username"] if user_b_sub == row["target_sub"] else row["requester_username"]
+            if USING_POSTGRES:
+                conn.execute(
+                    """
+                    INSERT INTO friendships (user_a_sub, user_b_sub, user_a_username, user_b_username, created_at)
+                    VALUES (%s, %s, %s, %s, %s)
+                    ON CONFLICT (user_a_sub, user_b_sub) DO NOTHING
+                    """,
+                    (user_a_sub, user_b_sub, user_a_username, user_b_username, now),
+                )
+            else:
+                conn.execute(
+                    """
+                    INSERT OR IGNORE INTO friendships (user_a_sub, user_b_sub, user_a_username, user_b_username, created_at)
+                    VALUES (?, ?, ?, ?, ?)
+                    """,
+                    (user_a_sub, user_b_sub, user_a_username, user_b_username, now),
+                )
+        conn.commit()
+    return {"saved": True, "status": action}
+
+
+@app.post("/api/friends/challenge")
+def create_friend_challenge(payload: FriendChallengePayload, authorization: str | None = Header(default=None)):
+    identity = get_authenticated_google_identity(authorization)
+    if not identity:
+        raise HTTPException(status_code=401, detail="Sign in with Google to challenge friends.")
+    target_row = get_google_account_row_by_username(payload.target_username)
+    if not target_row:
+        raise HTTPException(status_code=404, detail="Friend not found.")
+    target_sub = str(target_row["google_sub"])
+    if target_sub == identity["google_sub"]:
+        raise HTTPException(status_code=400, detail="You cannot challenge yourself.")
+    user_a_sub, user_b_sub = normalize_friend_pair(identity["google_sub"], target_sub)
+    with get_conn() as conn:
+        if USING_POSTGRES:
+            friendship = conn.execute(
+                "SELECT id FROM friendships WHERE user_a_sub = %s AND user_b_sub = %s",
+                (user_a_sub, user_b_sub),
+            ).fetchone()
+        else:
+            friendship = conn.execute(
+                "SELECT id FROM friendships WHERE user_a_sub = ? AND user_b_sub = ?",
+                (user_a_sub, user_b_sub),
+            ).fetchone()
+    if not friendship:
+        raise HTTPException(status_code=403, detail="You can only challenge confirmed friends.")
+    room = get_online_room(payload.room_code)
+    challenge_id = secrets.token_urlsafe(10)
+    FRIEND_CHALLENGES[challenge_id] = {
+        "id": challenge_id,
+        "from_sub": identity["google_sub"],
+        "from_username": identity["username"],
+        "target_sub": target_sub,
+        "target_username": google_account_username(target_row),
+        "room_code": room["room_code"],
+        "created_at": time.time(),
+    }
+    return {"saved": True, "challenge_id": challenge_id}
+
+
 @app.post("/api/online-match/create")
-def create_online_match(payload: OnlineMatchCreateRequest):
+def create_online_match(payload: OnlineMatchCreateRequest, authorization: str | None = Header(default=None)):
     requested_code = sanitize_room_code(payload.room_code)
     if requested_code:
         if len(requested_code) < 4:
@@ -1635,9 +2183,19 @@ def create_online_match(payload: OnlineMatchCreateRequest):
     else:
         room_code = generate_room_code()
     username = payload.username.strip() or "Host"
+    identity = get_authenticated_google_identity(authorization, fallback_username=username)
+    picture = identity.get("picture") if identity else None
+    auth_id = identity.get("auth_id") if identity else ""
     ONLINE_MATCHES[room_code] = {
         "room_code": room_code,
         "players": [username, None],
+        "player_meta": {
+            username: {
+                "username": username,
+                "auth_id": auth_id,
+                "picture": picture,
+            }
+        },
         "connections": {},
         "question_count": payload.count,
         "questions": build_online_match_questions(payload.count, payload.conference, payload.player_pool),
@@ -1656,6 +2214,7 @@ def create_online_match(payload: OnlineMatchCreateRequest):
     return {
         "room_code": room_code,
         "player_name": username,
+        "player_auth_id": auth_id,
         "answer_mode": payload.answer_mode,
         "show_headshots": payload.show_headshots,
         "question_count": payload.count,
@@ -1774,7 +2333,7 @@ def ranked_queue_leave(authorization: str | None = Header(default=None)):
 
 
 @app.post("/api/online-match/join")
-def join_online_match(payload: OnlineMatchJoinRequest):
+def join_online_match(payload: OnlineMatchJoinRequest, authorization: str | None = Header(default=None)):
     room = get_online_room(payload.room_code)
     username = payload.username.strip() or "Guest"
     players = room["players"]
@@ -1783,12 +2342,20 @@ def join_online_match(payload: OnlineMatchJoinRequest):
         raise HTTPException(status_code=409, detail="This match is already full.")
     if username == players[0]:
         raise HTTPException(status_code=409, detail="Use a different username from the host.")
-
+    identity = get_authenticated_google_identity(authorization, fallback_username=username)
+    picture = identity.get("picture") if identity else None
+    auth_id = identity.get("auth_id") if identity else ""
     room["players"][1] = username
     room["scores"].setdefault(username, 0)
+    room.setdefault("player_meta", {})[username] = {
+        "username": username,
+        "auth_id": auth_id,
+        "picture": picture,
+    }
     return {
         "room_code": room["room_code"],
         "player_name": username,
+        "player_auth_id": auth_id,
         "host": players[0],
         "answer_mode": room["answer_mode"],
         "show_headshots": room["show_headshots"],
@@ -2186,6 +2753,114 @@ def admin_profiles(x_analytics_key: str | None = Header(default=None), limit: in
     return {"profiles": serialized[: max(1, min(limit, 100))]}
 
 
+@app.get("/api/admin/live")
+def admin_live_summary(x_analytics_key: str | None = Header(default=None)):
+    require_analytics_access(x_analytics_key)
+    cleanup_friend_challenges()
+    online_matches = []
+    for room in ONLINE_MATCHES.values():
+        players = [player for player in room.get("players", []) if player]
+        online_matches.append(
+            {
+                "room_code": room.get("room_code"),
+                "started": bool(room.get("started")),
+                "players": players,
+                "connected_players": sorted(list((room.get("connections") or {}).keys())),
+                "scores": summarize_online_scores(room),
+                "current_index": int(room.get("current_index") or 0),
+                "total_questions": len(room.get("questions") or []),
+                "created_at": int(room.get("created_at") or 0),
+            }
+        )
+    ranked_matches = []
+    for match in RANKED_MATCHES.values():
+        ranked_matches.append(
+            {
+                "match_id": match.get("match_id"),
+                "players": [match.get("player_names", {}).get(player_id, "Player") for player_id in match.get("players", [])],
+                "scores": summarize_ranked_scores(match),
+                "current_index": int(match.get("current_index") or 0),
+                "total_questions": len(match.get("questions") or []),
+                "started": bool(match.get("started")),
+            }
+        )
+    queue = [
+        {
+            "username": entry.get("username") or "Player",
+            "player_id": entry.get("player_id") or "",
+            "joined_at": int(entry.get("joined_at") or 0),
+        }
+        for entry in RANKED_QUEUE
+    ]
+    return {
+        "online_matches": online_matches,
+        "ranked_matches": ranked_matches,
+        "ranked_queue": queue,
+        "friend_challenges": list(FRIEND_CHALLENGES.values()),
+    }
+
+
+@app.get("/api/admin/users")
+def admin_user_lookup(q: str = "", x_analytics_key: str | None = Header(default=None), limit: int = 20):
+    require_analytics_access(x_analytics_key)
+    query = normalized_profile_username(q)
+    profiles = build_profile_collection(include_hidden=True)
+    filtered = []
+    for profile in profiles:
+        username = str(profile.get("username") or "").strip()
+        normalized = normalized_profile_username(username)
+        if query and query not in normalized:
+            continue
+        ranked = get_ranked_profile_by_username(username)
+        filtered.append(
+            {
+                "username": username,
+                "auth_provider": profile.get("auth_provider") or "guest",
+                "auth_id": profile.get("auth_id") or "",
+                "picture": profile.get("picture") or "",
+                "progress": profile.get("progress") or {},
+                "ranked": ranked or {},
+            }
+        )
+    filtered.sort(
+        key=lambda item: (
+            -int((item.get("ranked") or {}).get("elo") or 0),
+            -int((item.get("progress") or {}).get("xp") or 0),
+            item.get("username", "").lower(),
+        )
+    )
+    return {"users": filtered[: max(1, min(limit, 100))]}
+
+
+@app.post("/api/admin/ranked/reset/{username}")
+def admin_reset_ranked_user(username: str, x_analytics_key: str | None = Header(default=None)):
+    require_analytics_access(x_analytics_key)
+    target = normalized_profile_username(username)
+    if not target:
+        raise HTTPException(status_code=400, detail="Missing username.")
+    with get_conn() as conn:
+        if USING_POSTGRES:
+            result = conn.execute(
+                """
+                UPDATE ranked_players
+                SET elo = 0, wins = 0, losses = 0, win_streak = 0, best_win_streak = 0, updated_at = %s
+                WHERE LOWER(username) = %s
+                """,
+                (int(time.time()), target),
+            )
+        else:
+            result = conn.execute(
+                """
+                UPDATE ranked_players
+                SET elo = 0, wins = 0, losses = 0, win_streak = 0, best_win_streak = 0, updated_at = ?
+                WHERE LOWER(username) = ?
+                """,
+                (int(time.time()), target),
+            )
+        conn.commit()
+    return {"saved": True, "count": int(getattr(result, "rowcount", 0) or 0)}
+
+
 @app.delete("/api/admin/profiles/{username}")
 def admin_delete_profile(username: str, x_analytics_key: str | None = Header(default=None)):
     require_analytics_access(x_analytics_key)
@@ -2228,6 +2903,7 @@ async def online_match_socket(websocket: WebSocket, room_code: str, username: st
         await websocket.close(code=4404)
         return
 
+    room.setdefault("player_meta", {})
     host_username = room["players"][0]
     guest_username = room["players"][1]
     if normalized_username not in room["players"]:
@@ -2239,6 +2915,7 @@ async def online_match_socket(websocket: WebSocket, room_code: str, username: st
             room["scores"].setdefault(normalized_username, 0)
         elif guest_username not in room["connections"]:
             room["scores"].pop(guest_username, None)
+            room["player_meta"].pop(guest_username, None)
             room["players"][1] = normalized_username
             room["scores"].setdefault(normalized_username, 0)
         else:
@@ -2249,13 +2926,18 @@ async def online_match_socket(websocket: WebSocket, room_code: str, username: st
     room["connections"][normalized_username] = websocket
 
     opponent = next((player for player in room["players"] if player and player != normalized_username), None)
+    player_meta = room.get("player_meta", {}).get(normalized_username, {})
+    opponent_meta = room.get("player_meta", {}).get(opponent, {}) if opponent else {}
     await send_ws(
         websocket,
         {
             "type": "room_joined",
             "room_code": room["room_code"],
             "player_name": normalized_username,
+            "player_auth_id": player_meta.get("auth_id", ""),
             "opponent_name": opponent,
+            "opponent_auth_id": opponent_meta.get("auth_id", ""),
+            "opponent_picture": opponent_meta.get("picture", ""),
             "waiting": not room["started"],
             "scores": summarize_online_scores(room),
             "answer_mode": room["answer_mode"],

@@ -12,7 +12,8 @@
     <section id="homeScreen" class="screen active">
       <section class="hero-card home-hero">
         <div class="hero-topbar">
-          <button id="loginButton" class="topbar-button secondary-button">Login</button>
+          <button id="loginButton" class="topbar-button secondary-button">Profile</button>
+          <button id="friendsButton" class="topbar-button secondary-button">Friends</button>
           <button id="shareButton" class="topbar-button secondary-button">Share</button>
         </div>
         <div class="home-hero-grid minimal-hero-grid">
@@ -22,24 +23,40 @@
             <p class="subtitle made-by">Made by Anthony</p>
             <p class="subtitle hero-strap">Play solo, challenge a friend, or queue ranked.</p>
           </div>
-          <div id="authPanel" class="auth-panel hidden compact-auth-panel">
-            <div id="authSignedOut">
-              <p class="eyebrow">Account</p>
-              <div class="daily-status">Sign in to lock your profile and ranked identity.</div>
-              <div id="googleSignInButton" class="google-signin-slot"></div>
-              <div id="authStatus" class="online-status"></div>
-            </div>
-            <div id="authSignedIn" class="hidden">
-              <p class="eyebrow">Signed In</p>
-              <div class="auth-user-row">
-                <img id="authUserPicture" class="auth-avatar" alt="Profile picture" />
-                <div>
-                  <div id="authUserName" class="daily-status"></div>
-                  <div id="authUserEmail" class="leaderboard-meta"></div>
+          <div class="hero-sidepanels">
+            <div id="authPanel" class="auth-panel hidden compact-auth-panel">
+              <div id="authSignedOut">
+                <p class="eyebrow">Account</p>
+                <div class="daily-status">Sign in to lock your profile and ranked identity.</div>
+                <div id="googleSignInButton" class="google-signin-slot"></div>
+                <div id="authStatus" class="online-status"></div>
+              </div>
+              <div id="authSignedIn" class="hidden">
+                <p class="eyebrow">Signed In</p>
+                <div class="auth-user-row">
+                  <img id="authUserPicture" class="auth-avatar" alt="Profile picture" />
+                  <div>
+                    <div id="authUserName" class="daily-status"></div>
+                    <div id="authUserEmail" class="leaderboard-meta"></div>
+                  </div>
+                </div>
+                <div class="hero-actions compact-actions">
+                  <button id="logoutButton" class="secondary-button">Logout</button>
                 </div>
               </div>
+            </div>
+            <div id="friendsPanel" class="auth-panel hidden compact-auth-panel friends-panel">
+              <div class="leaderboard-header">
+                <div>
+                  <p class="eyebrow">Friends</p>
+                  <div id="friendsStatus" class="daily-status">Sign in to build your friends list.</div>
+                </div>
+              </div>
+              <div id="friendsContent" class="friends-panel-content">
+                <div class="leaderboard-empty">Your friends list will appear here.</div>
+              </div>
               <div class="hero-actions compact-actions">
-                <button id="logoutButton" class="secondary-button">Logout</button>
+                <button id="refreshFriends" class="secondary-button">Refresh</button>
               </div>
             </div>
           </div>
@@ -332,6 +349,7 @@
         <div class="hero-actions">
           <button id="playAgain">Play Again</button>
           <button id="requestRematch" class="hidden">Request Rematch</button>
+          <button id="sendFriendRequest" class="hidden secondary-button">Add Friend</button>
           <button id="playMissedOnly">Play Missed Only</button>
           <button id="submitLeaderboard" class="hidden">Submit Leaderboard</button>
           <button id="returnHome">Return Home</button>
