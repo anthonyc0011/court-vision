@@ -15,16 +15,17 @@
           <button id="loginButton" class="topbar-button secondary-button">Login</button>
           <button id="shareButton" class="topbar-button secondary-button">Share</button>
         </div>
-        <div class="home-hero-grid">
-          <div class="hero-copy">
+        <div class="home-hero-grid minimal-hero-grid">
+          <div class="hero-copy minimal-hero-copy">
             <p class="eyebrow">NBA College Quiz</p>
             <h1 id="siteTitle">Court Vision</h1>
             <p class="subtitle made-by">Made by Anthony</p>
+            <p class="subtitle hero-strap">Play solo, challenge a friend, or queue ranked.</p>
           </div>
-          <div id="authPanel" class="auth-panel hidden">
+          <div id="authPanel" class="auth-panel hidden compact-auth-panel">
             <div id="authSignedOut">
               <p class="eyebrow">Account</p>
-              <div class="daily-status">Sign in with Google to lock your profile, Elo, and ranked identity.</div>
+              <div class="daily-status">Sign in to lock your profile and ranked identity.</div>
               <div id="googleSignInButton" class="google-signin-slot"></div>
               <div id="authStatus" class="online-status"></div>
             </div>
@@ -46,15 +47,15 @@
       </section>
 
       <section class="home-grid">
-        <article class="panel play-panel">
+        <article class="panel play-panel simplified-play-panel">
           <div class="panel-heading">
             <div>
               <p class="eyebrow">Play</p>
-              <h2>Start A Run</h2>
+              <h2>Start A Game</h2>
             </div>
           </div>
 
-          <div class="setup-section">
+          <div class="setup-section compact-section">
             <div class="setup-grid two-col">
               <div>
                 <label for="username">Username</label>
@@ -72,9 +73,9 @@
             </div>
           </div>
 
-          <div class="setup-section">
+          <div class="setup-section compact-section">
             <div class="section-title-row">
-              <h3>Core Settings</h3>
+              <h3>Quiz Setup</h3>
             </div>
             <div class="setup-grid two-col">
               <div>
@@ -125,9 +126,9 @@
             </label>
           </div>
 
-          <div class="setup-section">
+          <div class="setup-section compact-section">
             <div class="section-title-row">
-              <h3>Ways To Play</h3>
+              <h3>Match Type</h3>
             </div>
 
             <div class="mode-stack">
@@ -181,22 +182,22 @@
           </div>
         </article>
 
-        <article class="panel dashboard-panel">
+        <article class="panel dashboard-panel simplified-dashboard-panel">
           <div class="panel-heading">
             <div>
-              <p class="eyebrow">Player Hub</p>
-              <h2>Progress And Directory</h2>
+              <p class="eyebrow">Hub</p>
+              <h2>Profile And Directory</h2>
             </div>
           </div>
-          <div id="profileSummary" class="dashboard-card profile-card">Profile summary will appear here.</div>
-          <div class="dashboard-support-grid">
+          <div class="hub-stack">
+            <div id="profileSummary" class="dashboard-card profile-card">Profile summary will appear here.</div>
             <div id="dailyOutput" class="dashboard-card daily-card">Season status will appear here.</div>
           </div>
           <div id="directoryOutput" class="dashboard-card directory-card">
             <div class="leaderboard-header">
               <div>
                 <p class="eyebrow">Player Directory</p>
-                <div class="daily-status">Look up any player and see their college.</div>
+                <div class="daily-status">Search any player and see where they went to school.</div>
               </div>
             </div>
             <div class="directory-search-row">
