@@ -311,6 +311,24 @@ body {
   min-width: 100px;
 }
 
+.friend-code-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  border: 1px solid color-mix(in srgb, var(--outline) 74%, transparent);
+}
+
+.friend-code-value {
+  display: block;
+  font-size: 1.1rem;
+  letter-spacing: 0.12em;
+  color: var(--gold);
+}
+
 .friend-challenge-banner {
   margin-top: 8px;
   color: var(--gold);
@@ -1061,17 +1079,20 @@ button:hover {
   }
 
   .home-hero {
-    padding: 22px 20px;
+    padding: 20px 18px;
   }
 
   .hero-topbar {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     justify-content: stretch;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
   }
 
   .topbar-button {
-    flex: 1 1 0;
+    flex: none;
     min-width: 0;
+    padding-inline: 10px;
   }
 
   .auth-panel {
@@ -1085,6 +1106,15 @@ button:hover {
 
   .panel-heading {
     align-items: flex-start;
+  }
+
+  .hero-copy h1 {
+    font-size: clamp(2rem, 8vw, 2.6rem);
+  }
+
+  .hero-strap {
+    max-width: none;
+    font-size: 0.96rem;
   }
 
   .home-primary-actions {
@@ -1114,7 +1144,12 @@ button:hover {
     grid-template-columns: 1fr;
   }
 
+  .friends-panel-content {
+    max-height: 360px;
+  }
+
   .friend-row,
+  .friend-code-card,
   .admin-profile-row {
     flex-direction: column;
     align-items: stretch;
@@ -1766,6 +1801,62 @@ button:hover {
     grid-template-columns: 1fr;
   }
 
+  .hud-card,
+  .question-panel,
+  .answer-panel {
+    padding: 18px;
+  }
+
+  .progress-panel {
+    padding: 12px;
+    overflow-x: auto;
+  }
+
+  .progress-bar {
+    min-width: max(100%, calc(var(--question-count, 10) * 24px));
+  }
+
+  .media-card {
+    width: min(54vw, 220px);
+    height: min(54vw, 220px);
+  }
+
+  .logo-card {
+    width: 72px;
+    height: 72px;
+  }
+
+  .question-text {
+    font-size: clamp(1.7rem, 8vw, 2.2rem);
+  }
+
+  .answer-panel {
+    gap: 10px;
+  }
+
+  .multiple-choice-grid {
+    gap: 10px;
+    margin: 14px 0;
+  }
+
+  .choice-button {
+    min-height: 54px;
+    font-size: 0.98rem;
+  }
+
+  .button-row {
+    gap: 8px;
+  }
+
+  .button-row > button {
+    flex: 1 1 calc(50% - 8px);
+    width: auto;
+  }
+
+  .chat-panel {
+    max-height: 420px;
+  }
+
   .chat-messages {
     min-height: 170px;
   }
@@ -1773,6 +1864,119 @@ button:hover {
   .quiz-layout.online-private-layout.private-chat-open .chat-panel {
     height: auto;
     min-height: 0;
-    max-height: none;
+    max-height: 420px;
+  }
+}
+
+@media (max-width: 620px) {
+  .app-shell {
+    padding: 18px 12px 36px;
+  }
+
+  .hero-card,
+  .panel,
+  .hud-card,
+  .question-panel,
+  .answer-panel {
+    border-radius: 20px;
+  }
+
+  .home-hero {
+    padding: 18px 14px;
+  }
+
+  .hero-topbar {
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .topbar-button {
+    font-size: 0.92rem;
+  }
+
+  .compact-auth-panel,
+  .friends-panel {
+    padding: 14px;
+    border-radius: 18px;
+  }
+
+  .setup-section,
+  .compact-section,
+  .dashboard-card {
+    padding: 14px;
+    border-radius: 18px;
+  }
+
+  .profile-stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .online-player-card {
+    padding: 10px 12px;
+  }
+
+  .online-match-center {
+    gap: 4px;
+  }
+
+  .online-invite-actions button {
+    min-width: 0;
+    flex: 1 1 0;
+  }
+
+  .media-row {
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+
+  .media-card {
+    width: min(62vw, 200px);
+    height: min(62vw, 200px);
+    border-radius: 20px;
+  }
+
+  .question-kicker {
+    margin-bottom: 10px;
+    font-size: 0.68rem;
+  }
+
+  .question-text {
+    font-size: clamp(1.5rem, 9vw, 2rem);
+  }
+
+  .answer-input {
+    font-size: 1rem;
+    margin-bottom: 8px;
+  }
+
+  .button-row > button {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .chat-panel {
+    padding: 14px;
+  }
+
+  .chat-panel-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .chat-panel-actions {
+    width: 100%;
+  }
+
+  .chat-panel-actions .compact-button {
+    flex: 1 1 0;
+  }
+
+  .chat-compose-row {
+    flex-direction: column;
+  }
+
+  .chat-compose-row .compact-button {
+    width: 100%;
+    min-width: 0;
   }
 }

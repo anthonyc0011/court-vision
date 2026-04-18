@@ -511,6 +511,63 @@ def get_google_account_row_by_username(username: str) -> dict | None:
     return None
 
 
+def get_google_account_friend_code(row: dict | None) -> str:
+    if not row:
+        return ""
+    try:
+        payload = json.loads((row.get("payload") or "{}"))
+    except Exception:
+        payload = {}
+    code = str(payload.get("friend_code") or "").strip().upper()
+    return re.sub(r"[^A-Z0-9]", "", code)[:10]
+
+
+def generate_unique_friend_code() -> str:
+    _, google_rows = collect_profile_rows()
+    existing_codes = {get_google_account_friend_code(row) for row in google_rows if get_google_account_friend_code(row)}
+    alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    chooser = random.SystemRandom()
+    while True:
+        code = "".join(chooser.choice(alphabet) for _ in range(8))
+        if code not in existing_codes:
+            return code
+
+
+def ensure_google_account_friend_code(google_sub: str) -> str:
+    row = get_google_account_row_by_sub(google_sub)
+    if not row:
+        return ""
+    existing_code = get_google_account_friend_code(row)
+    if existing_code:
+        return existing_code
+    payload = json.loads((row.get("payload") or "{}") or "{}")
+    payload["friend_code"] = generate_unique_friend_code()
+    with get_conn() as conn:
+        if USING_POSTGRES:
+            conn.execute(
+                "UPDATE google_accounts SET payload = %s WHERE google_sub = %s",
+                (json.dumps(payload), google_sub),
+            )
+        else:
+            conn.execute(
+                "UPDATE google_accounts SET payload = ? WHERE google_sub = ?",
+                (json.dumps(payload), google_sub),
+            )
+        conn.commit()
+    return str(payload["friend_code"])
+
+
+def get_google_account_row_by_friend_code(friend_code: str) -> dict | None:
+    wanted = re.sub(r"[^A-Z0-9]", "", str(friend_code or "").upper())[:10]
+    if not wanted:
+        return None
+    _, google_rows = collect_profile_rows()
+    for row in google_rows:
+        if get_google_account_friend_code(row) == wanted:
+            return dict(row)
+    return None
+
+
 def get_authenticated_google_identity(authorization: str | None, fallback_username: str = "Player") -> dict | None:
     try:
         user = require_authenticated_user(authorization)
@@ -529,9 +586,20 @@ def get_authenticated_google_identity(authorization: str | None, fallback_userna
         "google_sub": google_sub,
         "auth_id": f"google:{google_sub}",
         "username": username,
+        "username_locked": bool(locked_username),
         "picture": row.get("picture"),
         "email": row.get("email"),
+        "friend_code": ensure_google_account_friend_code(google_sub),
     }
+
+
+def require_locked_google_identity(authorization: str | None, fallback_username: str = "Player") -> dict:
+    identity = get_authenticated_google_identity(authorization, fallback_username=fallback_username)
+    if not identity:
+        raise HTTPException(status_code=401, detail="Sign in with Google first.")
+    if not identity.get("username_locked"):
+        raise HTTPException(status_code=409, detail="Choose and save your Court Vision username first.")
+    return identity
 
 
 def normalize_friend_pair(sub_a: str, sub_b: str) -> tuple[str, str]:
@@ -1032,6 +1100,10 @@ class FriendRequestPayload(BaseModel):
     target_username: str
 
 
+class FriendCodeRequestPayload(BaseModel):
+    friend_code: str
+
+
 class FriendResponsePayload(BaseModel):
     request_id: int
     action: str
@@ -1084,42 +1156,13 @@ def get_ranked_division(elo: int) -> str:
 
 
 def get_ranked_identity(authorization: str | None) -> dict:
-    user = require_authenticated_user(authorization)
-    google_sub = str(user.get("sub", "")).strip()
-    if not google_sub:
-        raise HTTPException(status_code=401, detail="Google sign-in is required for ranked online.")
-
-    with get_conn() as conn:
-        if USING_POSTGRES:
-            row = conn.execute(
-                """
-                SELECT email, display_name, picture, payload
-                FROM google_accounts
-                WHERE google_sub = %s
-                """,
-                (google_sub,),
-            ).fetchone()
-        else:
-            row = conn.execute(
-                """
-                SELECT email, display_name, picture, payload
-                FROM google_accounts
-                WHERE google_sub = ?
-                """,
-                (google_sub,),
-            ).fetchone()
-
-    if not row:
-        raise HTTPException(status_code=401, detail="Signed-in ranked profile not found.")
-
-    payload = json.loads(row["payload"] or "{}")
-    username = payload.get("username") or row["display_name"] or row["email"] or "Player"
+    identity = require_locked_google_identity(authorization)
     return {
-        "player_id": f"google:{google_sub}",
-        "google_sub": google_sub,
-        "username": username,
-        "email": row["email"],
-        "picture": row["picture"],
+        "player_id": identity["auth_id"],
+        "google_sub": identity["google_sub"],
+        "username": identity["username"],
+        "email": identity["email"],
+        "picture": identity["picture"],
     }
 
 
@@ -1726,6 +1769,7 @@ def auth_google(payload: GoogleLoginPayload):
             "username": locked_username,
             "username_locked": username_locked,
             "username_change_available": username_change_available,
+            "friend_code": ensure_google_account_friend_code(google_sub),
         },
     }
 
@@ -1766,6 +1810,7 @@ def auth_me(authorization: str | None = Header(default=None)):
             "username": username,
             "username_locked": username_locked,
             "username_change_available": username_change_available,
+            "friend_code": ensure_google_account_friend_code(google_sub) if google_sub else "",
         }
     }
 
@@ -1810,6 +1855,7 @@ def auth_profile(authorization: str | None = Header(default=None)):
             "username": username,
             "username_locked": username_locked,
             "username_change_available": username_change_available,
+            "friend_code": ensure_google_account_friend_code(google_sub),
             "google_name": row["display_name"] or row["email"] or "Player",
             "theme": payload.get("theme", "Arena Blue"),
             "settings": payload.get("settings", {}),
@@ -1890,9 +1936,7 @@ def build_friend_user_summary(username: str, google_sub: str, picture: str | Non
 
 @app.get("/api/friends")
 def friends_summary(authorization: str | None = Header(default=None)):
-    identity = get_authenticated_google_identity(authorization)
-    if not identity:
-        raise HTTPException(status_code=401, detail="Sign in with Google to use friends.")
+    identity = require_locked_google_identity(authorization)
 
     google_sub = identity["google_sub"]
     with get_conn() as conn:
@@ -1983,6 +2027,7 @@ def friends_summary(authorization: str | None = Header(default=None)):
         friend_entries.append(summary)
 
     return {
+        "friend_code": identity.get("friend_code", ""),
         "friends": friend_entries,
         "incoming_requests": [
             {
@@ -2005,9 +2050,7 @@ def friends_summary(authorization: str | None = Header(default=None)):
 
 @app.post("/api/friends/request")
 def create_friend_request(payload: FriendRequestPayload, authorization: str | None = Header(default=None)):
-    identity = get_authenticated_google_identity(authorization)
-    if not identity:
-        raise HTTPException(status_code=401, detail="Sign in with Google to send friend requests.")
+    identity = require_locked_google_identity(authorization)
     target_row = get_google_account_row_by_username(payload.target_username)
     if not target_row:
         raise HTTPException(status_code=404, detail="That player does not have a Google-backed account.")
@@ -2075,11 +2118,18 @@ def create_friend_request(payload: FriendRequestPayload, authorization: str | No
     return {"saved": True, "status": "sent"}
 
 
+@app.post("/api/friends/request-by-code")
+def create_friend_request_by_code(payload: FriendCodeRequestPayload, authorization: str | None = Header(default=None)):
+    target_row = get_google_account_row_by_friend_code(payload.friend_code)
+    if not target_row:
+        raise HTTPException(status_code=404, detail="That friend code was not found.")
+    target_username = google_account_username(target_row)
+    return create_friend_request(FriendRequestPayload(target_username=target_username), authorization)
+
+
 @app.post("/api/friends/respond")
 def respond_friend_request(payload: FriendResponsePayload, authorization: str | None = Header(default=None)):
-    identity = get_authenticated_google_identity(authorization)
-    if not identity:
-        raise HTTPException(status_code=401, detail="Sign in with Google to manage friend requests.")
+    identity = require_locked_google_identity(authorization)
     action = str(payload.action or "").strip().lower()
     if action not in {"accept", "decline"}:
         raise HTTPException(status_code=400, detail="Invalid friend request action.")
@@ -2134,9 +2184,7 @@ def respond_friend_request(payload: FriendResponsePayload, authorization: str | 
 
 @app.post("/api/friends/challenge")
 def create_friend_challenge(payload: FriendChallengePayload, authorization: str | None = Header(default=None)):
-    identity = get_authenticated_google_identity(authorization)
-    if not identity:
-        raise HTTPException(status_code=401, detail="Sign in with Google to challenge friends.")
+    identity = require_locked_google_identity(authorization)
     target_row = get_google_account_row_by_username(payload.target_username)
     if not target_row:
         raise HTTPException(status_code=404, detail="Friend not found.")
@@ -2510,6 +2558,7 @@ def question_hint(payload: QuestionHintRequest):
 
 @app.get("/api/leaderboard")
 def leaderboard(limit: int = 20):
+    limit = max(1, min(int(limit or 20), 100))
     with get_conn() as conn:
         if USING_POSTGRES:
             rows = conn.execute(
@@ -2535,7 +2584,15 @@ def leaderboard(limit: int = 20):
 
 
 @app.post("/api/leaderboard")
-def post_leaderboard(entry: LeaderboardEntry):
+def post_leaderboard(entry: LeaderboardEntry, authorization: str | None = Header(default=None)):
+    identity = require_locked_google_identity(authorization)
+    username = str(entry.username or "").strip()
+    if normalized_profile_username(username) != normalized_profile_username(identity["username"]):
+        raise HTTPException(status_code=403, detail="Leaderboard submissions must use your signed-in username.")
+    if entry.score < 0 or entry.score > len(load_dataframe()):
+        raise HTTPException(status_code=400, detail="Invalid leaderboard score.")
+    if entry.accuracy < 0 or entry.accuracy > 100:
+        raise HTTPException(status_code=400, detail="Invalid leaderboard accuracy.")
     with get_conn() as conn:
         if USING_POSTGRES:
             conn.execute(
@@ -2544,7 +2601,7 @@ def post_leaderboard(entry: LeaderboardEntry):
                 VALUES (%s, %s, %s, %s, %s, %s)
                 """,
                 (
-                    entry.username.strip() or "Guest",
+                    identity["username"],
                     entry.score,
                     entry.accuracy,
                     entry.mode,
@@ -2559,7 +2616,7 @@ def post_leaderboard(entry: LeaderboardEntry):
                 VALUES (?, ?, ?, ?, ?, ?)
                 """,
                 (
-                    entry.username.strip() or "Guest",
+                    identity["username"],
                     entry.score,
                     entry.accuracy,
                     entry.mode,
@@ -2579,6 +2636,8 @@ def profiles():
 @app.post("/api/profiles")
 def post_profile(profile: ProfilePayload):
     normalized_username = (profile.username.strip() or "Guest").lower()
+    if normalized_username in HIDDEN_LEADERBOARD_USERNAMES:
+        raise HTTPException(status_code=400, detail="Choose a different username.")
     if google_username_taken(normalized_username):
         raise HTTPException(status_code=409, detail="That username is reserved by a signed-in account.")
 
@@ -2640,6 +2699,8 @@ def post_authenticated_profile(profile: ProfilePayload, authorization: str | Non
         username_change_available = username_locked and not bool(existing_payload.get("username_change_used"))
         normalized_existing_username = normalized_profile_username(existing_username)
         normalized_requested_username = normalized_profile_username(requested_username)
+        if normalized_requested_username in HIDDEN_LEADERBOARD_USERNAMES:
+            raise HTTPException(status_code=400, detail="Choose a different username.")
         is_rename = bool(
             username_locked
             and requested_username

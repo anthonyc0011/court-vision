@@ -127,12 +127,14 @@ const state = {
     friends: [],
     incomingRequests: [],
     outgoingRequests: [],
+    friendCode: "",
     loaded: false,
   },
   auth: {
     token: "",
     user: null,
     panelOpen: false,
+    lastExpiryNoticeAt: 0,
   },
 };
 
@@ -360,6 +362,24 @@ function clearAuthState() {
   persistAuthState();
 }
 
+function handleExpiredAuthSession() {
+  const now = Date.now();
+  if (now - (state.auth.lastExpiryNoticeAt || 0) < 3000) {
+    return;
+  }
+  state.auth.lastExpiryNoticeAt = now;
+  clearAuthState();
+  state.online.rankedProfile = null;
+  state.friends.friends = [];
+  state.friends.incomingRequests = [];
+  state.friends.outgoingRequests = [];
+  state.friends.friendCode = "";
+  renderAuthPanel();
+  renderFriendsPanel();
+  updateProfileSummary();
+  showToast("Your login expired. Please sign in again.");
+}
+
 function getAuthHeaders() {
   return state.auth.token ? { Authorization: `Bearer ${state.auth.token}` } : {};
 }
@@ -400,6 +420,15 @@ function getGoogleDisplayName() {
 
 function getLockedUsername() {
   return (state.auth.user?.username || state.profile.username || "").trim();
+}
+
+function ensureLockedGoogleAccount(actionLabel = "use this feature") {
+  if (!state.auth.token) {
+    throw new Error("Sign in with Google first.");
+  }
+  if (!isGoogleUsernameLocked()) {
+    throw new Error(`Choose and save your Court Vision username first to ${actionLabel}.`);
+  }
 }
 
 function renderAuthPanel() {
@@ -494,9 +523,12 @@ async function handleGoogleCredentialResponse(response) {
       els.username.value = "";
       state.profile.username = "";
     }
-    await loadAuthenticatedProfile();
-    await loadRankedProfile();
-    await loadFriendsSummary().catch(() => {});
+    state.friends.friendCode = payload.user?.friend_code || "";
+    await Promise.all([
+      loadAuthenticatedProfile(),
+      loadRankedProfile(),
+      isGoogleUsernameLocked() ? loadFriendsSummary().catch(() => {}) : Promise.resolve(),
+    ]);
     state.auth.panelOpen = false;
     renderAuthPanel();
     renderFriendsPanel();
@@ -530,6 +562,7 @@ function renderFriendsPanel() {
   const outgoing = state.friends.outgoingRequests || [];
   const friends = state.friends.friends || [];
   els.friendsStatus.textContent = `${friends.length} friend${friends.length === 1 ? "" : "s"} • ${friends.filter((friend) => friend.online).length} online`;
+  const friendCode = state.friends.friendCode || "";
 
   const incomingHtml = incoming.length
     ? `
@@ -615,6 +648,20 @@ function renderFriendsPanel() {
     : '<div class="leaderboard-empty">No friends yet. Finish a private match and add someone, or accept a request here.</div>';
 
   els.friendsContent.innerHTML = `
+    <div class="friends-section">
+      <p class="eyebrow">Friend Code</p>
+      <div class="friend-code-card">
+        <div>
+          <strong class="friend-code-value">${escapeHtml(friendCode || "Loading...")}</strong>
+          <div class="leaderboard-meta">Share this code so someone can send you a friend request.</div>
+        </div>
+        <button class="secondary-button compact-button" id="copyFriendCode" ${friendCode ? "" : "disabled"}>Copy</button>
+      </div>
+      <div class="admin-cleanup-row">
+        <input id="friendCodeInput" placeholder="Enter friend code" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" />
+        <button id="sendFriendCodeRequest" class="secondary-button">Add Friend</button>
+      </div>
+    </div>
     ${incomingHtml}
     ${outgoingHtml}
     <div class="friends-section">
@@ -639,6 +686,34 @@ function renderFriendsPanel() {
         showToast(error?.message || "Could not update that friend request.");
       }
     });
+  });
+
+  document.getElementById("copyFriendCode")?.addEventListener("click", () => {
+    if (!friendCode) return;
+    copyText(friendCode)
+      .then(() => showToast("Friend code copied."))
+      .catch(() => showToast("Could not copy friend code."));
+  });
+
+  document.getElementById("sendFriendCodeRequest")?.addEventListener("click", async () => {
+    const codeInput = document.getElementById("friendCodeInput");
+    const rawCode = String(codeInput?.value || "").trim().toUpperCase();
+    if (!rawCode) {
+      showToast("Enter a friend code.");
+      return;
+    }
+    try {
+      await fetchJson("/friends/request-by-code", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ friend_code: rawCode }),
+      });
+      if (codeInput) codeInput.value = "";
+      await loadFriendsSummary().catch(() => {});
+      showToast("Friend request sent.");
+    } catch (error) {
+      showToast(error?.message || "Could not send friend request.");
+    }
   });
 
   els.friendsContent.querySelectorAll(".challenge-friend-button").forEach((button) => {
@@ -671,9 +746,11 @@ async function loadFriendsSummary(showFeedback = false) {
     renderFriendsPanel();
     return;
   }
+  ensureLockedGoogleAccount("use friends");
   const payload = await fetchJson("/friends", {
     headers: getAuthHeaders(),
   });
+  state.friends.friendCode = payload.friend_code || state.auth.user?.friend_code || "";
   state.friends.friends = payload.friends || [];
   state.friends.incomingRequests = payload.incoming_requests || [];
   state.friends.outgoingRequests = payload.outgoing_requests || [];
@@ -685,10 +762,7 @@ async function loadFriendsSummary(showFeedback = false) {
 }
 
 async function sendFriendRequestTo(username) {
-  if (!state.auth.token) {
-    showToast("Sign in with Google to add friends.");
-    return;
-  }
+  ensureLockedGoogleAccount("add friends");
   await fetchJson("/friends/request", {
     method: "POST",
     headers: getAuthHeaders(),
@@ -698,9 +772,7 @@ async function sendFriendRequestTo(username) {
 }
 
 async function challengeFriend(username) {
-  if (!state.auth.token) {
-    throw new Error("Sign in with Google to challenge friends.");
-  }
+  ensureLockedGoogleAccount("challenge friends");
   els.onlineMode.checked = true;
   els.twoPlayerMode.checked = false;
   els.rankedMode.checked = false;
@@ -762,9 +834,12 @@ async function restoreAuthenticatedUser() {
       els.username.value = "";
       state.profile.username = "";
     }
-    await loadAuthenticatedProfile();
-    await loadRankedProfile();
-    await loadFriendsSummary().catch(() => {});
+    state.friends.friendCode = payload.user?.friend_code || "";
+    await Promise.all([
+      loadAuthenticatedProfile(),
+      loadRankedProfile(),
+      isGoogleUsernameLocked() ? loadFriendsSummary().catch(() => {}) : Promise.resolve(),
+    ]);
     persistAuthState();
   } catch (_error) {
     clearAuthState();
@@ -1079,6 +1154,9 @@ async function fetchJson(path, options = {}) {
       }
     } catch (_error) {
       // Keep the default message when the response is not JSON.
+    }
+    if (response.status === 401 && requestHeaders.Authorization) {
+      handleExpiredAuthSession();
     }
     throw new Error(errorMessage);
   }
@@ -2856,8 +2934,10 @@ function attachRankedSocket(matchId) {
 }
 
 async function startRankedQueue() {
-  if (!state.auth.token) {
-    showToast("Sign in with Google to play ranked.");
+  try {
+    ensureLockedGoogleAccount("play ranked");
+  } catch (error) {
+    showToast(error?.message || "Sign in with Google to play ranked.");
     return;
   }
   saveLocalSettings();
@@ -3119,8 +3199,10 @@ async function saveProfile(silent = false) {
     });
     state.auth.user = authPayload.user;
     persistAuthState();
-    await loadAuthenticatedProfile();
-    await loadFriendsSummary().catch(() => {});
+    await Promise.all([
+      loadAuthenticatedProfile(),
+      isGoogleUsernameLocked() ? loadFriendsSummary().catch(() => {}) : Promise.resolve(),
+    ]);
   } else {
     await fetchJson("/profiles", {
       method: "POST",
@@ -3264,6 +3346,7 @@ async function trackAnalytics(eventType = "page_view") {
 }
 
 async function submitLeaderboard() {
+  ensureLockedGoogleAccount("refresh rankings");
   await saveProfile(true);
   await loadLeaderboard();
   showToast("Season ladder refreshed.");
@@ -3427,6 +3510,7 @@ els.logoutButton?.addEventListener("click", () => {
   state.friends.friends = [];
   state.friends.incomingRequests = [];
   state.friends.outgoingRequests = [];
+  state.friends.friendCode = "";
   renderAuthPanel();
   renderFriendsPanel();
   updateProfileSummary();
