@@ -175,6 +175,8 @@ const els = {
   loginButton: document.getElementById("loginButton"),
   friendsButton: document.getElementById("friendsButton"),
   shareButton: document.getElementById("shareButton"),
+  mobilePlayTab: document.getElementById("mobilePlayTab"),
+  mobileHubTab: document.getElementById("mobileHubTab"),
   authPanel: document.getElementById("authPanel"),
   friendsPanel: document.getElementById("friendsPanel"),
   friendsStatus: document.getElementById("friendsStatus"),
@@ -258,6 +260,8 @@ const PLAYER_POOL_LABELS = {
   starter: "Starters",
   bench: "Bench Players",
 };
+
+let mobileHomeTab = "play";
 
 function getDefaultSettings() {
   return {
@@ -411,6 +415,33 @@ function removeAnalyticsCard() {
   if (card) {
     card.remove();
   }
+}
+
+function renderMobileHomeTabs() {
+  const playPanel = document.querySelector(".home-panel-play");
+  const hubPanel = document.querySelector(".home-panel-hub");
+  const isMobile = typeof window !== "undefined" && window.innerWidth <= 760;
+
+  if (!playPanel || !hubPanel || !els.mobilePlayTab || !els.mobileHubTab) return;
+
+  if (!isMobile) {
+    playPanel.classList.remove("hidden-mobile-panel");
+    hubPanel.classList.remove("hidden-mobile-panel");
+    els.mobilePlayTab.classList.add("is-active");
+    els.mobileHubTab.classList.remove("is-active");
+    return;
+  }
+
+  const showPlay = mobileHomeTab !== "hub";
+  playPanel.classList.toggle("hidden-mobile-panel", !showPlay);
+  hubPanel.classList.toggle("hidden-mobile-panel", showPlay);
+  els.mobilePlayTab.classList.toggle("is-active", showPlay);
+  els.mobileHubTab.classList.toggle("is-active", !showPlay);
+}
+
+function setMobileHomeTab(tabName) {
+  mobileHomeTab = tabName === "hub" ? "hub" : "play";
+  renderMobileHomeTabs();
 }
 
 function isGoogleUsernameLocked() {
@@ -3433,6 +3464,8 @@ els.shareButton?.addEventListener("click", async () => {
     showToast("Could not share the link.");
   }
 });
+els.mobilePlayTab?.addEventListener("click", () => setMobileHomeTab("play"));
+els.mobileHubTab?.addEventListener("click", () => setMobileHomeTab("hub"));
 els.refreshFriends?.addEventListener("click", () => {
   loadFriendsSummary(true).catch((error) => showToast(error?.message || "Could not refresh friends."));
 });
@@ -3602,6 +3635,7 @@ els.conferenceFilter.addEventListener("change", saveLocalSettings);
 loadLocalState();
 loadAuthState();
 enforceArenaBlueTheme();
+renderMobileHomeTabs();
 renderAuthPanel();
 renderFriendsPanel();
 restoreAuthenticatedUser()
@@ -3629,3 +3663,4 @@ loadLeaderboard().catch(() => {
 trackAnalytics("page_view").then(() => loadAnalyticsSummary()).catch(() => {
   renderAnalyticsSummary(null);
 });
+window.addEventListener("resize", renderMobileHomeTabs);
