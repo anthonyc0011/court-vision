@@ -78,15 +78,7 @@
                 <label for="username">Username</label>
                 <input id="username" placeholder="Enter username" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
               </div>
-              <div>
-                <label for="theme">Theme</label>
-                <select id="theme">
-                  <option>Arena Blue</option>
-                  <option>Classic Gold</option>
-                  <option>Emerald Court</option>
-                  <option>Midnight Heat</option>
-                </select>
-              </div>
+              <input id="theme" type="hidden" value="Arena Blue" />
             </div>
           </div>
 
@@ -100,8 +92,6 @@
                 <select id="gameMode">
                   <option value="Practice">Practice</option>
                   <option value="Timed">Timed</option>
-                  <option value="Hard">Hard</option>
-                  <option value="Learning">Learning</option>
                 </select>
               </div>
               <div>
@@ -208,7 +198,6 @@
           </div>
           <div class="hub-stack">
             <div id="profileSummary" class="dashboard-card profile-card">Profile summary will appear here.</div>
-            <div id="dailyOutput" class="dashboard-card daily-card">Season status will appear here.</div>
           </div>
           <div id="directoryOutput" class="dashboard-card directory-card">
             <div class="leaderboard-header">

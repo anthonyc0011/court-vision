@@ -299,6 +299,13 @@ function getHintLimitForSelection() {
   return 2;
 }
 
+function enforceArenaBlueTheme() {
+  if (els.theme) {
+    els.theme.value = "Arena Blue";
+  }
+  applyTheme("Arena Blue");
+}
+
 function getDefaultProgress() {
   return {
     xp: 0,
@@ -867,7 +874,7 @@ function applyProfilePayload(profile) {
 
   state.profile = {
     username: resolvedUsername,
-    theme: profile.theme || state.profile.theme || "Arena Blue",
+    theme: "Arena Blue",
     xp: progress.xp,
     rank: getRankFromXp(progress.xp || 0),
     achievements: progress.achievements || [],
@@ -894,8 +901,8 @@ function applyProfilePayload(profile) {
   }
 
   els.username.value = state.profile.username;
-  els.theme.value = profile.theme || els.theme.value;
-  els.gameMode.value = settings.mode || els.gameMode.value;
+  els.theme.value = "Arena Blue";
+  els.gameMode.value = ["Practice", "Timed"].includes(settings.mode) ? settings.mode : els.gameMode.value;
   els.questionCount.value = settings.questionCount || els.questionCount.value;
   els.conferenceFilter.value = settings.conferenceFilter || els.conferenceFilter.value;
   els.playerPool.value = settings.playerPool || els.playerPool.value;
@@ -906,7 +913,7 @@ function applyProfilePayload(profile) {
   els.playerOneName.value = settings.playerOneName || els.playerOneName.value;
   els.playerTwoName.value = settings.playerTwoName || els.playerTwoName.value;
   syncModeFields();
-  applyTheme(els.theme.value);
+  enforceArenaBlueTheme();
   saveLocalSettings();
   saveLocalProgress();
   updateProfileSummary();
@@ -1052,7 +1059,7 @@ function loadLocalState() {
 
   state.profile = {
     username: savedSettings.username || "Guest",
-    theme: savedSettings.theme || "Arena Blue",
+    theme: "Arena Blue",
     xp: progress.xp || 0,
     rank: getRankFromXp(progress.xp || 0),
     achievements: progress.achievements || [],
@@ -1065,8 +1072,11 @@ function loadLocalState() {
   };
 
   els.username.value = savedSettings.username || "Guest";
-  els.theme.value = savedSettings.theme || "Arena Blue";
+  els.theme.value = "Arena Blue";
   els.gameMode.value = savedSettings.gameMode || "Practice";
+  if (!["Practice", "Timed"].includes(els.gameMode.value)) {
+    els.gameMode.value = "Practice";
+  }
   els.questionCount.value = savedSettings.questionCount || "25";
   els.playerPool.value = savedSettings.playerPool || "all";
   els.answerMode.value = savedSettings.answerMode || "typed";
@@ -1086,7 +1096,7 @@ function loadLocalState() {
 function saveLocalSettings() {
   const payload = {
     username: els.username.value.trim() || "Guest",
-    theme: els.theme.value,
+    theme: "Arena Blue",
     gameMode: els.gameMode.value,
     questionCount: els.questionCount.value,
     conferenceFilter: els.conferenceFilter.value,
@@ -1392,6 +1402,7 @@ function formatRankHistory() {
 }
 
 function renderSeasonStatus() {
+  if (!els.dailyOutput) return;
   const rankInfo = getRankInfoFromXp(state.profile.xp);
 
   els.dailyOutput.innerHTML = `
@@ -2141,7 +2152,7 @@ function getCurrentQuestion() {
 
 function updateHintAvailability() {
   const multipleChoiceLocked = state.answerMode === "multiple-choice";
-  const noHintsMode = state.mode === "Hard" || state.twoPlayer || state.online.enabled;
+  const noHintsMode = state.twoPlayer || state.online.enabled;
   const outOfHints = state.hintsUsed >= state.hintLimit;
   const disabled = state.submitted || noHintsMode || outOfHints;
 
@@ -2327,21 +2338,8 @@ async function submitAnswer(valueFromChoice = null, clickedButton = null) {
   const result = await checkAnswer(
     rawAnswer,
     false,
-    !(state.mode === "Learning" && state.currentQuestionAttempts < 3)
+    true
   );
-
-  if (state.mode === "Learning" && !result.correct) {
-    if (state.currentQuestionAttempts === 1) {
-      const hint = await fetchHint(0);
-      setFeedback(`Wrong. ${hint.hint}`, "var(--gold)");
-      return;
-    }
-    if (state.currentQuestionAttempts === 2) {
-      const hint = await fetchHint(1);
-      setFeedback(`Wrong again. ${hint.hint}`, "var(--gold)");
-      return;
-    }
-  }
 
   state.submitted = true;
   updateHintAvailability();
@@ -2369,7 +2367,7 @@ async function submitAnswer(valueFromChoice = null, clickedButton = null) {
   renderProgress();
   advancePlayerTurn();
   updateTwoPlayerHud();
-  window.setTimeout(nextQuestion, state.mode === "Learning" && result.correct ? 500 : 700);
+  window.setTimeout(nextQuestion, 700);
 }
 
 function skipQuestion(autoSkipped = false) {
@@ -2411,10 +2409,6 @@ function showHint() {
   }
   if (state.online.enabled) {
     showToast(state.online.ranked ? "No hints during ranked mode." : "No hints during online mode.");
-    return;
-  }
-  if (state.mode === "Hard") {
-    showToast("No hints during Hard mode.");
     return;
   }
   if (state.submitted) return;
@@ -2601,24 +2595,13 @@ async function fetchQuizData(customQuestions = null) {
   renderProgress();
   renderQuestion();
   startTimer();
-  const username = els.username.value.trim() || "Guest";
-  els.dailyOutput.innerHTML = `
-    <div class="daily-header">
-      <div>
-        <p class="eyebrow">Current Season</p>
-        <div class="daily-status">${escapeHtml(state.profile.seasonTag || getCurrentSeasonTag())} ladder is active.</div>
-      </div>
-      <div class="profile-rank-badge">${state.questions.length} Questions</div>
-    </div>
-    <div class="daily-note">${escapeHtml(username)} is playing a ranked run. Stack clean wins, protect your rank, and push toward the next prestige tier.</div>
-  `;
 }
 
 async function startQuiz(customQuestions = null) {
   const username = els.username.value.trim() || "Guest";
   state.profile.username = username;
   trackAnalytics("quiz_start");
-  applyTheme(els.theme.value);
+  enforceArenaBlueTheme();
   saveLocalSettings();
   if (els.rankedMode.checked) {
     await startRankedQueue();
@@ -3230,14 +3213,14 @@ async function saveAccountSettings() {
 
   els.username.value = displayName;
   state.profile.username = displayName;
-  els.theme.value = els.profileTheme.value;
-  els.gameMode.value = els.profileDefaultMode.value;
+  els.theme.value = "Arena Blue";
+  els.gameMode.value = ["Practice", "Timed"].includes(els.profileDefaultMode?.value) ? els.profileDefaultMode.value : "Practice";
   els.questionCount.value = els.profileDefaultCount.value;
   els.playerPool.value = els.profileDefaultPlayerPool.value;
   els.answerMode.value = els.profileDefaultAnswerMode.value;
   els.showHeadshots.checked = els.profileDefaultHeadshots.checked;
   syncModeFields();
-  applyTheme(els.theme.value);
+  enforceArenaBlueTheme();
   await saveProfile(true);
 
   if (state.auth.user) {
@@ -3618,7 +3601,7 @@ els.conferenceFilter.addEventListener("change", saveLocalSettings);
 
 loadLocalState();
 loadAuthState();
-applyTheme(els.theme.value);
+enforceArenaBlueTheme();
 renderAuthPanel();
 renderFriendsPanel();
 restoreAuthenticatedUser()
