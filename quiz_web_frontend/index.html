@@ -92,7 +92,9 @@
           <div class="setup-section compact-section">
             <div class="section-title-row">
               <h3>Quiz Setup</h3>
+              <button id="toggleQuizSetup" class="mobile-section-toggle secondary-button" type="button">Hide</button>
             </div>
+            <div id="quizSetupBody" class="mobile-section-body">
             <div class="setup-grid two-col">
               <div>
                 <label for="gameMode">Mode</label>
@@ -138,13 +140,16 @@
               <input type="checkbox" id="showHeadshots" checked />
               <span>Show headshots</span>
             </label>
+            </div>
           </div>
 
           <div class="setup-section compact-section">
             <div class="section-title-row">
               <h3>Match Type</h3>
+              <button id="toggleMatchType" class="mobile-section-toggle secondary-button" type="button">Show</button>
             </div>
 
+            <div id="matchTypeBody" class="mobile-section-body">
             <div class="mode-stack">
               <div class="mode-card">
                 <label class="checkbox-row">
@@ -186,6 +191,7 @@
                 </div>
               </div>
             </div>
+            </div>
           </div>
 
           <input type="checkbox" id="dailyMode" hidden />
@@ -212,13 +218,16 @@
                 <p class="eyebrow">Player Directory</p>
                 <div class="daily-status">Search any player and see where they went to school.</div>
               </div>
+              <button id="toggleDirectory" class="mobile-section-toggle secondary-button" type="button">Show</button>
             </div>
+            <div id="directoryBody" class="mobile-section-body">
             <div class="directory-search-row">
               <input id="directorySearch" placeholder="Search any NBA player" autocomplete="off" autocapitalize="words" autocorrect="off" spellcheck="false" />
               <button id="directorySearchButton" class="secondary-button">Search</button>
             </div>
             <div id="directoryResults" class="directory-results">
               <div class="leaderboard-empty">Search for a player to open the directory.</div>
+            </div>
             </div>
           </div>
         </article>

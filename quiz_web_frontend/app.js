@@ -172,6 +172,12 @@ const els = {
   directorySearch: document.getElementById("directorySearch"),
   directorySearchButton: document.getElementById("directorySearchButton"),
   directoryResults: document.getElementById("directoryResults"),
+  toggleQuizSetup: document.getElementById("toggleQuizSetup"),
+  quizSetupBody: document.getElementById("quizSetupBody"),
+  toggleMatchType: document.getElementById("toggleMatchType"),
+  matchTypeBody: document.getElementById("matchTypeBody"),
+  toggleDirectory: document.getElementById("toggleDirectory"),
+  directoryBody: document.getElementById("directoryBody"),
   loginButton: document.getElementById("loginButton"),
   friendsButton: document.getElementById("friendsButton"),
   shareButton: document.getElementById("shareButton"),
@@ -262,6 +268,11 @@ const PLAYER_POOL_LABELS = {
 };
 
 let mobileHomeTab = "play";
+const mobileHomeSections = {
+  quizSetup: true,
+  matchType: false,
+  directory: false,
+};
 
 function getDefaultSettings() {
   return {
@@ -432,6 +443,38 @@ function renderMobileHomeTabs() {
 function setMobileHomeTab(tabName) {
   mobileHomeTab = tabName === "hub" ? "hub" : "play";
   renderMobileHomeTabs();
+}
+
+function isMobileHomeViewport() {
+  return typeof window !== "undefined" && window.innerWidth <= 760;
+}
+
+function renderMobileSectionToggle(button, body, isOpen) {
+  if (!button || !body) return;
+  const mobile = isMobileHomeViewport();
+  button.classList.toggle("hidden", !mobile);
+  if (!mobile) {
+    body.classList.remove("hidden-mobile-section");
+    button.textContent = "Hide";
+    button.setAttribute("aria-expanded", "true");
+    return;
+  }
+  body.classList.toggle("hidden-mobile-section", !isOpen);
+  button.textContent = isOpen ? "Hide" : "Show";
+  button.setAttribute("aria-expanded", isOpen ? "true" : "false");
+}
+
+function renderMobileHomeSections() {
+  renderMobileSectionToggle(els.toggleQuizSetup, els.quizSetupBody, mobileHomeSections.quizSetup);
+  renderMobileSectionToggle(els.toggleMatchType, els.matchTypeBody, mobileHomeSections.matchType);
+  renderMobileSectionToggle(els.toggleDirectory, els.directoryBody, mobileHomeSections.directory);
+}
+
+function toggleMobileHomeSection(sectionName) {
+  if (!(sectionName in mobileHomeSections)) return;
+  if (!isMobileHomeViewport()) return;
+  mobileHomeSections[sectionName] = !mobileHomeSections[sectionName];
+  renderMobileHomeSections();
 }
 
 function isGoogleUsernameLocked() {
@@ -3665,6 +3708,9 @@ els.onlineCode.addEventListener("input", (event) => {
   event.target.value = event.target.value.toUpperCase();
   saveLocalSettings();
 });
+els.toggleQuizSetup?.addEventListener("click", () => toggleMobileHomeSection("quizSetup"));
+els.toggleMatchType?.addEventListener("click", () => toggleMobileHomeSection("matchType"));
+els.toggleDirectory?.addEventListener("click", () => toggleMobileHomeSection("directory"));
 els.username.addEventListener("change", saveLocalSettings);
 els.conferenceFilter.addEventListener("change", saveLocalSettings);
 
@@ -3672,6 +3718,7 @@ loadLocalState();
 loadAuthState();
 enforceArenaBlueTheme();
 renderMobileHomeTabs();
+renderMobileHomeSections();
 renderAuthPanel();
 renderFriendsPanel();
 restoreAuthenticatedUser()
@@ -3699,4 +3746,7 @@ loadLeaderboard().catch(() => {
 trackAnalytics("page_view").then(() => loadAnalyticsSummary()).catch(() => {
   renderAnalyticsSummary(null);
 });
-window.addEventListener("resize", renderMobileHomeTabs);
+window.addEventListener("resize", () => {
+  renderMobileHomeTabs();
+  renderMobileHomeSections();
+});
