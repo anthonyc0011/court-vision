@@ -68,10 +68,19 @@ body {
   min-height: 100vh;
 }
 
+a {
+  color: var(--accent);
+}
+
 .app-shell {
   max-width: 1240px;
   margin: 0 auto;
   padding: 26px 20px 56px;
+}
+
+.legal-shell {
+  max-width: 980px;
+  padding-bottom: 28px;
 }
 
 .screen {
@@ -1075,6 +1084,107 @@ button:hover {
   line-height: 1.4;
 }
 
+.site-footer {
+  padding: 0 20px 28px;
+}
+
+.site-footer-inner {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 16px 20px;
+  border: 1px solid color-mix(in srgb, var(--outline) 76%, transparent);
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  color: var(--muted);
+}
+
+.site-footer-inner strong {
+  display: block;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.footer-links {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.footer-links a {
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.footer-links a:hover {
+  color: var(--accent);
+}
+
+.legal-card {
+  padding: 28px;
+}
+
+.legal-updated {
+  margin-bottom: 20px;
+}
+
+.legal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--muted);
+  line-height: 1.7;
+  font-size: 1rem;
+}
+
+.legal-body h2 {
+  margin: 14px 0 0;
+  color: var(--text);
+}
+
+.legal-body ul {
+  margin: 4px 0 6px 20px;
+}
+
+.legal-body li {
+  margin: 6px 0;
+}
+
+.contact-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin: 8px 0 12px;
+}
+
+.contact-card {
+  padding: 18px;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--surface-alt) 86%, transparent);
+  border: 1px solid color-mix(in srgb, var(--outline) 82%, transparent);
+}
+
+.contact-card h2 {
+  margin-top: 0;
+}
+
+.contact-link {
+  display: inline-block;
+  margin-top: 10px;
+  font-weight: 800;
+  word-break: break-word;
+}
+
+.contact-note {
+  margin-top: 8px;
+  font-size: 0.94rem;
+}
+
 #rewardSummary,
 #missedSummary {
   margin-top: 14px;
@@ -1095,9 +1205,14 @@ button:hover {
   .profile-hero,
   .daily-header,
   .leaderboard-header,
-  .history-row {
+  .history-row,
+  .site-footer-inner {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .contact-grid {
+    grid-template-columns: 1fr;
   }
 
   .home-hero-grid,
@@ -2032,5 +2147,13 @@ button:hover {
   .chat-compose-row .compact-button {
     width: 100%;
     min-width: 0;
+  }
+
+  .site-footer {
+    padding: 0 14px 20px;
+  }
+
+  .site-footer-inner {
+    padding: 14px;
   }
 }
