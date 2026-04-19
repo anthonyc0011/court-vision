@@ -1060,6 +1060,49 @@ function getRankFromXp(xp) {
   return getRankInfoFromXp(xp).label;
 }
 
+function formatNumberCompact(value) {
+  return new Intl.NumberFormat().format(Number(value || 0));
+}
+
+function getRankTimelineItems() {
+  return BASE_RANKS.map((baseRank, index) => ({
+    label: `${baseRank} III`,
+    xp: BASE_RANK_THRESHOLDS[index],
+  }));
+}
+
+function renderRankTimelineTooltip() {
+  return `
+    <div class="rank-info">
+      <button
+        class="rank-info-trigger"
+        type="button"
+        aria-label="Show rank XP requirements"
+        title="Show rank XP requirements"
+      >i</button>
+      <div class="rank-info-tooltip" role="tooltip">
+        <div class="rank-info-tooltip-title">Rank Timeline</div>
+        <div class="rank-info-tooltip-subtitle">Season XP needed to reach each rank tier.</div>
+        <div class="rank-timeline">
+          ${getRankTimelineItems()
+            .map(
+              (item) => `
+                <div class="rank-timeline-row">
+                  <span class="rank-timeline-dot"></span>
+                  <div class="rank-timeline-copy">
+                    <strong>${escapeHtml(item.label)}</strong>
+                    <span>${formatNumberCompact(item.xp)} XP</span>
+                  </div>
+                </div>
+              `
+            )
+            .join("")}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function getRankIndexFromLabel(rankLabel) {
   const normalized = String(rankLabel || "").trim();
   if (!normalized) return null;
@@ -1793,7 +1836,10 @@ function updateProfileSummary() {
         <p class="eyebrow">Saved Profile</p>
         <h3 class="profile-name">${escapeHtml(state.profile.username)}</h3>
       </div>
-      <div class="profile-rank-badge">${escapeHtml(rankInfo.label)}</div>
+      <div class="profile-rank-badge-wrap">
+        <div class="profile-rank-badge">${escapeHtml(rankInfo.label)}</div>
+        ${renderRankTimelineTooltip()}
+      </div>
     </div>
     <div class="profile-stat-grid">
       <div class="profile-stat">
