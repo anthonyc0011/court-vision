@@ -79,11 +79,8 @@
             </div>
           </div>
 
-          <div class="setup-section compact-section username-section">
-            <div class="section-title-row compact-title-row">
-              <h3>Player</h3>
-            </div>
-            <div class="setup-grid two-col compact-top-grid">
+          <div class="setup-section compact-section">
+            <div class="setup-grid two-col">
               <div>
                 <label for="username">Username</label>
                 <input id="username" placeholder="Enter username" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
@@ -92,19 +89,19 @@
             </div>
           </div>
 
-          <div class="setup-section compact-section refined-section">
-            <div class="section-title-row compact-title-row">
+          <div class="setup-section compact-section">
+            <div class="section-title-row">
               <h3>Quiz Setup</h3>
             </div>
-            <div class="setup-grid two-col refined-grid">
-              <div class="setup-field-card">
+            <div class="setup-grid two-col">
+              <div>
                 <label for="gameMode">Mode</label>
                 <select id="gameMode">
                   <option value="Practice">Practice</option>
                   <option value="Timed">Timed</option>
                 </select>
               </div>
-              <div class="setup-field-card">
+              <div>
                 <label for="questionCount">Quiz Length</label>
                 <select id="questionCount">
                   <option value="10">10</option>
@@ -114,13 +111,13 @@
                   <option value="all">All</option>
                 </select>
               </div>
-              <div class="setup-field-card">
+              <div>
                 <label for="conferenceFilter">Conference</label>
                 <select id="conferenceFilter">
                   <option value="All">All</option>
                 </select>
               </div>
-              <div class="setup-field-card">
+              <div>
                 <label for="playerPool">Player Pool</label>
                 <select id="playerPool">
                   <option value="all">All Players</option>
@@ -129,7 +126,7 @@
                   <option value="bench">Bench Players</option>
                 </select>
               </div>
-              <div class="setup-field-card answer-style-card">
+              <div>
                 <label for="answerMode">Answer Style</label>
                 <select id="answerMode">
                   <option value="typed">Typed</option>
@@ -137,14 +134,14 @@
                 </select>
               </div>
             </div>
-            <label class="checkbox-row subtle-checkbox visual-toggle">
+            <label class="checkbox-row subtle-checkbox">
               <input type="checkbox" id="showHeadshots" checked />
               <span>Show headshots</span>
             </label>
           </div>
 
-          <div class="setup-section compact-section refined-section">
-            <div class="section-title-row compact-title-row">
+          <div class="setup-section compact-section">
+            <div class="section-title-row">
               <h3>Match Type</h3>
             </div>
 
@@ -152,10 +149,7 @@
               <div class="mode-card">
                 <label class="checkbox-row">
                   <input type="checkbox" id="twoPlayerMode" />
-                  <span class="mode-card-copy">
-                    <strong class="mode-card-title">2-Player Local</strong>
-                    <span class="mode-card-meta">Pass and play on one device</span>
-                  </span>
+                  <span>2-Player Local</span>
                 </label>
                 <div id="twoPlayerFields" class="two-player-fields hidden">
                   <label for="playerOneName">Player 1 Name</label>
@@ -168,10 +162,7 @@
               <div class="mode-card">
                 <label class="checkbox-row">
                   <input type="checkbox" id="onlineMode" />
-                  <span class="mode-card-copy">
-                    <strong class="mode-card-title">Private Online 1v1</strong>
-                    <span class="mode-card-meta">Invite a friend with a code or link</span>
-                  </span>
+                  <span>Private Online 1v1</span>
                 </label>
                 <div id="onlineFields" class="two-player-fields hidden">
                   <label for="onlineAction">Online Match</label>
@@ -188,10 +179,7 @@
               <div class="mode-card ranked-card">
                 <label class="checkbox-row">
                   <input type="checkbox" id="rankedMode" />
-                  <span class="mode-card-copy">
-                    <strong class="mode-card-title">True Ranked Online</strong>
-                    <span class="mode-card-meta">Competitive queue with fixed rules</span>
-                  </span>
+                  <span>True Ranked Online</span>
                 </label>
                 <div id="rankedFields" class="two-player-fields hidden">
                   <div class="online-status">Ranked is always 25 questions, multiple choice, no hints, and a 15-second timer. Google sign-in is required.</div>

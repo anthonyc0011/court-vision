@@ -420,23 +420,13 @@ function removeAnalyticsCard() {
 function renderMobileHomeTabs() {
   const playPanel = document.querySelector(".home-panel-play");
   const hubPanel = document.querySelector(".home-panel-hub");
-  const isMobile = typeof window !== "undefined" && window.innerWidth <= 760;
 
   if (!playPanel || !hubPanel || !els.mobilePlayTab || !els.mobileHubTab) return;
 
-  if (!isMobile) {
-    playPanel.classList.remove("hidden-mobile-panel");
-    hubPanel.classList.remove("hidden-mobile-panel");
-    els.mobilePlayTab.classList.add("is-active");
-    els.mobileHubTab.classList.remove("is-active");
-    return;
-  }
-
-  const showPlay = mobileHomeTab !== "hub";
-  playPanel.classList.toggle("hidden-mobile-panel", !showPlay);
-  hubPanel.classList.toggle("hidden-mobile-panel", showPlay);
-  els.mobilePlayTab.classList.toggle("is-active", showPlay);
-  els.mobileHubTab.classList.toggle("is-active", !showPlay);
+  playPanel.classList.remove("hidden-mobile-panel");
+  hubPanel.classList.remove("hidden-mobile-panel");
+  els.mobilePlayTab.classList.add("is-active");
+  els.mobileHubTab.classList.remove("is-active");
 }
 
 function setMobileHomeTab(tabName) {

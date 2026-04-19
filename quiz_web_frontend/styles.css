@@ -501,10 +501,6 @@ label {
   font-weight: 700;
 }
 
-.setup-field-card label {
-  margin-top: 0;
-}
-
 .panel-heading {
   display: flex;
   justify-content: space-between;
@@ -542,11 +538,6 @@ label {
     linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 72%, white 3%) 0%, color-mix(in srgb, var(--surface) 92%, black 8%) 100%);
 }
 
-.username-section,
-.refined-section {
-  padding: 16px;
-}
-
 .play-panel {
   display: flex;
   flex-direction: column;
@@ -567,25 +558,6 @@ label {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.compact-top-grid {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.refined-grid {
-  gap: 10px;
-}
-
-.setup-field-card {
-  padding: 10px 12px 12px;
-  border-radius: 16px;
-  background: color-mix(in srgb, var(--surface) 72%, transparent);
-  border: 1px solid color-mix(in srgb, var(--outline) 64%, transparent);
-}
-
-.answer-style-card {
-  grid-column: 1 / -1;
-}
-
 .section-title-row {
   display: flex;
   justify-content: space-between;
@@ -600,20 +572,12 @@ label {
   font-size: 1.02rem;
 }
 
-.compact-title-row {
-  margin-bottom: 12px;
-}
-
 .subtle-checkbox {
   margin-top: 10px;
   padding: 10px 12px;
   border-radius: 16px;
   background: color-mix(in srgb, var(--surface) 72%, transparent);
   border: 1px solid color-mix(in srgb, var(--outline) 64%, transparent);
-}
-
-.visual-toggle {
-  margin-top: 12px;
 }
 
 .mode-stack {
@@ -643,35 +607,6 @@ label {
 
 .ranked-card {
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--gold) 18%, transparent);
-}
-
-.mode-card .checkbox-row {
-  align-items: flex-start;
-  gap: 12px;
-}
-
-.mode-card .checkbox-row input {
-  margin-top: 4px;
-}
-
-.mode-card-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
-}
-
-.mode-card-title {
-  color: var(--text);
-  font-size: 0.98rem;
-  line-height: 1.2;
-}
-
-.mode-card-meta {
-  color: var(--muted);
-  font-size: 0.84rem;
-  line-height: 1.35;
-  font-weight: 600;
 }
 
 .hub-stack {
@@ -1389,8 +1324,7 @@ button:hover {
 
 @media (max-width: 760px) {
   .mobile-home-nav {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: none;
   }
 
   .home-hero-grid,
@@ -1457,10 +1391,6 @@ button:hover {
   .hero-strap {
     max-width: none;
     font-size: 0.96rem;
-  }
-
-  .home-panel-block.hidden-mobile-panel {
-    display: none;
   }
 
   .home-primary-actions {
@@ -2245,12 +2175,6 @@ button:hover {
     padding: 10px 8px;
   }
 
-  .mobile-home-nav {
-    margin-bottom: 12px;
-    padding: 5px;
-    border-radius: 16px;
-  }
-
   .mobile-home-tab {
     padding: 11px 10px;
     font-size: 0.95rem;
@@ -2267,24 +2191,6 @@ button:hover {
   .dashboard-card {
     padding: 14px;
     border-radius: 18px;
-  }
-
-  .username-section,
-  .refined-section {
-    padding: 14px;
-  }
-
-  .setup-field-card {
-    padding: 10px 10px 12px;
-    border-radius: 14px;
-  }
-
-  .mode-card {
-    padding: 13px 14px;
-  }
-
-  .mode-card-meta {
-    font-size: 0.8rem;
   }
 
   .profile-stat-grid {
