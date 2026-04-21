@@ -273,6 +273,8 @@ const PLAYER_POOL_LABELS = {
   bench: "Bench Players",
 };
 
+const FRIENDS_CACHE_KEY = "courtvision-web-friends-cache";
+
 let mobileHomeTab = "play";
 const mobileHomeSections = {
   quizSetup: true,
@@ -394,6 +396,14 @@ function getCachedAuthProfile() {
   }
 }
 
+function getCachedFriendsSummary() {
+  try {
+    return JSON.parse(localStorage.getItem(FRIENDS_CACHE_KEY) || "null");
+  } catch (_error) {
+    return null;
+  }
+}
+
 function persistCachedAuthProfile() {
   if (!state.auth.user?.sub) return;
   localStorage.setItem(
@@ -407,8 +417,27 @@ function persistCachedAuthProfile() {
   );
 }
 
+function persistCachedFriendsSummary() {
+  if (!state.auth.user?.sub) return;
+  localStorage.setItem(
+    FRIENDS_CACHE_KEY,
+    JSON.stringify({
+      sub: state.auth.user.sub,
+      friendCode: state.friends.friendCode,
+      friends: state.friends.friends,
+      incomingRequests: state.friends.incomingRequests,
+      outgoingRequests: state.friends.outgoingRequests,
+      savedAt: Date.now(),
+    })
+  );
+}
+
 function clearCachedAuthProfile() {
   localStorage.removeItem(AUTH_PROFILE_CACHE_KEY);
+}
+
+function clearCachedFriendsSummary() {
+  localStorage.removeItem(FRIENDS_CACHE_KEY);
 }
 
 function clearAuthState() {
@@ -416,6 +445,7 @@ function clearAuthState() {
   state.auth.user = null;
   persistAuthState();
   clearCachedAuthProfile();
+  clearCachedFriendsSummary();
 }
 
 function handleExpiredAuthSession() {
@@ -453,6 +483,38 @@ function hydrateCachedAuthenticatedState() {
     state.online.rankedProfile = cached.rankedProfile;
   }
   updateProfileSummary();
+}
+
+function hydrateCachedFriendsSummary() {
+  const cached = getCachedFriendsSummary();
+  if (!cached || !state.auth.user?.sub || cached.sub !== state.auth.user.sub) return;
+  state.friends.friendCode = cached.friendCode || "";
+  state.friends.friends = Array.isArray(cached.friends) ? cached.friends : [];
+  state.friends.incomingRequests = Array.isArray(cached.incomingRequests) ? cached.incomingRequests : [];
+  state.friends.outgoingRequests = Array.isArray(cached.outgoingRequests) ? cached.outgoingRequests : [];
+  state.friends.loaded = true;
+  renderFriendsPanel();
+}
+
+function refreshSignedInData(options = {}) {
+  const { loadFriends = false } = options;
+  if (!state.auth.token) return Promise.resolve();
+
+  const tasks = [
+    loadAuthenticatedProfile(),
+    loadRankedProfile(),
+  ];
+
+  if (loadFriends && isGoogleUsernameLocked()) {
+    tasks.push(loadFriendsSummary().catch(() => {}));
+  }
+
+  return Promise.allSettled(tasks).then(() => {
+    renderAuthPanel();
+    renderFriendsPanel();
+    updateProfileSummary();
+    persistAuthState();
+  });
 }
 
 function getAuthHeaders() {
@@ -660,14 +722,11 @@ async function handleGoogleCredentialResponse(response) {
       state.profile.username = "";
     }
     state.friends.friendCode = payload.user?.friend_code || "";
-    await Promise.all([
-      loadAuthenticatedProfile(),
-      loadRankedProfile(),
-      isGoogleUsernameLocked() ? loadFriendsSummary().catch(() => {}) : Promise.resolve(),
-    ]);
     state.auth.panelOpen = false;
     renderAuthPanel();
     renderFriendsPanel();
+    updateProfileSummary();
+    refreshSignedInData({ loadFriends: false });
     showToast(payload.user?.username_locked ? "Signed in with Google." : "Signed in. Choose a username and save profile to lock it in.");
   } catch (error) {
     if (els.authStatus) {
@@ -891,6 +950,7 @@ async function loadFriendsSummary(showFeedback = false) {
   state.friends.incomingRequests = payload.incoming_requests || [];
   state.friends.outgoingRequests = payload.outgoing_requests || [];
   state.friends.loaded = true;
+  persistCachedFriendsSummary();
   renderFriendsPanel();
   if (showFeedback) {
     showToast("Friends refreshed.");
@@ -971,12 +1031,11 @@ async function restoreAuthenticatedUser() {
       state.profile.username = "";
     }
     state.friends.friendCode = payload.user?.friend_code || "";
-    await Promise.all([
-      loadAuthenticatedProfile(),
-      loadRankedProfile(),
-      isGoogleUsernameLocked() ? loadFriendsSummary().catch(() => {}) : Promise.resolve(),
-    ]);
     persistAuthState();
+    renderAuthPanel();
+    renderFriendsPanel();
+    updateProfileSummary();
+    refreshSignedInData({ loadFriends: false });
   } catch (error) {
     if (error?.status === 401) {
       clearAuthState();
@@ -1319,6 +1378,9 @@ function saveLocalProgress() {
       seasonTag: state.profile.seasonTag || getCurrentSeasonTag(),
     })
   );
+  if (state.auth.token && state.auth.user?.sub) {
+    persistCachedAuthProfile();
+  }
 }
 
 function normalizeAnswer(text) {
@@ -3460,10 +3522,8 @@ async function saveProfile(silent = false) {
     });
     state.auth.user = authPayload.user;
     persistAuthState();
-    await Promise.all([
-      loadAuthenticatedProfile(),
-      isGoogleUsernameLocked() ? loadFriendsSummary().catch(() => {}) : Promise.resolve(),
-    ]);
+    await loadAuthenticatedProfile();
+    refreshSignedInData({ loadFriends: isGoogleUsernameLocked() });
   } else {
     await fetchJson("/profiles", {
       method: "POST",
@@ -3657,6 +3717,18 @@ async function populateMeta() {
   });
   if (saved?.playerPool) {
     els.playerPool.value = saved.playerPool;
+  }
+}
+
+function scheduleDeferredStartupTasks() {
+  const deferred = () => {
+    trackAnalytics("page_view").catch(() => {});
+  };
+
+  if (typeof window.requestIdleCallback === "function") {
+    window.requestIdleCallback(deferred, { timeout: 2000 });
+  } else {
+    window.setTimeout(deferred, 800);
   }
 }
 
@@ -3894,6 +3966,7 @@ els.conferenceFilter.addEventListener("change", saveLocalSettings);
 loadLocalState();
 loadAuthState();
 hydrateCachedAuthenticatedState();
+hydrateCachedFriendsSummary();
 enforceArenaBlueTheme();
 renderMobileHomeTabs();
 renderMobileHomeSections();
@@ -3902,29 +3975,16 @@ renderAuthPanel();
 renderFriendsPanel();
 restoreAuthenticatedUser()
   .then(() => {
-    renderAuthPanel();
-    renderFriendsPanel();
-    updateProfileSummary();
     autoJoinInviteIfNeeded().catch(() => {});
   })
   .catch(() => {
-    renderAuthPanel();
-    renderFriendsPanel();
-    updateProfileSummary();
     autoJoinInviteIfNeeded().catch(() => {});
   });
 updateProfileSummary();
 syncModeFields();
 renderAnalyticsSummary(null);
 populateMeta().catch(() => {});
-loadLeaderboard().catch(() => {
-  if (els.leaderboardOutput) {
-    els.leaderboardOutput.innerHTML = '<div class="leaderboard-empty">Start the backend to load the ranked ladder.</div>';
-  }
-});
-trackAnalytics("page_view").then(() => loadAnalyticsSummary()).catch(() => {
-  renderAnalyticsSummary(null);
-});
+scheduleDeferredStartupTasks();
 window.addEventListener("resize", () => {
   renderMobileHomeTabs();
   renderMobileHomeSections();
