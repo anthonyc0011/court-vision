@@ -1367,7 +1367,7 @@ async function fetchJson(path, options = {}) {
 function switchScreen(target) {
   Object.values(screens).forEach((screen) => screen.classList.remove("active"));
   target.classList.add("active");
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  window.scrollTo(0, 0);
 }
 
 function getPrivateMatchLink(roomCode) {
@@ -1476,6 +1476,69 @@ function createChatMessageId() {
   return `chat_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
+function shouldStickChatToBottom() {
+  if (!els.chatMessages) return false;
+  const threshold = 32;
+  return els.chatMessages.scrollHeight - els.chatMessages.scrollTop - els.chatMessages.clientHeight <= threshold;
+}
+
+function createChatMessageMarkup(message) {
+  const own = message.sender === state.online.playerName;
+  return `
+    <div class="chat-message ${own ? "own-message" : ""}" data-chat-message-id="${escapeHtml(message.id || "")}">
+      <div class="chat-message-header">
+        <strong>${escapeHtml(own ? "You" : message.sender || "Opponent")}</strong>
+        <span>${escapeHtml(formatChatTime(message.created_at))}</span>
+      </div>
+      <div class="chat-message-text">${escapeHtml(message.text || "")}</div>
+    </div>
+  `;
+}
+
+function renderChatMessages(force = false) {
+  if (!els.chatMessages) return;
+
+  const messages = state.online.chatMessages || [];
+  const renderedCount = Number(els.chatMessages.dataset.renderedCount || 0);
+  const shouldAutoScroll = shouldStickChatToBottom();
+
+  if (!messages.length) {
+    if (force || renderedCount !== 0) {
+      els.chatMessages.innerHTML = '<div class="chat-empty">Messages from your opponent will show up here.</div>';
+      els.chatMessages.dataset.renderedCount = "0";
+    }
+    return;
+  }
+
+  if (force || renderedCount > messages.length) {
+    els.chatMessages.innerHTML = messages.map(createChatMessageMarkup).join("");
+    els.chatMessages.dataset.renderedCount = String(messages.length);
+    els.chatMessages.scrollTop = els.chatMessages.scrollHeight;
+    return;
+  }
+
+  if (renderedCount === 0) {
+    els.chatMessages.innerHTML = "";
+  }
+
+  if (renderedCount < messages.length) {
+    const fragment = document.createDocumentFragment();
+    messages.slice(renderedCount).forEach((message) => {
+      const wrapper = document.createElement("div");
+      wrapper.innerHTML = createChatMessageMarkup(message).trim();
+      if (wrapper.firstElementChild) {
+        fragment.appendChild(wrapper.firstElementChild);
+      }
+    });
+    els.chatMessages.appendChild(fragment);
+    els.chatMessages.dataset.renderedCount = String(messages.length);
+  }
+
+  if (shouldAutoScroll || state.online.chatOpen) {
+    els.chatMessages.scrollTop = els.chatMessages.scrollHeight;
+  }
+}
+
 function renderChatPanel() {
   if (!els.chatPanel || !els.chatMessages || !els.muteChat || !els.quizLayout) return;
 
@@ -1490,26 +1553,7 @@ function renderChatPanel() {
     return;
   }
 
-  if (!state.online.chatMessages.length) {
-    els.chatMessages.innerHTML = '<div class="chat-empty">Messages from your opponent will show up here.</div>';
-  } else {
-    els.chatMessages.innerHTML = state.online.chatMessages
-      .map((message) => {
-        const own = message.sender === state.online.playerName;
-        return `
-          <div class="chat-message ${own ? "own-message" : ""}">
-            <div class="chat-message-header">
-              <strong>${escapeHtml(own ? "You" : message.sender || "Opponent")}</strong>
-              <span>${escapeHtml(formatChatTime(message.created_at))}</span>
-            </div>
-            <div class="chat-message-text">${escapeHtml(message.text || "")}</div>
-          </div>
-        `;
-      })
-      .join("");
-  }
-
-  els.chatMessages.scrollTop = els.chatMessages.scrollHeight;
+  renderChatMessages();
 }
 
 function updateChatBadge() {
@@ -1549,7 +1593,7 @@ function handleIncomingChatMessage(message) {
     state.online.unreadCount += 1;
   }
   updateChatBadge();
-  renderChatPanel();
+  renderChatMessages();
   if (fromOpponent && !state.online.chatMuted) {
     showToast(`New message from ${message.sender}.`);
   }
@@ -2232,21 +2276,30 @@ function grantRewards(summary) {
 }
 
 function renderProgress() {
-  els.progressBar.innerHTML = "";
-  els.progressBar.style.setProperty("--question-count", state.questions.length || 10);
-  state.questions.forEach((_, index) => {
-    const segment = document.createElement("div");
-    segment.className = "progress-segment";
-    if (index === state.currentIndex && !state.results[index]) {
-      segment.classList.add("current");
-    }
-    const fill = document.createElement("div");
-    fill.className = "progress-fill";
-    if (state.results[index] === "correct") fill.classList.add("correct");
-    if (state.results[index] === "wrong") fill.classList.add("wrong");
-    if (state.results[index] === "skipped") fill.classList.add("skipped");
-    segment.appendChild(fill);
-    els.progressBar.appendChild(segment);
+  const questionCount = state.questions.length || 10;
+  els.progressBar.style.setProperty("--question-count", questionCount);
+
+  if (els.progressBar.children.length !== questionCount) {
+    els.progressBar.innerHTML = "";
+    const fragment = document.createDocumentFragment();
+    state.questions.forEach(() => {
+      const segment = document.createElement("div");
+      segment.className = "progress-segment";
+      const fill = document.createElement("div");
+      fill.className = "progress-fill";
+      segment.appendChild(fill);
+      fragment.appendChild(segment);
+    });
+    els.progressBar.appendChild(fragment);
+  }
+
+  Array.from(els.progressBar.children).forEach((segment, index) => {
+    segment.classList.toggle("current", index === state.currentIndex && !state.results[index]);
+    const fill = segment.firstElementChild;
+    if (!fill) return;
+    fill.classList.toggle("correct", state.results[index] === "correct");
+    fill.classList.toggle("wrong", state.results[index] === "wrong");
+    fill.classList.toggle("skipped", state.results[index] === "skipped");
   });
 }
 
@@ -2897,6 +2950,10 @@ function resetOnlineState() {
   if (els.chatInput) {
     els.chatInput.value = "";
   }
+  if (els.chatMessages) {
+    els.chatMessages.innerHTML = "";
+    els.chatMessages.dataset.renderedCount = "0";
+  }
   updateProfileSummary();
 }
 
@@ -3275,6 +3332,12 @@ async function startOnlineMatch() {
   state.daily = false;
   state.mode = "Online 1v1";
   state.answerMode = els.answerMode.value;
+  state.questions = Array(getRequestedQuestionCount() ?? 10).fill(null);
+  state.results = Array(state.questions.length).fill(null);
+  switchScreen(screens.quiz);
+  els.onlineStatus.textContent = action === "create" ? "Creating your private match..." : "Joining private match...";
+  renderOnlineWaiting();
+  startTimer();
 
   let roomPayload;
   try {
@@ -3294,8 +3357,10 @@ async function startOnlineMatch() {
       });
     } else {
       if (!roomCode) {
+        stopTimer();
         showToast("Enter a match code to join.");
         resetOnlineState();
+        switchScreen(screens.home);
         return;
       }
       roomPayload = await fetchJson("/online-match/join", {
@@ -3308,6 +3373,7 @@ async function startOnlineMatch() {
       });
     }
   } catch (error) {
+    stopTimer();
     resetOnlineState();
     switchScreen(screens.home);
     showToast(error?.message || (action === "join" ? "Could not join that match code." : "Could not create an online match."));
@@ -3328,9 +3394,7 @@ async function startOnlineMatch() {
       .then(() => showToast("Invite link copied. Send it to your opponent."))
       .catch(() => showToast(`Match created. Share code ${roomPayload.room_code}.`));
   }
-  switchScreen(screens.quiz);
   renderOnlineWaiting();
-  startTimer();
   attachOnlineSocket(roomPayload.room_code, state.online.playerName);
 }
 
