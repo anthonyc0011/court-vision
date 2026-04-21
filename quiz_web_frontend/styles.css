@@ -614,11 +614,12 @@ label {
 }
 
 .mode-card {
-  padding: 14px 15px;
-  border-radius: 18px;
+  padding: 18px 18px 16px;
+  border-radius: 22px;
   background: color-mix(in srgb, var(--surface) 80%, transparent);
   border: 1px solid color-mix(in srgb, var(--outline) 70%, transparent);
   transition: border-color 140ms ease, transform 140ms ease, background 140ms ease, box-shadow 140ms ease;
+  min-height: 122px;
 }
 
 .mode-card:hover {
@@ -647,7 +648,7 @@ label {
 }
 
 .mode-card-info {
-  margin-top: 10px;
+  margin-top: 18px;
 }
 
 .mode-card-meta-row {
@@ -655,11 +656,34 @@ label {
   justify-content: flex-end;
 }
 
+.mode-card .checkbox-row {
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.mode-card .checkbox-row span {
+  color: var(--text);
+  font-size: 1.32rem;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.disabled-mode-card .checkbox-row span {
+  color: color-mix(in srgb, var(--muted) 92%, white 8%);
+}
+
+.mode-card .checkbox-row input {
+  margin-top: 5px;
+  transform: scale(1.18);
+  transform-origin: top left;
+}
+
 .match-info .rank-info-trigger {
-  width: 26px;
-  min-width: 26px;
-  height: 26px;
-  font-size: 0.82rem;
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  font-size: 0.92rem;
 }
 
 .match-info-tooltip {
@@ -1464,6 +1488,15 @@ button:hover {
 
   .match-step-actions {
     grid-template-columns: 1fr;
+  }
+
+  .mode-card {
+    min-height: 108px;
+    padding: 16px 16px 14px;
+  }
+
+  .mode-card .checkbox-row span {
+    font-size: 1.12rem;
   }
 
   .profile-stat-grid {
