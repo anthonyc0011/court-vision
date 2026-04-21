@@ -153,6 +153,11 @@ const els = {
   playerPool: document.getElementById("playerPool"),
   answerMode: document.getElementById("answerMode"),
   showHeadshots: document.getElementById("showHeadshots"),
+  continueToMatchType: document.getElementById("continueToMatchType"),
+  backToQuizSetup: document.getElementById("backToQuizSetup"),
+  quizSetupStep: document.getElementById("quizSetupStep"),
+  matchTypeStep: document.getElementById("matchTypeStep"),
+  soloMode: document.getElementById("soloMode"),
   twoPlayerMode: document.getElementById("twoPlayerMode"),
   twoPlayerFields: document.getElementById("twoPlayerFields"),
   playerOneName: document.getElementById("playerOneName"),
@@ -273,6 +278,7 @@ const mobileHomeSections = {
   matchType: false,
   directory: false,
 };
+let homeSetupStep = "quiz";
 
 function getDefaultSettings() {
   return {
@@ -284,6 +290,7 @@ function getDefaultSettings() {
     playerPool: "all",
     answerMode: "typed",
     showHeadshots: true,
+    soloMode: false,
     twoPlayerMode: false,
     onlineMode: false,
     rankedMode: false,
@@ -443,6 +450,18 @@ function renderMobileHomeTabs() {
 function setMobileHomeTab(tabName) {
   mobileHomeTab = tabName === "hub" ? "hub" : "play";
   renderMobileHomeTabs();
+}
+
+function renderHomeSetupStep() {
+  if (!els.quizSetupStep || !els.matchTypeStep) return;
+  const onMatchStep = homeSetupStep === "match";
+  els.quizSetupStep.classList.toggle("hidden", onMatchStep);
+  els.matchTypeStep.classList.toggle("hidden", !onMatchStep);
+}
+
+function goToHomeSetupStep(stepName) {
+  homeSetupStep = stepName === "match" ? "match" : "quiz";
+  renderHomeSetupStep();
 }
 
 function isMobileHomeViewport() {
@@ -966,14 +985,16 @@ function applyProfilePayload(profile) {
 
   els.username.value = state.profile.username;
   els.theme.value = "Arena Blue";
-  els.gameMode.value = ["Practice", "Timed"].includes(settings.mode) ? settings.mode : els.gameMode.value;
+  els.gameMode.value = settings.mode === "Practice" ? settings.mode : els.gameMode.value;
   els.questionCount.value = settings.questionCount || els.questionCount.value;
   els.conferenceFilter.value = settings.conferenceFilter || els.conferenceFilter.value;
   els.playerPool.value = settings.playerPool || els.playerPool.value;
   els.answerMode.value = settings.answerMode || els.answerMode.value;
   els.showHeadshots.checked = settings.showHeadshots !== false;
+  els.soloMode.checked = Boolean(settings.soloMode);
   els.twoPlayerMode.checked = Boolean(settings.twoPlayerMode);
   els.onlineMode.checked = Boolean(settings.onlineMode);
+  els.rankedMode.checked = Boolean(settings.rankedMode);
   els.playerOneName.value = settings.playerOneName || els.playerOneName.value;
   els.playerTwoName.value = settings.playerTwoName || els.playerTwoName.value;
   syncModeFields();
@@ -1181,13 +1202,14 @@ function loadLocalState() {
   els.username.value = savedSettings.username || "Guest";
   els.theme.value = "Arena Blue";
   els.gameMode.value = savedSettings.gameMode || "Practice";
-  if (!["Practice", "Timed"].includes(els.gameMode.value)) {
+  if (!["Practice"].includes(els.gameMode.value)) {
     els.gameMode.value = "Practice";
   }
   els.questionCount.value = savedSettings.questionCount || "25";
   els.playerPool.value = savedSettings.playerPool || "all";
   els.answerMode.value = savedSettings.answerMode || "typed";
   els.showHeadshots.checked = savedSettings.showHeadshots !== false;
+  els.soloMode.checked = Boolean(savedSettings.soloMode);
   els.twoPlayerMode.checked = Boolean(savedSettings.twoPlayerMode);
   els.onlineMode.checked = Boolean(savedSettings.onlineMode);
   els.rankedMode.checked = Boolean(savedSettings.rankedMode);
@@ -1210,6 +1232,7 @@ function saveLocalSettings() {
     playerPool: els.playerPool.value,
     answerMode: els.answerMode.value,
     showHeadshots: els.showHeadshots.checked,
+    soloMode: els.soloMode.checked,
     twoPlayerMode: els.twoPlayerMode.checked,
     onlineMode: els.onlineMode.checked,
     rankedMode: els.rankedMode.checked,
@@ -1946,21 +1969,38 @@ function toggleRankedFields() {
 }
 
 function syncModeFields() {
+  if (els.soloMode.checked) {
+    els.twoPlayerMode.checked = false;
+    els.onlineMode.checked = false;
+    els.rankedMode.checked = false;
+  }
   if (els.rankedMode.checked) {
+    els.soloMode.checked = false;
     els.twoPlayerMode.checked = false;
     els.onlineMode.checked = false;
   }
   if (els.onlineMode.checked) {
+    els.soloMode.checked = false;
     els.twoPlayerMode.checked = false;
     els.rankedMode.checked = false;
   }
   if (els.twoPlayerMode.checked) {
+    els.soloMode.checked = false;
     els.onlineMode.checked = false;
     els.rankedMode.checked = false;
   }
   toggleTwoPlayerFields();
   toggleOnlineFields();
   toggleRankedFields();
+}
+
+function hasSelectedMatchType() {
+  return Boolean(
+    els.soloMode?.checked ||
+      els.twoPlayerMode?.checked ||
+      els.onlineMode?.checked ||
+      els.rankedMode?.checked
+  );
 }
 
 function getActivePlayerName() {
@@ -2710,6 +2750,9 @@ async function fetchQuizData(customQuestions = null) {
 async function startQuiz(customQuestions = null) {
   const username = els.username.value.trim() || "Guest";
   state.profile.username = username;
+  if (!hasSelectedMatchType()) {
+    throw new Error("Choose a match type before starting a game.");
+  }
   trackAnalytics("quiz_start");
   enforceArenaBlueTheme();
   saveLocalSettings();
@@ -2724,7 +2767,7 @@ async function startQuiz(customQuestions = null) {
   state.daily = false;
   state.online.enabled = false;
   state.twoPlayer = els.twoPlayerMode.checked;
-  state.mode = els.gameMode.value;
+  state.mode = els.soloMode.checked ? "Practice" : els.gameMode.value;
   state.answerMode = els.answerMode.value;
   state.playerNames = [
     els.playerOneName.value.trim() || "Player 1",
@@ -3324,7 +3367,7 @@ async function saveAccountSettings() {
   els.username.value = displayName;
   state.profile.username = displayName;
   els.theme.value = "Arena Blue";
-  els.gameMode.value = ["Practice", "Timed"].includes(els.profileDefaultMode?.value) ? els.profileDefaultMode.value : "Practice";
+  els.gameMode.value = els.profileDefaultMode?.value === "Practice" ? els.profileDefaultMode.value : "Practice";
   els.questionCount.value = els.profileDefaultCount.value;
   els.playerPool.value = els.profileDefaultPlayerPool.value;
   els.answerMode.value = els.profileDefaultAnswerMode.value;
@@ -3495,6 +3538,11 @@ async function populateMeta() {
 document.getElementById("startQuiz").addEventListener("click", () => {
   startQuiz().catch((error) => showToast(error?.message || "Could not start game."));
 });
+els.continueToMatchType?.addEventListener("click", () => {
+  saveLocalSettings();
+  goToHomeSetupStep("match");
+});
+els.backToQuizSetup?.addEventListener("click", () => goToHomeSetupStep("quiz"));
 document.getElementById("saveProfile").addEventListener("click", () => {
   saveProfile()
     .then(() => loadAnalyticsSummary().catch(() => {}))
@@ -3686,6 +3734,10 @@ els.typedAnswer.addEventListener("keydown", (event) => {
   element.addEventListener("change", saveLocalSettings);
 });
 els.playerPool.addEventListener("change", saveLocalSettings);
+els.soloMode.addEventListener("change", () => {
+  syncModeFields();
+  saveLocalSettings();
+});
 els.twoPlayerMode.addEventListener("change", () => {
   syncModeFields();
   saveLocalSettings();
@@ -3719,6 +3771,7 @@ loadAuthState();
 enforceArenaBlueTheme();
 renderMobileHomeTabs();
 renderMobileHomeSections();
+renderHomeSetupStep();
 renderAuthPanel();
 renderFriendsPanel();
 restoreAuthenticatedUser()

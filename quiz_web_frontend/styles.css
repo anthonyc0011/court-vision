@@ -494,6 +494,20 @@ label,
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
 }
 
+.setup-step {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.setup-next-actions {
+  margin-top: 0;
+}
+
+.match-step-actions {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+}
+
 .mobile-section-toggle {
   display: none;
   width: auto;
@@ -621,6 +635,43 @@ label {
 
 .ranked-card {
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--gold) 18%, transparent);
+}
+
+.disabled-mode-card {
+  opacity: 0.56;
+  filter: grayscale(0.18);
+}
+
+.disabled-mode-card .checkbox-row {
+  cursor: not-allowed;
+}
+
+.mode-card-info {
+  margin-top: 10px;
+}
+
+.mode-card-meta-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.mode-card-meta-text {
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.match-info .rank-info-trigger {
+  width: 26px;
+  min-width: 26px;
+  height: 26px;
+  font-size: 0.82rem;
+}
+
+.match-info-tooltip {
+  width: min(260px, 72vw);
 }
 
 .hub-stack {
@@ -1413,6 +1464,10 @@ button:hover {
 
   .home-primary-actions button:first-child {
     grid-column: auto;
+  }
+
+  .match-step-actions {
+    grid-template-columns: 1fr;
   }
 
   .profile-stat-grid {
