@@ -652,15 +652,7 @@ label {
 
 .mode-card-meta-row {
   display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  justify-content: space-between;
-}
-
-.mode-card-meta-text {
-  color: var(--muted);
-  font-size: 0.88rem;
-  line-height: 1.4;
+  justify-content: flex-end;
 }
 
 .match-info .rank-info-trigger {
@@ -672,6 +664,10 @@ label {
 
 .match-info-tooltip {
   width: min(260px, 72vw);
+  background:
+    linear-gradient(180deg, #1a3147 0%, #112436 100%);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .hub-stack {
