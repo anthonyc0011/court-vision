@@ -30,6 +30,7 @@ const PROGRESS_KEY = "courtvision-web-progress";
 const VISITOR_KEY = "courtvision-web-visitor-id";
 const ANALYTICS_KEY_STORAGE = "courtvision-web-analytics-key";
 const AUTH_STORAGE_KEY = "courtvision-web-auth";
+const AUTH_PROFILE_CACHE_KEY = "courtvision-web-auth-profile-cache";
 const BASE_RANKS = [
   "Freshman",
   "Sophomore",
@@ -385,10 +386,36 @@ function persistAuthState() {
   }
 }
 
+function getCachedAuthProfile() {
+  try {
+    return JSON.parse(localStorage.getItem(AUTH_PROFILE_CACHE_KEY) || "null");
+  } catch (_error) {
+    return null;
+  }
+}
+
+function persistCachedAuthProfile() {
+  if (!state.auth.user?.sub) return;
+  localStorage.setItem(
+    AUTH_PROFILE_CACHE_KEY,
+    JSON.stringify({
+      sub: state.auth.user.sub,
+      profile: state.profile,
+      rankedProfile: state.online.rankedProfile,
+      savedAt: Date.now(),
+    })
+  );
+}
+
+function clearCachedAuthProfile() {
+  localStorage.removeItem(AUTH_PROFILE_CACHE_KEY);
+}
+
 function clearAuthState() {
   state.auth.token = "";
   state.auth.user = null;
   persistAuthState();
+  clearCachedAuthProfile();
 }
 
 function handleExpiredAuthSession() {
@@ -407,6 +434,25 @@ function handleExpiredAuthSession() {
   renderFriendsPanel();
   updateProfileSummary();
   showToast("Your login expired. Please sign in again.");
+}
+
+function hydrateCachedAuthenticatedState() {
+  const cached = getCachedAuthProfile();
+  if (!cached || !state.auth.user?.sub || cached.sub !== state.auth.user.sub) return;
+  if (cached.profile) {
+    state.profile = {
+      ...state.profile,
+      ...cached.profile,
+      usernameLocked: Boolean(cached.profile.usernameLocked),
+    };
+    if (state.profile.username) {
+      els.username.value = state.profile.username;
+    }
+  }
+  if (cached.rankedProfile) {
+    state.online.rankedProfile = cached.rankedProfile;
+  }
+  updateProfileSummary();
 }
 
 function getAuthHeaders() {
@@ -931,12 +977,18 @@ async function restoreAuthenticatedUser() {
       isGoogleUsernameLocked() ? loadFriendsSummary().catch(() => {}) : Promise.resolve(),
     ]);
     persistAuthState();
-  } catch (_error) {
-    clearAuthState();
-    state.online.rankedProfile = null;
-    state.friends.friends = [];
-    state.friends.incomingRequests = [];
-    state.friends.outgoingRequests = [];
+  } catch (error) {
+    if (error?.status === 401) {
+      clearAuthState();
+      state.online.rankedProfile = null;
+      state.friends.friends = [];
+      state.friends.incomingRequests = [];
+      state.friends.outgoingRequests = [];
+      state.friends.friendCode = "";
+    } else {
+      renderAuthPanel();
+      updateProfileSummary();
+    }
   }
 }
 
@@ -1002,6 +1054,9 @@ function applyProfilePayload(profile) {
   saveLocalSettings();
   saveLocalProgress();
   updateProfileSummary();
+  if (state.auth.token && state.auth.user?.sub) {
+    persistCachedAuthProfile();
+  }
   populateProfileSettingsForm();
 }
 
@@ -1049,8 +1104,12 @@ async function loadRankedProfile() {
     });
     state.online.rankedProfile = payload.profile;
     updateProfileSummary();
-  } catch (_error) {
-    state.online.rankedProfile = null;
+    persistCachedAuthProfile();
+  } catch (error) {
+    if (error?.status === 401) {
+      state.online.rankedProfile = null;
+      clearCachedAuthProfile();
+    }
   }
 }
 
@@ -1298,7 +1357,9 @@ async function fetchJson(path, options = {}) {
     if (response.status === 401 && requestHeaders.Authorization) {
       handleExpiredAuthSession();
     }
-    throw new Error(errorMessage);
+    const error = new Error(errorMessage);
+    error.status = response.status;
+    throw error;
   }
   return response.json();
 }
@@ -3768,6 +3829,7 @@ els.conferenceFilter.addEventListener("change", saveLocalSettings);
 
 loadLocalState();
 loadAuthState();
+hydrateCachedAuthenticatedState();
 enforceArenaBlueTheme();
 renderMobileHomeTabs();
 renderMobileHomeSections();
