@@ -557,6 +557,57 @@ def ensure_google_account_friend_code(google_sub: str) -> str:
     return str(payload["friend_code"])
 
 
+def get_google_account_payload(row: dict | None) -> dict:
+    if not row:
+        return {}
+    try:
+        return json.loads((row.get("payload") or "{}") or "{}")
+    except Exception:
+        return {}
+
+
+def build_authenticated_user_payload(user: dict, row: dict | None = None) -> dict:
+    google_sub = str(user.get("sub", "")).strip()
+    row = row or get_google_account_row_by_sub(google_sub)
+    payload = get_google_account_payload(row)
+    username = str(payload.get("username") or "").strip()
+    username_locked = bool(payload.get("username_locked")) or bool(username)
+    username_change_available = username_locked and not bool(payload.get("username_change_used"))
+    google_name = (row or {}).get("display_name") or user.get("name")
+    return {
+        "sub": user.get("sub"),
+        "email": user.get("email"),
+        "name": username or google_name,
+        "google_name": google_name,
+        "picture": user.get("picture") or (row or {}).get("picture"),
+        "username": username,
+        "username_locked": username_locked,
+        "username_change_available": username_change_available,
+        "friend_code": ensure_google_account_friend_code(google_sub) if google_sub else "",
+    }
+
+
+def build_authenticated_profile_payload(row: dict | None, google_sub: str) -> dict:
+    payload = get_google_account_payload(row)
+    username = str(payload.get("username") or "").strip()
+    username_locked = bool(payload.get("username_locked")) or bool(username)
+    username_change_available = username_locked and not bool(payload.get("username_change_used"))
+    return {
+        "has_saved_profile": bool(payload),
+        "username": username,
+        "username_locked": username_locked,
+        "username_change_available": username_change_available,
+        "friend_code": ensure_google_account_friend_code(google_sub),
+        "google_name": (row or {}).get("display_name") or (row or {}).get("email") or "Player",
+        "theme": payload.get("theme", "Arena Blue"),
+        "settings": payload.get("settings", {}),
+        "progress": payload.get("progress", {}),
+        "picture": (row or {}).get("picture"),
+        "auth_provider": "google",
+        "auth_id": f"google:{google_sub}",
+    }
+
+
 def get_google_account_row_by_friend_code(friend_code: str) -> dict | None:
     wanted = re.sub(r"[^A-Z0-9]", "", str(friend_code or "").upper())[:10]
     if not wanted:
@@ -1778,41 +1829,8 @@ def auth_google(payload: GoogleLoginPayload):
 def auth_me(authorization: str | None = Header(default=None)):
     user = require_authenticated_user(authorization)
     google_sub = str(user.get("sub", "")).strip()
-    google_name = user.get("name")
-    username = ""
-    username_locked = False
-    username_change_available = False
-    if google_sub:
-        with get_conn() as conn:
-            if USING_POSTGRES:
-                row = conn.execute(
-                    "SELECT display_name, payload FROM google_accounts WHERE google_sub = %s",
-                    (google_sub,),
-                ).fetchone()
-            else:
-                row = conn.execute(
-                    "SELECT display_name, payload FROM google_accounts WHERE google_sub = ?",
-                    (google_sub,),
-                ).fetchone()
-        if row:
-            payload = json.loads(row["payload"] or "{}")
-            username = str(payload.get("username") or "").strip()
-            username_locked = bool(payload.get("username_locked")) or bool(username)
-            username_change_available = username_locked and not bool(payload.get("username_change_used"))
-            google_name = row["display_name"] or google_name
-    return {
-        "user": {
-            "sub": user.get("sub"),
-            "email": user.get("email"),
-            "name": username or google_name,
-            "google_name": google_name,
-            "picture": user.get("picture"),
-            "username": username,
-            "username_locked": username_locked,
-            "username_change_available": username_change_available,
-            "friend_code": ensure_google_account_friend_code(google_sub) if google_sub else "",
-        }
-    }
+    row = get_google_account_row_by_sub(google_sub) if google_sub else None
+    return {"user": build_authenticated_user_payload(user, row)}
 
 
 @app.get("/api/auth/profile")
@@ -1845,25 +1863,32 @@ def auth_profile(authorization: str | None = Header(default=None)):
     if not row:
         raise HTTPException(status_code=404, detail="Authenticated profile not found.")
 
-    payload = json.loads(row["payload"] or "{}")
-    username = str(payload.get("username") or "").strip()
-    username_locked = bool(payload.get("username_locked")) or bool(username)
-    username_change_available = username_locked and not bool(payload.get("username_change_used"))
+    return {"profile": build_authenticated_profile_payload(dict(row), google_sub)}
+
+
+@app.get("/api/auth/bootstrap")
+def auth_bootstrap(authorization: str | None = Header(default=None)):
+    user = require_authenticated_user(authorization)
+    google_sub = str(user.get("sub", "")).strip()
+    if not google_sub:
+        raise HTTPException(status_code=401, detail="Invalid authenticated user.")
+
+    row = get_google_account_row_by_sub(google_sub)
+    if not row:
+        raise HTTPException(status_code=404, detail="Authenticated profile not found.")
+
+    user_payload = build_authenticated_user_payload(user, row)
+    profile_payload = build_authenticated_profile_payload(row, google_sub)
+    ranked_profile = (
+        get_ranked_profile(f"google:{google_sub}", user_payload["username"])
+        if user_payload.get("username_locked") and user_payload.get("username")
+        else None
+    )
+
     return {
-        "profile": {
-            "has_saved_profile": bool(payload),
-            "username": username,
-            "username_locked": username_locked,
-            "username_change_available": username_change_available,
-            "friend_code": ensure_google_account_friend_code(google_sub),
-            "google_name": row["display_name"] or row["email"] or "Player",
-            "theme": payload.get("theme", "Arena Blue"),
-            "settings": payload.get("settings", {}),
-            "progress": payload.get("progress", {}),
-            "picture": row["picture"],
-            "auth_provider": "google",
-            "auth_id": f"google:{google_sub}",
-        }
+        "user": user_payload,
+        "profile": profile_payload,
+        "ranked_profile": ranked_profile,
     }
 
 

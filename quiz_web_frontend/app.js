@@ -496,20 +496,50 @@ function hydrateCachedFriendsSummary() {
   renderFriendsPanel();
 }
 
+function applyRankedProfilePayload(profile) {
+  state.online.rankedProfile = profile || null;
+  updateProfileSummary();
+  if (profile && state.auth.token && state.auth.user?.sub) {
+    persistCachedAuthProfile();
+  }
+}
+
+async function loadAuthBootstrap(loadFriends = false) {
+  if (!state.auth.token) return;
+  const payload = await fetchJson("/auth/bootstrap", {
+    headers: getAuthHeaders(),
+  });
+
+  state.auth.user = payload.user;
+  persistAuthState();
+
+  if (payload.user?.username_locked && payload.user?.username) {
+    els.username.value = payload.user.username;
+    state.profile.username = payload.user.username;
+  } else if ((els.username.value || "").trim().toLowerCase() === "guest") {
+    els.username.value = "";
+    state.profile.username = "";
+  }
+
+  state.friends.friendCode = payload.user?.friend_code || "";
+
+  if (payload.profile) {
+    applyProfilePayload(payload.profile);
+  }
+  applyRankedProfilePayload(payload.ranked_profile || null);
+
+  if (loadFriends && isGoogleUsernameLocked()) {
+    await loadFriendsSummary().catch(() => {});
+  }
+}
+
 function refreshSignedInData(options = {}) {
   const { loadFriends = false } = options;
   if (!state.auth.token) return Promise.resolve();
 
-  const tasks = [
-    loadAuthenticatedProfile(),
-    loadRankedProfile(),
-  ];
-
-  if (loadFriends && isGoogleUsernameLocked()) {
-    tasks.push(loadFriendsSummary().catch(() => {}));
-  }
-
-  return Promise.allSettled(tasks).then(() => {
+  return Promise.resolve(loadAuthBootstrap(loadFriends))
+    .catch(() => {})
+    .then(() => {
     renderAuthPanel();
     renderFriendsPanel();
     updateProfileSummary();
@@ -726,7 +756,7 @@ async function handleGoogleCredentialResponse(response) {
     renderAuthPanel();
     renderFriendsPanel();
     updateProfileSummary();
-    refreshSignedInData({ loadFriends: false });
+    refreshSignedInData({ loadFriends: isGoogleUsernameLocked() });
     showToast(payload.user?.username_locked ? "Signed in with Google." : "Signed in. Choose a username and save profile to lock it in.");
   } catch (error) {
     if (els.authStatus) {
@@ -1019,19 +1049,7 @@ async function challengeFriend(username) {
 async function restoreAuthenticatedUser() {
   if (!state.auth.token) return;
   try {
-    const payload = await fetchJson("/auth/me", {
-      headers: getAuthHeaders(),
-    });
-    state.auth.user = payload.user;
-    if (payload.user?.username_locked && payload.user?.username) {
-      els.username.value = payload.user.username;
-      state.profile.username = payload.user.username;
-    } else if ((els.username.value || "").trim().toLowerCase() === "guest") {
-      els.username.value = "";
-      state.profile.username = "";
-    }
-    state.friends.friendCode = payload.user?.friend_code || "";
-    persistAuthState();
+    await loadAuthBootstrap(false);
     renderAuthPanel();
     renderFriendsPanel();
     updateProfileSummary();
@@ -1161,9 +1179,7 @@ async function loadRankedProfile() {
     const payload = await fetchJson("/ranked/profile", {
       headers: getAuthHeaders(),
     });
-    state.online.rankedProfile = payload.profile;
-    updateProfileSummary();
-    persistCachedAuthProfile();
+    applyRankedProfilePayload(payload.profile);
   } catch (error) {
     if (error?.status === 401) {
       state.online.rankedProfile = null;
