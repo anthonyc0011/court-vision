@@ -263,6 +263,8 @@ const els = {
   feedbackText: document.getElementById("feedbackText"),
   typedAnswer: document.getElementById("typedAnswer"),
   multipleChoiceGrid: document.getElementById("multipleChoiceGrid"),
+  submitAnswerButton: document.getElementById("submitAnswer"),
+  skipQuestionButton: document.getElementById("skipQuestion"),
   showHint: document.getElementById("showHint"),
   toastPopup: document.getElementById("toastPopup"),
   roundOverlay: document.getElementById("roundOverlay"),
@@ -2656,8 +2658,12 @@ function renderQuestion() {
   Array.from(els.multipleChoiceGrid.querySelectorAll("button")).forEach((button) => {
     button.disabled = cpuTurn;
   });
-  els.skipQuestion.disabled = cpuTurn;
-  els.submitAnswer.disabled = cpuTurn;
+  if (els.skipQuestionButton) {
+    els.skipQuestionButton.disabled = cpuTurn;
+  }
+  if (els.submitAnswerButton) {
+    els.submitAnswerButton.disabled = cpuTurn;
+  }
   renderProgress();
   updateTwoPlayerHud();
   updateHintAvailability();
