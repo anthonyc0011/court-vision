@@ -64,6 +64,7 @@ const state = {
     difficulty: "easy",
     thinking: false,
     timerId: null,
+    actingQuestionIndex: null,
   },
   mode: "Practice",
   answerMode: "typed",
@@ -2740,7 +2741,7 @@ function getCpuAccuracy() {
 }
 
 function getCpuSkipChance() {
-  return els.cpuDifficulty.value === "hard" ? 0.06 : 0.16;
+  return 0;
 }
 
 function clearCpuTurnTimer() {
@@ -2749,6 +2750,7 @@ function clearCpuTurnTimer() {
     state.cpu.timerId = null;
   }
   state.cpu.thinking = false;
+  state.cpu.actingQuestionIndex = null;
 }
 
 function getCpuChoice(question, shouldBeCorrect) {
@@ -2762,13 +2764,16 @@ function getCpuChoice(question, shouldBeCorrect) {
 
 async function runCpuTurn() {
   if (!isCpuMode() || !isCpuTurn() || state.submitted) return;
+  if (state.cpu.actingQuestionIndex === state.currentIndex) return;
   clearCpuTurnTimer();
   state.cpu.thinking = false;
+  state.cpu.actingQuestionIndex = state.currentIndex;
   setFeedback(`${state.playerNames[1]} locked in an answer.`, "var(--muted)");
   updateTwoPlayerHud();
 
   const question = getCurrentQuestion();
   if (!question) {
+    state.cpu.actingQuestionIndex = null;
     updateTwoPlayerHud();
     return;
   }
@@ -2806,6 +2811,7 @@ async function runCpuTurn() {
     }
   }
 
+  state.cpu.actingQuestionIndex = null;
   renderProgress();
   advancePlayerTurn();
   updateTwoPlayerHud();
