@@ -1081,6 +1081,20 @@ function applyProfilePayload(profile) {
   if (!profile) return;
   const settings = profile.settings || {};
   const progress = getProfileProgress(profile);
+  const mergedXp = Math.max(Number(state.profile.xp || 0), Number(progress.xp || 0));
+  const mergedGamesPlayed = Math.max(Number(state.profile.gamesPlayed || 0), Number(progress.gamesPlayed || 0));
+  const mergedBestScore = Math.max(Number(state.profile.bestScore || 0), Number(progress.bestScore || 0));
+  const mergedOnlineWins = Math.max(Number(state.profile.onlineWins || 0), Number(progress.onlineWins || 0));
+  const mergedHighestRankIndex = Math.max(
+    Number(state.profile.highestRankIndex || 0),
+    Number(progress.highestRankIndex ?? getRankInfoFromXp(progress.xp || 0).rankIndex)
+  );
+  const mergedAchievements = Array.from(
+    new Set([...(state.profile.achievements || []), ...(progress.achievements || [])])
+  );
+  const mergedRankHistory = (progress.rankHistory?.length || 0) >= (state.profile.rankHistory?.length || 0)
+    ? (progress.rankHistory || [])
+    : (state.profile.rankHistory || []);
   const usernameLocked = Boolean(profile.username_locked || state.auth.user?.username_locked);
   let resolvedUsername = (profile.username || "").trim();
   if (!resolvedUsername && usernameLocked) {
@@ -1095,14 +1109,14 @@ function applyProfilePayload(profile) {
   state.profile = {
     username: resolvedUsername,
     theme: "Arena Blue",
-    xp: progress.xp,
-    rank: getRankFromXp(progress.xp || 0),
-    achievements: progress.achievements || [],
-    gamesPlayed: progress.gamesPlayed || 0,
-    bestScore: progress.bestScore || 0,
-    onlineWins: progress.onlineWins || 0,
-    rankHistory: progress.rankHistory || [],
-    highestRankIndex: progress.highestRankIndex ?? getRankInfoFromXp(progress.xp || 0).rankIndex,
+    xp: mergedXp,
+    rank: getRankFromXp(mergedXp),
+    achievements: mergedAchievements,
+    gamesPlayed: mergedGamesPlayed,
+    bestScore: mergedBestScore,
+    onlineWins: mergedOnlineWins,
+    rankHistory: mergedRankHistory,
+    highestRankIndex: mergedHighestRankIndex,
     seasonTag: progress.seasonTag || getCurrentSeasonTag(),
     usernameLocked,
     usernameChangeAvailable: Boolean(profile.username_change_available || state.auth.user?.username_change_available),
