@@ -13,52 +13,82 @@
   <main class="app-shell">
     <section id="homeScreen" class="screen active">
       <section class="hero-card home-hero game-marquee">
-        <div class="hero-topbar">
-          <button id="loginButton" class="topbar-button secondary-button">Profile</button>
-          <button id="friendsButton" class="topbar-button secondary-button">Friends</button>
-          <button id="shareButton" class="topbar-button secondary-button">Share</button>
-        </div>
-        <div class="home-hero-grid minimal-hero-grid">
-          <div class="hero-copy minimal-hero-copy">
-            <p class="eyebrow">NBA College Quiz</p>
-            <h1 id="siteTitle">Court Vision</h1>
-            <p class="subtitle made-by">Made by Anthony</p>
-            <p class="subtitle hero-strap">Play solo, challenge a friend, or queue ranked.</p>
-          </div>
-          <div class="hero-sidepanels">
-            <div id="authPanel" class="auth-panel hidden compact-auth-panel">
-              <div id="authSignedOut">
-                <p class="eyebrow">Account</p>
-                <div class="daily-status">Sign in to lock your profile and ranked identity.</div>
-                <div id="googleSignInButton" class="google-signin-slot"></div>
-                <div id="authStatus" class="online-status"></div>
+        <div class="hero-shell">
+          <div class="hero-nav-row">
+            <div class="hero-brand-lockup">
+              <p class="eyebrow">NBA College Quiz</p>
+              <div class="hero-brand-title-row">
+                <h1 id="siteTitle">Court Vision</h1>
+                <p class="subtitle made-by">Made by Anthony</p>
               </div>
-              <div id="authSignedIn" class="hidden">
-                <p class="eyebrow">Signed In</p>
-                <div class="auth-user-row">
-                  <img id="authUserPicture" class="auth-avatar" alt="Profile picture" />
-                  <div>
-                    <div id="authUserName" class="daily-status"></div>
-                    <div id="authUserEmail" class="leaderboard-meta"></div>
-                  </div>
+            </div>
+            <div class="hero-topbar">
+              <button id="loginButton" class="topbar-button secondary-button">Profile</button>
+              <button id="friendsButton" class="topbar-button secondary-button">Friends</button>
+              <button id="shareButton" class="topbar-button secondary-button">Share</button>
+            </div>
+          </div>
+
+          <div class="hero-spotlight-grid">
+            <div class="hero-spotlight-copy">
+              <p class="hero-kicker">A clean basketball quiz experience.</p>
+              <p class="subtitle hero-strap">Pick your quiz, choose how you want to play, and jump straight in.</p>
+              <div class="hero-feature-row">
+                <div class="hero-feature-card">
+                  <span class="hero-feature-label">Solo</span>
+                  <strong>Fast runs</strong>
                 </div>
-                <div class="hero-actions compact-actions">
-                  <button id="logoutButton" class="secondary-button">Logout</button>
+                <div class="hero-feature-card">
+                  <span class="hero-feature-label">Online</span>
+                  <strong>Private 1v1</strong>
+                </div>
+                <div class="hero-feature-card">
+                  <span class="hero-feature-label">Ranked</span>
+                  <strong>Climb Elo</strong>
                 </div>
               </div>
             </div>
-            <div id="friendsPanel" class="auth-panel hidden compact-auth-panel friends-panel">
-              <div class="leaderboard-header">
-                <div>
-                  <p class="eyebrow">Friends</p>
-                  <div id="friendsStatus" class="daily-status">Sign in to build your friends list.</div>
+
+            <div class="hero-sidepanels">
+              <div class="hero-summary-card">
+                <p class="eyebrow">Quick Start</p>
+                <div class="hero-summary-title">Quiz setup first, then match type.</div>
+                <div class="hero-summary-subtitle">Everything important stays on one screen without feeling crowded.</div>
+              </div>
+              <div id="authPanel" class="auth-panel hidden compact-auth-panel">
+                <div id="authSignedOut">
+                  <p class="eyebrow">Account</p>
+                  <div class="daily-status">Sign in to lock your profile and ranked identity.</div>
+                  <div id="googleSignInButton" class="google-signin-slot"></div>
+                  <div id="authStatus" class="online-status"></div>
+                </div>
+                <div id="authSignedIn" class="hidden">
+                  <p class="eyebrow">Signed In</p>
+                  <div class="auth-user-row">
+                    <img id="authUserPicture" class="auth-avatar" alt="Profile picture" />
+                    <div>
+                      <div id="authUserName" class="daily-status"></div>
+                      <div id="authUserEmail" class="leaderboard-meta"></div>
+                    </div>
+                  </div>
+                  <div class="hero-actions compact-actions">
+                    <button id="logoutButton" class="secondary-button">Logout</button>
+                  </div>
                 </div>
               </div>
-              <div id="friendsContent" class="friends-panel-content">
-                <div class="leaderboard-empty">Your friends list will appear here.</div>
-              </div>
-              <div class="hero-actions compact-actions">
-                <button id="refreshFriends" class="secondary-button">Refresh</button>
+              <div id="friendsPanel" class="auth-panel hidden compact-auth-panel friends-panel">
+                <div class="leaderboard-header">
+                  <div>
+                    <p class="eyebrow">Friends</p>
+                    <div id="friendsStatus" class="daily-status">Sign in to build your friends list.</div>
+                  </div>
+                </div>
+                <div id="friendsContent" class="friends-panel-content">
+                  <div class="leaderboard-empty">Your friends list will appear here.</div>
+                </div>
+                <div class="hero-actions compact-actions">
+                  <button id="refreshFriends" class="secondary-button">Refresh</button>
+                </div>
               </div>
             </div>
           </div>
@@ -76,7 +106,7 @@
             <div>
               <p class="eyebrow">Play</p>
               <h2>Start A Game</h2>
-              <p class="panel-kicker">Build your quiz first, then choose how you want to play it.</p>
+              <p class="panel-kicker">Set the quiz, then lock in the way you want to play.</p>
             </div>
           </div>
 
@@ -300,8 +330,8 @@
             </div>
           </div>
           <div class="hero-actions home-primary-actions setup-next-actions match-step-actions">
-            <button id="backToQuizSetup" class="secondary-button" type="button">Back To Quiz Setup</button>
-            <button id="startQuiz" type="button">Start Game</button>
+            <button id="backToQuizSetup" class="step-button step-button-secondary" type="button">Back To Quiz Setup</button>
+            <button id="startQuiz" class="step-button step-button-primary" type="button">Start Game</button>
           </div>
           </div>
 
@@ -314,7 +344,7 @@
             <div>
               <p class="eyebrow">Hub</p>
               <h2>Profile And Directory</h2>
-              <p class="panel-kicker">Your player card and search tools live here.</p>
+              <p class="panel-kicker">Stats on one side, player lookup on the other.</p>
             </div>
           </div>
           <div class="hub-showcase-grid">
