@@ -1,56 +1,17 @@
 :root {
-  --bg: #08131f;
-  --surface: #102132;
-  --surface-alt: #15293d;
-  --surface-soft: rgba(255, 255, 255, 0.03);
-  --accent: #2ec4ff;
-  --gold: #ffc857;
-  --green: #44d17a;
-  --red: #ff5d73;
-  --text: #f4f7fb;
-  --muted: #94abc2;
-  --outline: #26445f;
-  --shadow: 0 18px 40px rgba(0, 0, 0, 0.25);
-  --shadow-strong: 0 28px 60px rgba(0, 0, 0, 0.35);
-}
-
-body[data-theme="Classic Gold"] {
-  --bg: #17120a;
-  --surface: #241c11;
-  --surface-alt: #302515;
-  --accent: #80cfff;
-  --gold: #f4c95d;
-  --green: #6edb8f;
-  --red: #ff7b6b;
-  --text: #fff7e8;
-  --muted: #cfbf9f;
-  --outline: #6a5330;
-}
-
-body[data-theme="Emerald Court"] {
-  --bg: #071813;
-  --surface: #102821;
-  --surface-alt: #15382f;
-  --accent: #78d7c4;
-  --gold: #f2c14e;
-  --green: #48d597;
-  --red: #ff6f61;
-  --text: #f3fff8;
-  --muted: #99c9ba;
-  --outline: #2c6654;
-}
-
-body[data-theme="Midnight Heat"] {
-  --bg: #190b14;
-  --surface: #2a1421;
-  --surface-alt: #371b2b;
-  --accent: #ff8c69;
-  --gold: #ffd166;
-  --green: #7bd389;
-  --red: #ff5a5f;
-  --text: #fff5f7;
-  --muted: #d6aab7;
-  --outline: #6f3c4f;
+  --bg: #0d141b;
+  --surface: #15212c;
+  --surface-alt: #1c2a36;
+  --surface-soft: rgba(244, 239, 230, 0.035);
+  --accent: #e68a3f;
+  --gold: #d8bb84;
+  --green: #63c17a;
+  --red: #ea6b5d;
+  --text: #f4efe6;
+  --muted: #b5ac9c;
+  --outline: #31404c;
+  --shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+  --shadow-strong: 0 26px 54px rgba(0, 0, 0, 0.34);
 }
 
 * {
@@ -61,9 +22,9 @@ body {
   margin: 0;
   font-family: "Avenir Next", "Trebuchet MS", sans-serif;
   background:
-    radial-gradient(circle at top, color-mix(in srgb, var(--accent) 24%, transparent), transparent 34%),
-    radial-gradient(circle at 20% 20%, color-mix(in srgb, var(--gold) 12%, transparent), transparent 24%),
-    linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 70%, var(--bg)) 0%, var(--bg) 100%);
+    radial-gradient(circle at top, color-mix(in srgb, var(--accent) 16%, transparent), transparent 34%),
+    radial-gradient(circle at 18% 16%, color-mix(in srgb, var(--gold) 10%, transparent), transparent 22%),
+    linear-gradient(180deg, #1a2530 0%, var(--bg) 46%, #0a1016 100%);
   color: var(--text);
   min-height: 100vh;
 }
@@ -98,7 +59,7 @@ a {
 .answer-panel,
 .progress-panel {
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--surface) 94%, white 6%) 0%, color-mix(in srgb, var(--surface) 96%, black 4%) 100%);
+    linear-gradient(180deg, color-mix(in srgb, var(--surface) 96%, white 4%) 0%, color-mix(in srgb, var(--surface-alt) 92%, black 8%) 100%);
   border: 1px solid var(--outline);
   border-radius: 24px;
   box-shadow: var(--shadow-strong);
@@ -373,7 +334,7 @@ a {
   inset: 0 auto auto 0;
   height: 6px;
   width: 100%;
-  background: linear-gradient(90deg, var(--gold), var(--accent));
+  background: linear-gradient(90deg, color-mix(in srgb, var(--gold) 84%, white 16%), var(--accent));
 }
 
 .hero-card::after,
@@ -384,7 +345,7 @@ a {
   width: 260px;
   height: 260px;
   border-radius: 50%;
-  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 16%, transparent), transparent 66%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--gold) 10%, transparent), transparent 68%);
   pointer-events: none;
 }
 
@@ -737,11 +698,11 @@ select {
 }
 
 button {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 92%, white 8%), var(--accent));
-  color: #121212;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 88%, white 12%), color-mix(in srgb, var(--accent) 90%, black 10%));
+  color: #23160c;
   font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 10px 24px color-mix(in srgb, var(--accent) 20%, transparent);
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--accent) 18%, transparent);
   transition: transform 120ms ease, filter 120ms ease, box-shadow 120ms ease;
 }
 
@@ -752,7 +713,7 @@ button:hover {
 }
 
 .secondary-button {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 90%, white 10%), var(--surface-alt));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 92%, white 8%), color-mix(in srgb, var(--surface) 90%, black 10%));
   color: var(--text);
   box-shadow: none;
 }
@@ -1667,7 +1628,7 @@ button:hover {
   border-radius: 999px;
   font-size: 0.92rem;
   font-weight: 800;
-  color: #111;
+  color: #20140d;
 }
 
 .chip-blue {
@@ -1730,7 +1691,7 @@ button:hover {
 .progress-fill {
   height: 100%;
   width: 0%;
-  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 58%, white 42%), var(--accent));
+  background: linear-gradient(90deg, color-mix(in srgb, var(--gold) 55%, white 45%), var(--accent));
   transition: width 180ms ease, background 180ms ease, opacity 180ms ease;
   opacity: 0.14;
 }
