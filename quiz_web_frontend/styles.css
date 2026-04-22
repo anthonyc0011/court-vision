@@ -614,12 +614,12 @@ label {
 }
 
 .mode-card {
-  padding: 16px 16px 14px;
-  border-radius: 22px;
+  padding: 12px 14px 10px;
+  border-radius: 18px;
   background: color-mix(in srgb, var(--surface) 80%, transparent);
   border: 1px solid color-mix(in srgb, var(--outline) 70%, transparent);
   transition: border-color 140ms ease, transform 140ms ease, background 140ms ease, box-shadow 140ms ease;
-  min-height: 98px;
+  min-height: 78px;
 }
 
 .mode-card:hover {
@@ -639,7 +639,7 @@ label {
 }
 
 .mode-card-info {
-  margin-top: 10px;
+  margin-top: 6px;
 }
 
 .mode-card-meta-row {
@@ -648,15 +648,15 @@ label {
 }
 
 .mode-card .checkbox-row {
-  align-items: flex-start;
-  gap: 12px;
+  align-items: center;
+  gap: 10px;
 }
 
 .mode-card .checkbox-row span {
   color: var(--text);
-  font-size: 1.02rem;
-  font-weight: 700;
-  line-height: 1.25;
+  font-size: 0.96rem;
+  font-weight: 600;
+  line-height: 1.2;
   letter-spacing: 0;
 }
 
@@ -1481,21 +1481,12 @@ button:hover {
   }
 
   .mode-card {
-    min-height: 88px;
-    padding: 14px 14px 12px;
+    min-height: 72px;
+    padding: 11px 12px 10px;
   }
 
   .mode-card .checkbox-row span {
-    font-size: 0.94rem;
-  }
-
-  .mode-card {
-    min-height: 108px;
-    padding: 16px 16px 14px;
-  }
-
-  .mode-card .checkbox-row span {
-    font-size: 1.12rem;
+    font-size: 0.9rem;
   }
 
   .profile-stat-grid {
