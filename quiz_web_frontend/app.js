@@ -2281,7 +2281,7 @@ function isCpuMode() {
 }
 
 function isCpuTurn() {
-  return isCpuMode() && getActivePlayerName() === state.playerNames[1];
+  return false;
 }
 
 function getActivePlayerName() {
@@ -2292,7 +2292,7 @@ function getActivePlayerName() {
 }
 
 function advancePlayerTurn() {
-  if (state.twoPlayer || isCpuMode()) {
+  if (state.twoPlayer && !isCpuMode()) {
     state.currentPlayerIndex += 1;
   }
 }
@@ -2327,6 +2327,20 @@ function updateTwoPlayerHud() {
     }
     updateChatBadge();
     renderChatPanel();
+    return;
+  }
+  if (isCpuMode()) {
+    els.twoPlayerBanner.classList.remove("hidden");
+    els.standardMatchLayout.classList.remove("hidden");
+    els.onlineMatchLayout.classList.add("hidden");
+    els.turnText.textContent = `${state.playerNames[0]} vs ${state.playerNames[1]}`;
+    els.matchupText.textContent = `${state.playerNames[0]} ${state.playerScores[state.playerNames[0]]} - ${state.playerScores[state.playerNames[1]]} ${state.playerNames[1]}`;
+    els.turnTimerText.classList.remove("hidden");
+    els.turnTimerText.textContent = `${els.cpuDifficulty.value === "hard" ? "Hard" : "Easy"} CPU • same-question showdown`;
+    els.onlineInviteActions?.classList.add("hidden");
+    els.toggleChat?.classList.add("hidden");
+    els.chatPanel?.classList.add("hidden");
+    updateChatBadge();
     return;
   }
   if (!state.twoPlayer) {
@@ -2643,7 +2657,9 @@ function renderQuestion() {
   els.progressText.textContent = `Question ${state.currentIndex + 1} of ${state.questions.length}`;
   els.streakText.textContent = state.online.enabled
     ? state.online.ranked ? "Ranked queue match" : "Online versus mode"
-    : state.twoPlayer
+    : isCpuMode()
+      ? "CPU showdown"
+      : state.twoPlayer
       ? "Local versus mode"
       : `Current Streak: ${state.streak}`;
   if (state.online.enabled) {
@@ -2654,24 +2670,10 @@ function renderQuestion() {
   }
   renderMedia(question);
   renderChoices(question);
-  const cpuTurn = isCpuTurn();
-  els.typedAnswer.disabled = cpuTurn;
-  Array.from(els.multipleChoiceGrid.querySelectorAll("button")).forEach((button) => {
-    button.disabled = cpuTurn;
-  });
-  if (els.skipQuestionButton) {
-    els.skipQuestionButton.disabled = cpuTurn;
-  }
-  if (els.submitAnswerButton) {
-    els.submitAnswerButton.disabled = cpuTurn;
-  }
   renderProgress();
   updateTwoPlayerHud();
   updateHintAvailability();
   restartQuestionTimerIfNeeded();
-  if (cpuTurn) {
-    runCpuTurn();
-  }
 }
 
 function updateTimer() {
@@ -2717,10 +2719,7 @@ function restartQuestionTimerIfNeeded() {
     }, 1000);
     return;
   }
-  if (!state.twoPlayer || state.online.enabled) {
-    return;
-  }
-  if (isCpuMode() && isCpuTurn()) {
+  if (!state.twoPlayer || state.online.enabled || isCpuMode()) {
     return;
   }
   state.questionTimeLeft = 15;
@@ -2744,6 +2743,50 @@ function getCpuSkipChance() {
   return 0;
 }
 
+function getCpuRoundResult(question, correctAnswer) {
+  const shouldBeCorrect = Math.random() < getCpuAccuracy();
+  const answer = shouldBeCorrect
+    ? correctAnswer
+    : question?.choices?.find((choice) => choice !== correctAnswer) || question?.choices?.[0] || correctAnswer;
+
+  return {
+    answer,
+    correct: answer === correctAnswer,
+  };
+}
+
+function applyCpuRoundResult(question, correctAnswer, outcome = "correct") {
+  if (!isCpuMode()) return;
+  const cpuResult = getCpuRoundResult(question, correctAnswer);
+  const playerWasCorrect = outcome === "correct";
+  const playerSkipped = outcome === "skipped";
+  if (cpuResult.correct) {
+    state.playerScores[state.playerNames[1]] += 1;
+    if (playerWasCorrect) {
+      setFeedback(`Correct! ${state.playerNames[1]} also chose ${cpuResult.answer}.`, "var(--green)");
+    } else if (playerSkipped) {
+      setFeedback(`Skipped. Correct answer: ${correctAnswer || "Unavailable"}. ${state.playerNames[1]} got it right.`, "var(--muted)");
+    } else {
+      setFeedback(`Wrong. Correct answer: ${correctAnswer || "Unavailable"}. ${state.playerNames[1]} got it right.`, "var(--red)");
+    }
+    return;
+  }
+
+  if (playerWasCorrect) {
+    setFeedback(`Correct! ${state.playerNames[1]} missed with ${cpuResult.answer}.`, "var(--green)");
+  } else if (playerSkipped) {
+    setFeedback(
+      `Skipped. Correct answer: ${correctAnswer || "Unavailable"}. ${state.playerNames[1]} missed with ${cpuResult.answer}.`,
+      "var(--muted)"
+    );
+  } else {
+    setFeedback(
+      `Wrong. Correct answer: ${correctAnswer || "Unavailable"}. ${state.playerNames[1]} missed with ${cpuResult.answer}.`,
+      "var(--red)"
+    );
+  }
+}
+
 function clearCpuTurnTimer() {
   if (state.cpu.timerId) {
     window.clearTimeout(state.cpu.timerId);
@@ -2763,59 +2806,7 @@ function getCpuChoice(question, shouldBeCorrect) {
 }
 
 async function runCpuTurn() {
-  if (!isCpuMode() || !isCpuTurn() || state.submitted) return;
-  if (state.cpu.actingQuestionIndex === state.currentIndex) return;
-  clearCpuTurnTimer();
-  state.cpu.thinking = false;
-  state.cpu.actingQuestionIndex = state.currentIndex;
-  setFeedback(`${state.playerNames[1]} locked in an answer.`, "var(--muted)");
-  updateTwoPlayerHud();
-
-  const question = getCurrentQuestion();
-  if (!question) {
-    state.cpu.actingQuestionIndex = null;
-    updateTwoPlayerHud();
-    return;
-  }
-
-  const skipped = Math.random() < getCpuSkipChance();
-  const shouldBeCorrect = !skipped && Math.random() < getCpuAccuracy();
-
-  state.submitted = true;
-  if (skipped) {
-    state.streak = 0;
-    state.results[state.currentIndex] = "skipped";
-    try {
-      const result = await checkAnswer("", true);
-      markMissed(question, result.correct_answer);
-      setFeedback(`${state.playerNames[1]} skipped. Correct answer: ${result.correct_answer || "Unavailable"}`, "var(--muted)");
-    } catch (_error) {
-      setFeedback(`${state.playerNames[1]} skipped.`, "var(--muted)");
-    }
-  } else {
-    const cpuAnswer = getCpuChoice(question, shouldBeCorrect);
-    try {
-      const result = await checkAnswer(cpuAnswer, false, true);
-      if (result.correct) {
-        state.playerScores[state.playerNames[1]] += 1;
-        state.results[state.currentIndex] = "correct";
-        setFeedback(`${state.playerNames[1]} got it right.`, "var(--green)");
-      } else {
-        state.streak = 0;
-        state.results[state.currentIndex] = "wrong";
-        setFeedback(`${state.playerNames[1]} missed it. Correct answer: ${result.correct_answer || "Unavailable"}`, "var(--red)");
-        markMissed(question, result.correct_answer);
-      }
-    } catch (_error) {
-      setFeedback(`${state.playerNames[1]} could not answer.`, "var(--muted)");
-    }
-  }
-
-  state.cpu.actingQuestionIndex = null;
-  renderProgress();
-  advancePlayerTurn();
-  updateTwoPlayerHud();
-  window.setTimeout(nextQuestion, 500);
+  return;
 }
 
 function markMissed(question, correctAnswer = null) {
@@ -2854,7 +2845,6 @@ async function fetchHint(stage) {
 
 async function submitAnswer(valueFromChoice = null, clickedButton = null) {
   if (state.submitted) return;
-  if (isCpuTurn()) return;
   const question = getCurrentQuestion();
   if (!question) return;
 
@@ -2889,7 +2879,7 @@ async function submitAnswer(valueFromChoice = null, clickedButton = null) {
     state.streak += 1;
     state.bestStreak = Math.max(state.bestStreak, state.streak);
     if (state.twoPlayer) {
-      state.playerScores[getActivePlayerName()] += 1;
+      state.playerScores[isCpuMode() ? state.playerNames[0] : getActivePlayerName()] += 1;
     }
     state.results[state.currentIndex] = "correct";
     setFeedback("Correct!", "var(--green)");
@@ -2902,8 +2892,12 @@ async function submitAnswer(valueFromChoice = null, clickedButton = null) {
     markMissed(question, result.correct_answer);
   }
 
+  if (isCpuMode()) {
+    applyCpuRoundResult(question, result.correct_answer, result.correct ? "correct" : "wrong");
+  }
+
   els.scoreChip.textContent = state.twoPlayer ? `${state.playerScores[state.playerNames[0]]}-${state.playerScores[state.playerNames[1]]}` : `Score ${state.score}`;
-  els.streakText.textContent = state.twoPlayer ? "Local versus mode" : `Current Streak: ${state.streak}`;
+  els.streakText.textContent = isCpuMode() ? "CPU showdown" : state.twoPlayer ? "Local versus mode" : `Current Streak: ${state.streak}`;
   renderProgress();
   advancePlayerTurn();
   updateTwoPlayerHud();
@@ -2912,7 +2906,6 @@ async function submitAnswer(valueFromChoice = null, clickedButton = null) {
 
 function skipQuestion(autoSkipped = false) {
   if (state.submitted) return;
-  if (isCpuTurn()) return;
   const question = getCurrentQuestion();
   stopQuestionTimer();
   if (state.online.enabled) {
@@ -2927,7 +2920,11 @@ function skipQuestion(autoSkipped = false) {
   checkAnswer("", true)
     .then((result) => {
       markMissed(question, result.correct_answer);
-      setFeedback(`${autoSkipped ? "Time ran out." : "Skipped."} Correct answer: ${result.correct_answer || "Unavailable"}`, "var(--muted)");
+      if (isCpuMode()) {
+        applyCpuRoundResult(question, result.correct_answer, "skipped");
+      } else {
+        setFeedback(`${autoSkipped ? "Time ran out." : "Skipped."} Correct answer: ${result.correct_answer || "Unavailable"}`, "var(--muted)");
+      }
       updateHintAvailability();
       renderProgress();
       advancePlayerTurn();
