@@ -259,9 +259,9 @@
                 </div>
               </div>
 
-              <div class="mode-card disabled-mode-card" aria-disabled="true">
+              <div class="mode-card cpu-mode-card">
                 <label class="checkbox-row">
-                  <input type="checkbox" id="cpuMode" disabled />
+                  <input type="checkbox" id="cpuMode" />
                   <span>Play Vs CPU</span>
                 </label>
                 <div class="mode-card-info">
@@ -275,10 +275,17 @@
                       >i</button>
                       <div class="rank-info-tooltip match-info-tooltip" role="tooltip">
                         <div class="rank-info-tooltip-title">Play Vs CPU</div>
-                        <div class="rank-info-tooltip-subtitle">A future mode where you will play against a computer opponent.</div>
+                        <div class="rank-info-tooltip-subtitle">Face a computer opponent locally. Easy gives the CPU a softer accuracy curve, while hard is much tougher.</div>
                       </div>
                     </div>
                   </div>
+                </div>
+                <div id="cpuFields" class="two-player-fields hidden">
+                  <label for="cpuDifficulty">CPU Difficulty</label>
+                  <select id="cpuDifficulty">
+                    <option value="easy">Easy</option>
+                    <option value="hard">Hard</option>
+                  </select>
                 </div>
               </div>
             </div>

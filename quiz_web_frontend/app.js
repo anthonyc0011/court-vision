@@ -59,6 +59,12 @@ const state = {
   submitted: false,
   daily: false,
   twoPlayer: false,
+  cpu: {
+    enabled: false,
+    difficulty: "easy",
+    thinking: false,
+    timerId: null,
+  },
   mode: "Practice",
   answerMode: "typed",
   hintLimit: 0,
@@ -161,6 +167,9 @@ const els = {
   soloMode: document.getElementById("soloMode"),
   twoPlayerMode: document.getElementById("twoPlayerMode"),
   twoPlayerFields: document.getElementById("twoPlayerFields"),
+  cpuMode: document.getElementById("cpuMode"),
+  cpuFields: document.getElementById("cpuFields"),
+  cpuDifficulty: document.getElementById("cpuDifficulty"),
   playerOneName: document.getElementById("playerOneName"),
   playerTwoName: document.getElementById("playerTwoName"),
   onlineMode: document.getElementById("onlineMode"),
@@ -295,6 +304,7 @@ function getDefaultSettings() {
     showHeadshots: true,
     soloMode: false,
     twoPlayerMode: false,
+    cpuMode: false,
     onlineMode: false,
     rankedMode: false,
     onlineAction: "create",
@@ -1173,8 +1183,10 @@ function applyProfilePayload(profile) {
   els.showHeadshots.checked = settings.showHeadshots !== false;
   els.soloMode.checked = Boolean(settings.soloMode);
   els.twoPlayerMode.checked = Boolean(settings.twoPlayerMode);
+  els.cpuMode.checked = Boolean(settings.cpuMode);
   els.onlineMode.checked = Boolean(settings.onlineMode);
   els.rankedMode.checked = Boolean(settings.rankedMode);
+  els.cpuDifficulty.value = settings.cpuDifficulty || els.cpuDifficulty.value;
   els.playerOneName.value = settings.playerOneName || els.playerOneName.value;
   els.playerTwoName.value = settings.playerTwoName || els.playerTwoName.value;
   syncModeFields();
@@ -1397,8 +1409,10 @@ function loadLocalState() {
   els.showHeadshots.checked = savedSettings.showHeadshots !== false;
   els.soloMode.checked = Boolean(savedSettings.soloMode);
   els.twoPlayerMode.checked = Boolean(savedSettings.twoPlayerMode);
+  els.cpuMode.checked = Boolean(savedSettings.cpuMode);
   els.onlineMode.checked = Boolean(savedSettings.onlineMode);
   els.rankedMode.checked = Boolean(savedSettings.rankedMode);
+  els.cpuDifficulty.value = savedSettings.cpuDifficulty || "easy";
   els.onlineAction.value = savedSettings.onlineAction || "create";
   els.onlineCode.value = savedSettings.onlineCode || "";
   els.playerOneName.value = savedSettings.playerOneName || "Player 1";
@@ -1420,8 +1434,10 @@ function saveLocalSettings() {
     showHeadshots: els.showHeadshots.checked,
     soloMode: els.soloMode.checked,
     twoPlayerMode: els.twoPlayerMode.checked,
+    cpuMode: els.cpuMode.checked,
     onlineMode: els.onlineMode.checked,
     rankedMode: els.rankedMode.checked,
+    cpuDifficulty: els.cpuDifficulty.value,
     onlineAction: els.onlineAction.value,
     playerOneName: els.playerOneName.value.trim() || "Player 1",
     playerTwoName: els.playerTwoName.value.trim() || "Player 2",
@@ -2172,6 +2188,9 @@ function updateProfileSummary() {
   if (state.online.enabled) {
     els.rankText.textContent = `Room ${state.online.roomCode || "----"} | Online 1v1`;
     els.achievementText.textContent = state.online.waiting ? "Waiting room" : "Hints disabled in online mode";
+  } else if (isCpuMode()) {
+    els.rankText.textContent = `${state.playerNames[1]} | Local CPU Match`;
+    els.achievementText.textContent = `${els.cpuDifficulty.value === "hard" ? "Hard" : "Easy"} CPU • Multiple choice only • Hints disabled`;
   } else if (state.twoPlayer) {
     els.rankText.textContent = "2-Player Local Match";
     els.achievementText.textContent = "Hints disabled in versus mode";
@@ -2187,6 +2206,10 @@ function updateProfileSummary() {
 
 function toggleTwoPlayerFields() {
   els.twoPlayerFields.classList.toggle("hidden", !els.twoPlayerMode.checked);
+}
+
+function toggleCpuFields() {
+  els.cpuFields.classList.toggle("hidden", !els.cpuMode.checked);
 }
 
 function toggleOnlineFields() {
@@ -2206,25 +2229,36 @@ function toggleRankedFields() {
 function syncModeFields() {
   if (els.soloMode.checked) {
     els.twoPlayerMode.checked = false;
+    els.cpuMode.checked = false;
+    els.onlineMode.checked = false;
+    els.rankedMode.checked = false;
+  }
+  if (els.cpuMode.checked) {
+    els.soloMode.checked = false;
+    els.twoPlayerMode.checked = false;
     els.onlineMode.checked = false;
     els.rankedMode.checked = false;
   }
   if (els.rankedMode.checked) {
     els.soloMode.checked = false;
     els.twoPlayerMode.checked = false;
+    els.cpuMode.checked = false;
     els.onlineMode.checked = false;
   }
   if (els.onlineMode.checked) {
     els.soloMode.checked = false;
     els.twoPlayerMode.checked = false;
+    els.cpuMode.checked = false;
     els.rankedMode.checked = false;
   }
   if (els.twoPlayerMode.checked) {
     els.soloMode.checked = false;
+    els.cpuMode.checked = false;
     els.onlineMode.checked = false;
     els.rankedMode.checked = false;
   }
   toggleTwoPlayerFields();
+  toggleCpuFields();
   toggleOnlineFields();
   toggleRankedFields();
 }
@@ -2233,9 +2267,18 @@ function hasSelectedMatchType() {
   return Boolean(
     els.soloMode?.checked ||
       els.twoPlayerMode?.checked ||
+      els.cpuMode?.checked ||
       els.onlineMode?.checked ||
       els.rankedMode?.checked
   );
+}
+
+function isCpuMode() {
+  return Boolean(state.cpu.enabled);
+}
+
+function isCpuTurn() {
+  return isCpuMode() && getActivePlayerName() === state.playerNames[1];
 }
 
 function getActivePlayerName() {
@@ -2246,7 +2289,7 @@ function getActivePlayerName() {
 }
 
 function advancePlayerTurn() {
-  if (state.twoPlayer) {
+  if (state.twoPlayer || isCpuMode()) {
     state.currentPlayerIndex += 1;
   }
 }
@@ -2295,10 +2338,10 @@ function updateTwoPlayerHud() {
   els.twoPlayerBanner.classList.remove("hidden");
   els.standardMatchLayout.classList.remove("hidden");
   els.onlineMatchLayout.classList.add("hidden");
-  els.turnText.textContent = `${getActivePlayerName()}'s Turn`;
+  els.turnText.textContent = isCpuMode() && isCpuTurn() ? `${getActivePlayerName()} Thinking...` : `${getActivePlayerName()}'s Turn`;
   els.matchupText.textContent = `${state.playerNames[0]} ${state.playerScores[state.playerNames[0]]} - ${state.playerScores[state.playerNames[1]]} ${state.playerNames[1]}`;
   els.turnTimerText.classList.remove("hidden");
-  els.turnTimerText.textContent = `${state.questionTimeLeft || 15}s to answer`;
+  els.turnTimerText.textContent = isCpuMode() && isCpuTurn() ? "CPU is choosing..." : `${state.questionTimeLeft || 15}s to answer`;
 }
 
 function showToast(message) {
@@ -2608,10 +2651,20 @@ function renderQuestion() {
   }
   renderMedia(question);
   renderChoices(question);
+  const cpuTurn = isCpuTurn();
+  els.typedAnswer.disabled = cpuTurn;
+  Array.from(els.multipleChoiceGrid.querySelectorAll("button")).forEach((button) => {
+    button.disabled = cpuTurn;
+  });
+  els.skipQuestion.disabled = cpuTurn;
+  els.submitAnswer.disabled = cpuTurn;
   renderProgress();
   updateTwoPlayerHud();
   updateHintAvailability();
   restartQuestionTimerIfNeeded();
+  if (cpuTurn) {
+    runCpuTurn();
+  }
 }
 
 function updateTimer() {
@@ -2660,6 +2713,9 @@ function restartQuestionTimerIfNeeded() {
   if (!state.twoPlayer || state.online.enabled) {
     return;
   }
+  if (isCpuMode() && isCpuTurn()) {
+    return;
+  }
   state.questionTimeLeft = 15;
   updateTwoPlayerHud();
   state.questionTimerId = setInterval(() => {
@@ -2671,6 +2727,96 @@ function restartQuestionTimerIfNeeded() {
       skipQuestion(true);
     }
   }, 1000);
+}
+
+function getCpuAccuracy() {
+  return els.cpuDifficulty.value === "hard" ? 0.78 : 0.46;
+}
+
+function getCpuSkipChance() {
+  return els.cpuDifficulty.value === "hard" ? 0.06 : 0.16;
+}
+
+function clearCpuTurnTimer() {
+  if (state.cpu.timerId) {
+    window.clearTimeout(state.cpu.timerId);
+    state.cpu.timerId = null;
+  }
+  state.cpu.thinking = false;
+}
+
+function getCpuChoice(question, shouldBeCorrect) {
+  if (!question?.choices?.length) return question?.college || "";
+  if (shouldBeCorrect) {
+    return question.college;
+  }
+  const wrongChoices = question.choices.filter((choice) => choice !== question.college);
+  return wrongChoices[Math.floor(Math.random() * wrongChoices.length)] || question.choices[0];
+}
+
+async function runCpuTurn() {
+  if (!isCpuMode() || !isCpuTurn() || state.submitted) return;
+  clearCpuTurnTimer();
+  state.cpu.thinking = true;
+  setFeedback(`${state.playerNames[1]} is thinking...`, "var(--muted)");
+  updateTwoPlayerHud();
+
+  const question = getCurrentQuestion();
+  const thinkTime = els.cpuDifficulty.value === "hard"
+    ? 700 + Math.floor(Math.random() * 700)
+    : 1100 + Math.floor(Math.random() * 1000);
+
+  state.cpu.timerId = window.setTimeout(async () => {
+    state.cpu.timerId = null;
+    if (!isCpuMode() || !isCpuTurn() || state.submitted || !question) {
+      state.cpu.thinking = false;
+      updateTwoPlayerHud();
+      return;
+    }
+
+    const skipped = Math.random() < getCpuSkipChance();
+    const shouldBeCorrect = !skipped && Math.random() < getCpuAccuracy();
+
+    state.submitted = true;
+    if (skipped) {
+      state.streak = 0;
+      state.results[state.currentIndex] = "skipped";
+      try {
+        const result = await checkAnswer("", true);
+        markMissed(question, result.correct_answer);
+        setFeedback(`${state.playerNames[1]} skipped. Correct answer: ${result.correct_answer || "Unavailable"}`, "var(--muted)");
+      } catch (_error) {
+        setFeedback(`${state.playerNames[1]} skipped.`, "var(--muted)");
+      }
+    } else {
+      const cpuAnswer = state.answerMode === "multiple-choice"
+        ? getCpuChoice(question, shouldBeCorrect)
+        : shouldBeCorrect
+          ? (question.correct_answer || question.college)
+          : "No idea";
+      try {
+        const result = await checkAnswer(cpuAnswer, false, true);
+        if (result.correct) {
+          state.playerScores[state.playerNames[1]] += 1;
+          state.results[state.currentIndex] = "correct";
+          setFeedback(`${state.playerNames[1]} got it right.`, "var(--green)");
+        } else {
+          state.streak = 0;
+          state.results[state.currentIndex] = "wrong";
+          setFeedback(`${state.playerNames[1]} missed it. Correct answer: ${result.correct_answer || "Unavailable"}`, "var(--red)");
+          markMissed(question, result.correct_answer);
+        }
+      } catch (_error) {
+        setFeedback(`${state.playerNames[1]} could not answer.`, "var(--muted)");
+      }
+    }
+
+    state.cpu.thinking = false;
+    renderProgress();
+    advancePlayerTurn();
+    updateTwoPlayerHud();
+    window.setTimeout(nextQuestion, 650);
+  }, thinkTime);
 }
 
 function markMissed(question, correctAnswer = null) {
@@ -2709,6 +2855,7 @@ async function fetchHint(stage) {
 
 async function submitAnswer(valueFromChoice = null, clickedButton = null) {
   if (state.submitted) return;
+  if (isCpuTurn()) return;
   const question = getCurrentQuestion();
   if (!question) return;
 
@@ -2766,6 +2913,7 @@ async function submitAnswer(valueFromChoice = null, clickedButton = null) {
 
 function skipQuestion(autoSkipped = false) {
   if (state.submitted) return;
+  if (isCpuTurn()) return;
   const question = getCurrentQuestion();
   stopQuestionTimer();
   if (state.online.enabled) {
@@ -2834,6 +2982,7 @@ function showHint() {
 
 function nextQuestion() {
   stopQuestionTimer();
+  clearCpuTurnTimer();
   state.currentIndex += 1;
   renderQuestion();
 }
@@ -2862,6 +3011,7 @@ function buildSummary() {
 function finishQuiz() {
   stopTimer();
   stopQuestionTimer();
+  clearCpuTurnTimer();
   switchScreen(screens.end);
   const summary = buildSummary();
   let reward = { xpGain: 0, earned: [] };
@@ -2939,7 +3089,11 @@ function finishQuiz() {
     const s2 = state.playerScores[p2];
     const winner = s1 === s2 ? `Tie game: ${s1}-${s2}` : `Winner: ${s1 > s2 ? p1 : p2} (${Math.max(s1, s2)}-${Math.min(s1, s2)})`;
     els.endSummary.textContent = `${winner} | Total questions ${summary.total}`;
-    els.rewardSummary.textContent = `${p1}: ${s1}\n${p2}: ${s2}\n2-player local mode does not change season XP.`;
+    if (isCpuMode()) {
+      els.rewardSummary.textContent = `${p1}: ${s1}\n${p2}: ${s2}\nCPU difficulty: ${els.cpuDifficulty.value === "hard" ? "Hard" : "Easy"}\nCPU mode does not change XP.`;
+    } else {
+      els.rewardSummary.textContent = `${p1}: ${s1}\n${p2}: ${s2}\n2-player local mode does not change XP.`;
+    }
   } else {
     els.endSummary.textContent = `${summary.correct}/${summary.total} correct | Accuracy ${summary.accuracy}% | Wrong ${summary.wrong} | Skipped ${summary.skipped}`;
     const breakdownLines = reward.breakdown?.length
@@ -3010,12 +3164,19 @@ async function startQuiz(customQuestions = null) {
   }
   state.daily = false;
   state.online.enabled = false;
-  state.twoPlayer = els.twoPlayerMode.checked;
+  state.cpu.enabled = els.cpuMode.checked;
+  state.cpu.difficulty = els.cpuDifficulty.value;
+  state.cpu.thinking = false;
+  clearCpuTurnTimer();
+  state.twoPlayer = els.twoPlayerMode.checked || els.cpuMode.checked;
   state.mode = els.soloMode.checked ? "Practice" : els.gameMode.value;
-  state.answerMode = els.answerMode.value;
+  state.answerMode = state.cpu.enabled ? "multiple-choice" : els.answerMode.value;
+  if (state.cpu.enabled) {
+    els.answerMode.value = "multiple-choice";
+  }
   state.playerNames = [
-    els.playerOneName.value.trim() || "Player 1",
-    els.playerTwoName.value.trim() || "Player 2",
+    state.cpu.enabled ? (els.username.value.trim() || state.profile.username || "You") : (els.playerOneName.value.trim() || "Player 1"),
+    state.cpu.enabled ? `CPU ${els.cpuDifficulty.value === "hard" ? "Hard" : "Easy"}` : (els.playerTwoName.value.trim() || "Player 2"),
   ];
   state.playerScores = { [state.playerNames[0]]: 0, [state.playerNames[1]]: 0 };
   state.currentPlayerIndex = 0;
@@ -3029,7 +3190,7 @@ async function startQuiz(customQuestions = null) {
   state.hintLimit = getHintLimitForSelection();
   state.hintsUsed = 0;
   state.hintStage = 0;
-  els.modeChip.textContent = state.twoPlayer ? "2-Player Local" : state.mode;
+  els.modeChip.textContent = state.cpu.enabled ? "Vs CPU" : state.twoPlayer ? "2-Player Local" : state.mode;
   els.endTitle.textContent = "Final Scoreboard";
   updateProfileSummary();
   switchScreen(screens.quiz);
@@ -3077,6 +3238,9 @@ function resetOnlineState() {
     chatMuted: false,
     unreadCount: 0,
   };
+  clearCpuTurnTimer();
+  state.cpu.enabled = false;
+  state.cpu.thinking = false;
   if (els.chatInput) {
     els.chatInput.value = "";
   }
@@ -3554,14 +3718,19 @@ async function saveProfile(silent = false) {
   const profilePayload = {
     username,
     theme: els.theme.value,
-      settings: {
-        mode: els.gameMode.value,
-        questionCount: els.questionCount.value,
-        conferenceFilter: els.conferenceFilter.value,
-        playerPool: els.playerPool.value,
-        answerMode: els.answerMode.value,
-        showHeadshots: els.showHeadshots.checked,
+    settings: {
+      mode: els.gameMode.value,
+      questionCount: els.questionCount.value,
+      conferenceFilter: els.conferenceFilter.value,
+      playerPool: els.playerPool.value,
+      answerMode: els.answerMode.value,
+      showHeadshots: els.showHeadshots.checked,
+      soloMode: els.soloMode.checked,
       twoPlayerMode: els.twoPlayerMode.checked,
+      cpuMode: els.cpuMode.checked,
+      cpuDifficulty: els.cpuDifficulty.value,
+      onlineMode: els.onlineMode.checked,
+      rankedMode: els.rankedMode.checked,
       playerOneName: els.playerOneName.value.trim() || "Player 1",
       playerTwoName: els.playerTwoName.value.trim() || "Player 2",
       dailyMode: false,
@@ -3749,6 +3918,7 @@ function playMissedOnly() {
 function returnHome() {
   stopTimer();
   stopQuestionTimer();
+  clearCpuTurnTimer();
   if (state.online.ranked && state.auth.token) {
     fetchJson("/ranked/queue/leave", {
       method: "DELETE",
@@ -4007,6 +4177,10 @@ els.twoPlayerMode.addEventListener("change", () => {
   syncModeFields();
   saveLocalSettings();
 });
+els.cpuMode?.addEventListener("change", () => {
+  syncModeFields();
+  saveLocalSettings();
+});
 els.onlineMode.addEventListener("change", () => {
   syncModeFields();
   saveLocalSettings();
@@ -4019,6 +4193,7 @@ els.onlineAction.addEventListener("change", () => {
   toggleOnlineFields();
   saveLocalSettings();
 });
+els.cpuDifficulty?.addEventListener("change", saveLocalSettings);
 els.playerOneName.addEventListener("change", saveLocalSettings);
 els.playerTwoName.addEventListener("change", saveLocalSettings);
 els.onlineCode.addEventListener("input", (event) => {
