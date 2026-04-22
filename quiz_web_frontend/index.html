@@ -12,7 +12,7 @@
 <body data-theme="Arena Blue">
   <main class="app-shell">
     <section id="homeScreen" class="screen active">
-      <section class="hero-card home-hero">
+      <section class="hero-card home-hero game-marquee">
         <div class="hero-topbar">
           <button id="loginButton" class="topbar-button secondary-button">Profile</button>
           <button id="friendsButton" class="topbar-button secondary-button">Friends</button>
@@ -71,7 +71,7 @@
       </div>
 
       <section class="home-grid">
-        <article class="panel play-panel simplified-play-panel home-panel-block home-panel-play">
+        <article class="panel play-panel simplified-play-panel home-panel-block home-panel-play game-lobby-panel">
           <div class="panel-heading">
             <div>
               <p class="eyebrow">Play</p>
@@ -300,7 +300,7 @@
 
         </article>
 
-        <article class="panel dashboard-panel simplified-dashboard-panel home-panel-block home-panel-hub">
+        <article class="panel dashboard-panel simplified-dashboard-panel home-panel-block home-panel-hub intel-panel">
           <div class="panel-heading">
             <div>
               <p class="eyebrow">Hub</p>
@@ -333,7 +333,7 @@
     </section>
 
     <section id="quizScreen" class="screen">
-      <section class="hud-card">
+      <section class="hud-card scoreboard-shell">
         <div class="hud-top">
           <div class="chip-row">
             <span id="modeChip" class="chip chip-blue">Practice</span>
@@ -383,7 +383,7 @@
       </section>
 
       <section id="quizLayout" class="quiz-layout">
-        <article class="question-panel">
+        <article class="question-panel arena-stage">
           <p class="question-kicker">College Guessing Challenge</p>
           <div class="media-row">
             <div class="media-card">
@@ -399,7 +399,7 @@
           <p id="feedbackText" class="feedback-text"></p>
         </article>
 
-        <article class="answer-panel">
+        <article class="answer-panel control-deck">
           <label class="answer-label" for="typedAnswer">Make your pick</label>
           <input id="typedAnswer" class="answer-input" placeholder="Type the college name" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
           <div id="multipleChoiceGrid" class="multiple-choice-grid"></div>
@@ -438,7 +438,7 @@
     </section>
 
     <section id="endScreen" class="screen">
-      <section class="hero-card">
+      <section class="hero-card postgame-card">
         <p class="eyebrow">Run Complete</p>
         <h1 id="endTitle">Final Scoreboard</h1>
         <div class="hero-ribbon">
