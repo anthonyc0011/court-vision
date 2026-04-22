@@ -153,8 +153,8 @@ a {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(320px, 370px);
-  gap: 28px;
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 370px);
+  gap: 34px;
   align-items: stretch;
 }
 
@@ -172,7 +172,7 @@ a {
 
 .hero-copy {
   max-width: 720px;
-  padding: 6px 0 2px;
+  padding: 18px 0 10px;
 }
 
 .minimal-hero-copy {
@@ -428,7 +428,9 @@ p {
 
 h1 {
   font-size: clamp(2.1rem, 4vw, 3.6rem);
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+  max-width: 10ch;
+  line-height: 0.98;
 }
 
 h2 {
@@ -585,6 +587,14 @@ label {
   line-height: 1.4;
 }
 
+.panel-kicker {
+  margin: 8px 0 0;
+  max-width: 26ch;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
 .setup-section {
   padding: 18px;
   border-radius: 22px;
@@ -601,6 +611,27 @@ label {
   border-radius: 18px;
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 72%, white 3%) 0%, color-mix(in srgb, var(--surface) 92%, black 8%) 100%);
+}
+
+.lobby-identity-card {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 74%, white 4%) 0%, color-mix(in srgb, var(--surface) 94%, black 6%) 100%);
+}
+
+.lobby-stage-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.lobby-stage-card::after {
+  content: "";
+  position: absolute;
+  inset: auto -40px -40px auto;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--outline) 18%, transparent);
+  opacity: 0.5;
 }
 
 .play-panel {
@@ -634,6 +665,34 @@ label {
 
 .setup-grid.two-col {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.setup-stagebar {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.setup-stage-chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
+  border: 1px solid color-mix(in srgb, var(--outline) 62%, transparent);
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.setup-stage-chip.is-active {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 88%, white 12%), color-mix(in srgb, var(--accent) 90%, black 10%));
+  color: #23160c;
+  border-color: color-mix(in srgb, var(--accent) 64%, transparent);
+  box-shadow: 0 10px 22px color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
 .section-title-row {
@@ -737,6 +796,13 @@ label {
 .hub-stack {
   display: grid;
   gap: 14px;
+}
+
+.hub-showcase-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
+  gap: 16px;
+  align-items: start;
 }
 
 .home-primary-actions {
@@ -851,6 +917,10 @@ button:hover {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.04),
     0 16px 32px rgba(0, 0, 0, 0.12);
+}
+
+.directory-card {
+  min-height: 100%;
 }
 
 #dailyOutput {
@@ -1472,6 +1542,7 @@ button:hover {
 
   .home-hero-grid,
   .home-grid,
+  .hub-showcase-grid,
   .profile-hero,
   .daily-header,
   .leaderboard-header,
@@ -1487,6 +1558,7 @@ button:hover {
 
   .home-hero-grid,
   .home-grid,
+  .hub-showcase-grid,
   .hero-stat-row,
   .dashboard-support-grid,
   .setup-grid.two-col {
@@ -1537,6 +1609,10 @@ button:hover {
   }
 
   .home-primary-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .setup-stagebar {
     grid-template-columns: 1fr;
   }
 
@@ -2375,6 +2451,14 @@ button:hover {
 
   .home-hero {
     padding: 18px 14px;
+  }
+
+  .hero-copy {
+    padding-top: 4px;
+  }
+
+  h1 {
+    max-width: none;
   }
 
   .game-marquee::after {

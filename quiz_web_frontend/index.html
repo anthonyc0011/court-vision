@@ -76,10 +76,11 @@
             <div>
               <p class="eyebrow">Play</p>
               <h2>Start A Game</h2>
+              <p class="panel-kicker">Build your quiz first, then choose how you want to play it.</p>
             </div>
           </div>
 
-          <div class="setup-section compact-section">
+          <div class="setup-section compact-section lobby-identity-card">
             <div class="setup-grid two-col">
               <div>
                 <label for="username">Username</label>
@@ -93,7 +94,11 @@
           </div>
 
           <div id="quizSetupStep" class="setup-step active">
-          <div class="setup-section compact-section">
+          <div class="setup-stagebar">
+            <div class="setup-stage-chip is-active">1. Quiz Setup</div>
+            <div class="setup-stage-chip">2. Match Type</div>
+          </div>
+          <div class="setup-section compact-section lobby-stage-card">
             <div class="section-title-row">
               <h3>Quiz Setup</h3>
             </div>
@@ -143,7 +148,11 @@
           </div>
 
           <div id="matchTypeStep" class="setup-step hidden">
-          <div class="setup-section compact-section">
+          <div class="setup-stagebar">
+            <div class="setup-stage-chip">1. Quiz Setup</div>
+            <div class="setup-stage-chip is-active">2. Match Type</div>
+          </div>
+          <div class="setup-section compact-section lobby-stage-card">
             <div class="section-title-row">
               <h3>Match Type</h3>
             </div>
@@ -305,27 +314,28 @@
             <div>
               <p class="eyebrow">Hub</p>
               <h2>Profile And Directory</h2>
+              <p class="panel-kicker">Your player card and search tools live here.</p>
             </div>
           </div>
-          <div class="hub-stack">
+          <div class="hub-showcase-grid">
             <div id="profileSummary" class="dashboard-card profile-card">Profile summary will appear here.</div>
-          </div>
-          <div id="directoryOutput" class="dashboard-card directory-card">
-            <div class="leaderboard-header">
-              <div>
-                <p class="eyebrow">Player Directory</p>
-                <div class="daily-status">Search any player and see where they went to school.</div>
+            <div id="directoryOutput" class="dashboard-card directory-card">
+              <div class="leaderboard-header">
+                <div>
+                  <p class="eyebrow">Player Directory</p>
+                  <div class="daily-status">Search any player and see where they went to school.</div>
+                </div>
+                <button id="toggleDirectory" class="mobile-section-toggle secondary-button" type="button">Show</button>
               </div>
-              <button id="toggleDirectory" class="mobile-section-toggle secondary-button" type="button">Show</button>
-            </div>
-            <div id="directoryBody" class="mobile-section-body">
-            <div class="directory-search-row">
-              <input id="directorySearch" placeholder="Search any NBA player" autocomplete="off" autocapitalize="words" autocorrect="off" spellcheck="false" />
-              <button id="directorySearchButton" class="secondary-button">Search</button>
-            </div>
-            <div id="directoryResults" class="directory-results">
-              <div class="leaderboard-empty">Search for a player to open the directory.</div>
-            </div>
+              <div id="directoryBody" class="mobile-section-body">
+              <div class="directory-search-row">
+                <input id="directorySearch" placeholder="Search any NBA player" autocomplete="off" autocapitalize="words" autocorrect="off" spellcheck="false" />
+                <button id="directorySearchButton" class="secondary-button">Search</button>
+              </div>
+              <div id="directoryResults" class="directory-results">
+                <div class="leaderboard-empty">Search for a player to open the directory.</div>
+              </div>
+              </div>
             </div>
           </div>
         </article>
