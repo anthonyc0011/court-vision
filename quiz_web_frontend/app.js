@@ -470,9 +470,17 @@ function hydrateCachedAuthenticatedState() {
   const cached = getCachedAuthProfile();
   if (!cached || !state.auth.user?.sub || cached.sub !== state.auth.user.sub) return;
   if (cached.profile) {
+    const localXp = Number(state.profile.xp || 0);
+    const cachedXp = Number(cached.profile.xp || 0);
+    const hydratedXp = Math.max(localXp, cachedXp);
     state.profile = {
       ...state.profile,
       ...cached.profile,
+      xp: hydratedXp,
+      rank: getRankFromXp(hydratedXp),
+      gamesPlayed: Math.max(Number(state.profile.gamesPlayed || 0), Number(cached.profile.gamesPlayed || 0)),
+      bestScore: Math.max(Number(state.profile.bestScore || 0), Number(cached.profile.bestScore || 0)),
+      onlineWins: Math.max(Number(state.profile.onlineWins || 0), Number(cached.profile.onlineWins || 0)),
       usernameLocked: Boolean(cached.profile.usernameLocked),
     };
     if (state.profile.username) {
@@ -2082,7 +2090,7 @@ function updateProfileSummary() {
     </div>
     <div class="profile-stat-grid">
       <div class="profile-stat">
-        <span class="dashboard-label">Season XP</span>
+        <span class="dashboard-label">XP</span>
         <strong>${state.profile.xp}</strong>
       </div>
       <div class="profile-stat">
