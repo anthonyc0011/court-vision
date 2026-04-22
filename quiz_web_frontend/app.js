@@ -371,6 +371,24 @@ function loadAuthState() {
   if (saved?.token && saved?.user) {
     state.auth.token = saved.token;
     state.auth.user = saved.user;
+    if (saved.profileSnapshot && saved.user?.sub) {
+      const snapshot = saved.profileSnapshot;
+      state.profile = {
+        ...state.profile,
+        username: snapshot.username || state.profile.username,
+        xp: Number(snapshot.xp || 0),
+        rank: snapshot.rank || getRankFromXp(Number(snapshot.xp || 0)),
+        gamesPlayed: Number(snapshot.gamesPlayed || 0),
+        bestScore: Number(snapshot.bestScore || 0),
+        onlineWins: Number(snapshot.onlineWins || 0),
+        highestRankIndex:
+          snapshot.highestRankIndex ?? getRankInfoFromXp(Number(snapshot.xp || 0)).rankIndex,
+        usernameLocked: Boolean(snapshot.usernameLocked),
+      };
+      if (state.profile.username) {
+        els.username.value = state.profile.username;
+      }
+    }
   }
 }
 
@@ -381,6 +399,16 @@ function persistAuthState() {
       JSON.stringify({
         token: state.auth.token,
         user: state.auth.user,
+        profileSnapshot: {
+          username: state.profile.username,
+          xp: state.profile.xp,
+          rank: state.profile.rank,
+          gamesPlayed: state.profile.gamesPlayed,
+          bestScore: state.profile.bestScore,
+          onlineWins: state.profile.onlineWins,
+          highestRankIndex: state.profile.highestRankIndex,
+          usernameLocked: state.profile.usernameLocked,
+        },
       })
     );
   } else {
@@ -507,8 +535,9 @@ function hydrateCachedFriendsSummary() {
 function applyRankedProfilePayload(profile) {
   state.online.rankedProfile = profile || null;
   updateProfileSummary();
-  if (profile && state.auth.token && state.auth.user?.sub) {
+  if (state.auth.token && state.auth.user?.sub) {
     persistCachedAuthProfile();
+    persistAuthState();
   }
 }
 
@@ -1155,6 +1184,7 @@ function applyProfilePayload(profile) {
   updateProfileSummary();
   if (state.auth.token && state.auth.user?.sub) {
     persistCachedAuthProfile();
+    persistAuthState();
   }
   populateProfileSettingsForm();
 }
