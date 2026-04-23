@@ -3056,6 +3056,31 @@ function nextQuestion() {
   renderQuestion();
 }
 
+function renderQuizLoadingState() {
+  els.questionText.textContent = "Loading next matchup...";
+  els.progressText.textContent = "Loading quiz";
+  els.streakText.textContent = state.online.enabled
+    ? state.online.ranked
+      ? "Ranked queue match"
+      : "Online versus mode"
+    : isCpuMode()
+      ? "CPU showdown"
+      : state.twoPlayer
+        ? "Local versus mode"
+        : "Solo run";
+  setFeedback("", "var(--muted)");
+  els.typedAnswer.value = "";
+  els.multipleChoiceGrid.innerHTML = "";
+  els.multipleChoiceGrid.classList.add("hidden");
+  els.typedAnswer.classList.remove("hidden");
+  els.headshotImage.classList.add("hidden");
+  els.headshotFallback.classList.remove("hidden");
+  els.headshotFallback.textContent = "Loading...";
+  els.logoCard.classList.add("hidden");
+  els.logoImage.classList.add("hidden");
+  els.logoFallback.classList.add("hidden");
+}
+
 function buildSummary() {
   const total = state.questions.length;
   const correct = state.results.filter((item) => item === "correct").length;
@@ -3081,17 +3106,23 @@ function finishQuiz() {
   stopTimer();
   stopQuestionTimer();
   clearCpuTurnTimer();
-  switchScreen(screens.end);
   const summary = buildSummary();
   let reward = { xpGain: 0, earned: [] };
-  document.getElementById("playAgain").classList.remove("hidden");
-  document.getElementById("playMissedOnly").classList.remove("hidden");
-  els.rematchStatus.classList.add("hidden");
-  els.requestRematch.classList.add("hidden");
+  const playAgainButton = document.getElementById("playAgain");
+  const playMissedOnlyButton = document.getElementById("playMissedOnly");
+  const submitLeaderboardButton = document.getElementById("submitLeaderboard");
+
+  if (playAgainButton) playAgainButton.classList.remove("hidden");
+  if (playMissedOnlyButton) playMissedOnlyButton.classList.remove("hidden");
+  els.rematchStatus?.classList.add("hidden");
+  els.requestRematch?.classList.add("hidden");
   els.sendFriendRequest?.classList.add("hidden");
   if (!state.twoPlayer && !state.online.enabled) {
     reward = grantRewards(summary);
   }
+
+  switchScreen(screens.end);
+
   if (state.online.enabled) {
     const myScore = state.online.scores[state.online.ranked ? state.online.playerId : state.online.playerName] ?? 0;
     const opponentScore = state.online.scores[state.online.ranked ? state.online.opponentId : state.online.opponentName] ?? 0;
@@ -3124,9 +3155,9 @@ function finishQuiz() {
         `Ranked Record: ${rankedProfile.wins}-${rankedProfile.losses}\n` +
         `Win Streak: ${rankedProfile.win_streak}`;
       els.missedSummary.textContent = "Ranked queue has no rematches. Return home to queue again.";
-      els.requestRematch.classList.add("hidden");
-      document.getElementById("playAgain").classList.add("hidden");
-      document.getElementById("playMissedOnly").classList.add("hidden");
+      els.requestRematch?.classList.add("hidden");
+      if (playAgainButton) playAgainButton.classList.add("hidden");
+      if (playMissedOnlyButton) playMissedOnlyButton.classList.add("hidden");
     } else {
       els.endSummary.textContent = `Final score: ${myScore} - ${opponentScore}`;
       const onlineBreakdown = reward.breakdown?.length
@@ -3141,16 +3172,18 @@ function finishQuiz() {
         `Current Rank: ${state.profile.rank}${onlinePromotions}\n` +
         `XP Breakdown:\n${onlineBreakdown}`;
       els.missedSummary.textContent = "Press Request Rematch to play again with the same opponent, or Return Home to leave the room.";
-      els.requestRematch.textContent = state.online.rematchRequested ? "Rematch Requested" : "Request Rematch";
-      els.requestRematch.disabled = state.online.rematchRequested;
-      els.requestRematch.classList.remove("hidden");
+      if (els.requestRematch) {
+        els.requestRematch.textContent = state.online.rematchRequested ? "Rematch Requested" : "Request Rematch";
+        els.requestRematch.disabled = state.online.rematchRequested;
+        els.requestRematch.classList.remove("hidden");
+      }
       if (state.auth.token && state.online.opponentName && (state.online.opponentAuthId || state.online.ranked)) {
         els.sendFriendRequest.textContent = `Add ${state.online.opponentName}`;
         els.sendFriendRequest.disabled = false;
         els.sendFriendRequest.classList.remove("hidden");
       }
-      document.getElementById("playAgain").classList.add("hidden");
-      document.getElementById("playMissedOnly").classList.add("hidden");
+      if (playAgainButton) playAgainButton.classList.add("hidden");
+      if (playMissedOnlyButton) playMissedOnlyButton.classList.add("hidden");
     }
   } else if (state.twoPlayer) {
     const [p1, p2] = state.playerNames;
@@ -3172,7 +3205,7 @@ function finishQuiz() {
       ? `Rank Ups: ${reward.promotions.map((item) => item.rank).join(", ")}\n`
       : "";
     els.rewardSummary.textContent =
-      `Season XP Gained: ${reward.xpGain}\n` +
+      `XP Gained: ${reward.xpGain}\n` +
       `Current Rank: ${state.profile.rank}\n` +
       `${promotionLines}` +
       `XP Breakdown:\n${breakdownLines}`;
@@ -3183,7 +3216,7 @@ function finishQuiz() {
       .join("\n");
     els.missedSummary.textContent = missed || "Perfect run. No missed questions.";
   }
-  document.getElementById("submitLeaderboard").classList.add("hidden");
+  if (submitLeaderboardButton) submitLeaderboardButton.classList.add("hidden");
   saveProfile(true).catch(() => {});
 }
 
@@ -3263,6 +3296,7 @@ async function startQuiz(customQuestions = null) {
   els.endTitle.textContent = "Final Scoreboard";
   updateProfileSummary();
   switchScreen(screens.quiz);
+  renderQuizLoadingState();
   await fetchQuizData(customQuestions);
 }
 
