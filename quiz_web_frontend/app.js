@@ -2972,7 +2972,7 @@ async function submitAnswer(valueFromChoice = null, clickedButton = null) {
   renderProgress();
   advancePlayerTurn();
   updateTwoPlayerHud();
-  window.setTimeout(nextQuestion, 700);
+  advanceAfterQuestion(700);
 }
 
 function skipQuestion(autoSkipped = false) {
@@ -3000,7 +3000,7 @@ function skipQuestion(autoSkipped = false) {
       renderProgress();
       advancePlayerTurn();
       updateTwoPlayerHud();
-      window.setTimeout(nextQuestion, 500);
+      advanceAfterQuestion(500);
     })
     .catch((error) => {
       setFeedback(error?.message || "Could not skip this question.", "var(--muted)");
@@ -3052,6 +3052,17 @@ function nextQuestion() {
   clearCpuTurnTimer();
   state.currentIndex += 1;
   renderQuestion();
+}
+
+function advanceAfterQuestion(delay = 700) {
+  const isLastQuestion = state.currentIndex >= Math.max(state.questions.length - 1, 0);
+  if (isLastQuestion) {
+    window.setTimeout(() => {
+      finishQuiz();
+    }, Math.min(delay, 450));
+    return;
+  }
+  window.setTimeout(nextQuestion, delay);
 }
 
 function renderQuizLoadingState() {
