@@ -410,7 +410,7 @@ function loadAuthState() {
 
 function persistAuthState() {
   if (state.auth.token && state.auth.user) {
-    localStorage.setItem(
+    safeSetLocalStorage(
       AUTH_STORAGE_KEY,
       JSON.stringify({
         token: state.auth.token,
@@ -448,14 +448,54 @@ function getCachedFriendsSummary() {
   }
 }
 
+function safeSetLocalStorage(key, value) {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch (error) {
+    try {
+      if (key !== AUTH_PROFILE_CACHE_KEY) {
+        localStorage.removeItem(AUTH_PROFILE_CACHE_KEY);
+      }
+      if (key !== FRIENDS_CACHE_KEY) {
+        localStorage.removeItem(FRIENDS_CACHE_KEY);
+      }
+      localStorage.setItem(key, value);
+      return true;
+    } catch (retryError) {
+      console.warn(`Could not persist local storage for ${key}.`, retryError || error);
+      return false;
+    }
+  }
+}
+
 function persistCachedAuthProfile() {
   if (!state.auth.user?.sub) return;
-  localStorage.setItem(
+  safeSetLocalStorage(
     AUTH_PROFILE_CACHE_KEY,
     JSON.stringify({
       sub: state.auth.user.sub,
-      profile: state.profile,
-      rankedProfile: state.online.rankedProfile,
+      profile: {
+        username: state.profile.username,
+        xp: state.profile.xp,
+        rank: state.profile.rank,
+        gamesPlayed: state.profile.gamesPlayed,
+        bestScore: state.profile.bestScore,
+        onlineWins: state.profile.onlineWins,
+        highestRankIndex: state.profile.highestRankIndex,
+        seasonTag: state.profile.seasonTag,
+        usernameLocked: state.profile.usernameLocked,
+      },
+      rankedProfile: state.online.rankedProfile
+        ? {
+            division: state.online.rankedProfile.division,
+            elo: state.online.rankedProfile.elo,
+            wins: state.online.rankedProfile.wins,
+            losses: state.online.rankedProfile.losses,
+            win_streak: state.online.rankedProfile.win_streak,
+            best_win_streak: state.online.rankedProfile.best_win_streak,
+          }
+        : null,
       savedAt: Date.now(),
     })
   );
@@ -463,7 +503,7 @@ function persistCachedAuthProfile() {
 
 function persistCachedFriendsSummary() {
   if (!state.auth.user?.sub) return;
-  localStorage.setItem(
+  safeSetLocalStorage(
     FRIENDS_CACHE_KEY,
     JSON.stringify({
       sub: state.auth.user.sub,
@@ -1450,11 +1490,11 @@ function saveLocalSettings() {
     onlineCode: els.onlineCode.value.trim().toUpperCase(),
     dailyMode: els.dailyMode.checked,
   };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  safeSetLocalStorage(STORAGE_KEY, JSON.stringify(payload));
 }
 
 function saveLocalProgress() {
-  localStorage.setItem(
+  safeSetLocalStorage(
     PROGRESS_KEY,
     JSON.stringify({
       xp: state.profile.xp,
