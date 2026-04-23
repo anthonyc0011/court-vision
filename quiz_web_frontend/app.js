@@ -3115,6 +3115,13 @@ function finishQuiz() {
   stopTimer();
   stopQuestionTimer();
   clearCpuTurnTimer();
+  switchScreen(screens.end);
+  els.endTitle.textContent = "Run Complete";
+  els.endSummary.textContent = "Loading final recap...";
+  els.rewardSummary.textContent = "Preparing rewards and results...";
+  els.missedSummary.textContent = "";
+
+  try {
   const summary = buildSummary();
   let reward = { xpGain: 0, earned: [] };
   const playAgainButton = document.getElementById("playAgain");
@@ -3129,8 +3136,6 @@ function finishQuiz() {
   if (!state.twoPlayer && !state.online.enabled) {
     reward = grantRewards(summary);
   }
-
-  switchScreen(screens.end);
 
   if (state.online.enabled) {
     const myScore = state.online.scores[state.online.ranked ? state.online.playerId : state.online.playerName] ?? 0;
@@ -3228,6 +3233,14 @@ function finishQuiz() {
   if (submitLeaderboardButton) submitLeaderboardButton.classList.add("hidden");
   updateProfileSummary();
   saveProfile(true).catch(() => {});
+  } catch (error) {
+    console.error("finishQuiz failed", error);
+    els.endTitle.textContent = "Run Complete";
+    els.endSummary.textContent = "Your game finished, but the full recap hit a snag.";
+    els.rewardSummary.textContent = `XP: ${state.profile.xp}\nRank: ${state.profile.rank}`;
+    els.missedSummary.textContent = "Return home and try another run.";
+    showToast("Recap hit a snag, but your progress was kept.");
+  }
 }
 
 async function fetchQuizData(customQuestions = null) {
