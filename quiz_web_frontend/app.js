@@ -2424,7 +2424,6 @@ function grantRewards(summary) {
     state.profile.gamesPlayed += 1;
     state.profile.bestScore = Math.max(state.profile.bestScore, summary.correct);
     saveLocalProgress();
-    updateProfileSummary();
     return {
       xpGain: 0,
       earned: [],
@@ -2464,7 +2463,6 @@ function grantRewards(summary) {
   const earned = unlockAchievements(summary);
   const promotions = recordRankPromotions(previousXp, state.profile.xp);
   saveLocalProgress();
-  updateProfileSummary();
   return { xpGain, earned, promotions, breakdown };
 }
 
@@ -3217,6 +3215,7 @@ function finishQuiz() {
     els.missedSummary.textContent = missed || "Perfect run. No missed questions.";
   }
   if (submitLeaderboardButton) submitLeaderboardButton.classList.add("hidden");
+  updateProfileSummary();
   saveProfile(true).catch(() => {});
 }
 
