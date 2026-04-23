@@ -126,6 +126,9 @@ const state = {
     searchTimerId: null,
     results: [],
   },
+  assets: {
+    loaded: new Set(),
+  },
   invite: {
     joinCode: "",
     autoJoinAttempted: false,
@@ -2493,13 +2496,78 @@ function renderProgress() {
   });
 }
 
+function loadMediaAsset(imgEl, fallbackEl, assetUrl, options = {}) {
+  const {
+    loadingText = "Loading...",
+    errorText = "Unavailable",
+    cacheKey = assetUrl,
+  } = options;
+
+  if (!imgEl || !fallbackEl || !assetUrl) {
+    return;
+  }
+
+  const alreadyLoaded = state.assets.loaded.has(cacheKey);
+  imgEl.dataset.assetUrl = assetUrl;
+
+  if (alreadyLoaded) {
+    imgEl.src = assetUrl;
+    imgEl.classList.remove("hidden");
+    fallbackEl.classList.add("hidden");
+    return;
+  }
+
+  imgEl.classList.add("hidden");
+  fallbackEl.classList.remove("hidden");
+  fallbackEl.textContent = loadingText;
+
+  const preloader = new Image();
+  preloader.onload = () => {
+    state.assets.loaded.add(cacheKey);
+    if (imgEl.dataset.assetUrl !== assetUrl) return;
+    imgEl.src = assetUrl;
+    imgEl.classList.remove("hidden");
+    fallbackEl.classList.add("hidden");
+  };
+  preloader.onerror = () => {
+    if (imgEl.dataset.assetUrl !== assetUrl) return;
+    imgEl.classList.add("hidden");
+    fallbackEl.classList.remove("hidden");
+    fallbackEl.textContent = errorText;
+  };
+  preloader.src = assetUrl;
+}
+
+function warmMediaAsset(assetUrl, cacheKey = assetUrl) {
+  if (!assetUrl || state.assets.loaded.has(cacheKey)) {
+    return;
+  }
+  const preloader = new Image();
+  preloader.onload = () => {
+    state.assets.loaded.add(cacheKey);
+  };
+  preloader.src = assetUrl;
+}
+
+function warmQuestionAssets(question) {
+  if (!question) return;
+  if (question.headshot) {
+    warmMediaAsset(resolveAssetUrl(question.headshot), `headshot:${question.headshot}`);
+  }
+  if (question.logo) {
+    warmMediaAsset(resolveAssetUrl(question.logo), `logo:${question.logo}`);
+  }
+}
+
 function renderMedia(question) {
   const showHeadshots = state.online.enabled ? state.online.showHeadshots : els.showHeadshots.checked;
 
   if (question.headshot && showHeadshots) {
-    els.headshotImage.src = resolveAssetUrl(question.headshot);
-    els.headshotImage.classList.remove("hidden");
-    els.headshotFallback.classList.add("hidden");
+    loadMediaAsset(els.headshotImage, els.headshotFallback, resolveAssetUrl(question.headshot), {
+      loadingText: "Loading...",
+      errorText: "No Headshot",
+      cacheKey: `headshot:${question.headshot}`,
+    });
   } else {
     els.headshotImage.classList.add("hidden");
     els.headshotFallback.classList.remove("hidden");
@@ -2508,9 +2576,11 @@ function renderMedia(question) {
 
   if (question.logo) {
     els.logoCard.classList.remove("hidden");
-    els.logoImage.src = resolveAssetUrl(question.logo);
-    els.logoImage.classList.remove("hidden");
-    els.logoFallback.classList.add("hidden");
+    loadMediaAsset(els.logoImage, els.logoFallback, resolveAssetUrl(question.logo), {
+      loadingText: "Loading...",
+      errorText: "",
+      cacheKey: `logo:${question.logo}`,
+    });
   } else {
     els.logoCard.classList.add("hidden");
     els.logoImage.classList.add("hidden");
@@ -2674,6 +2744,9 @@ function renderQuestion() {
   updateTwoPlayerHud();
   updateHintAvailability();
   restartQuestionTimerIfNeeded();
+  if (!state.online.enabled) {
+    warmQuestionAssets(state.questions[state.currentIndex + 1]);
+  }
 }
 
 function updateTimer() {
