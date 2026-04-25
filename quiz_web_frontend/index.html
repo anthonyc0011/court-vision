@@ -14,13 +14,14 @@
 <body data-theme="Arena Blue">
   <main class="app-shell">
     <section id="homeScreen" class="screen active">
-      <section class="hero-card home-hero game-marquee">
+      <section class="hero-card home-hero scoreboard-hero">
         <div class="hero-shell">
           <div class="hero-nav-row">
-            <div class="hero-brand-lockup">
+            <div class="hero-brand-lockup hero-brand-compact">
               <p class="eyebrow">NBA College Quiz</p>
               <div class="hero-brand-title-row">
                 <h1 id="siteTitle">Court Vision</h1>
+                <span class="hero-live-pill">Live</span>
               </div>
             </div>
             <div class="hero-topbar">
@@ -30,7 +31,22 @@
             </div>
           </div>
 
-          <div class="hero-spotlight-grid">
+          <div class="hero-bottom-row">
+            <div class="hero-score-strip">
+              <div class="hero-score-cell">
+                <span class="hero-score-label">Mode</span>
+                <strong>Quiz Lobby</strong>
+              </div>
+              <div class="hero-score-cell">
+                <span class="hero-score-label">Play</span>
+                <strong>Solo, Local, Online</strong>
+              </div>
+              <div class="hero-score-cell">
+                <span class="hero-score-label">Focus</span>
+                <strong>Current NBA Colleges</strong>
+              </div>
+            </div>
+
             <div class="hero-sidepanels">
               <div id="authPanel" class="auth-panel hidden compact-auth-panel">
                 <div id="authSignedOut">
@@ -86,79 +102,88 @@
             </div>
           </div>
 
-          <div class="setup-section compact-section lobby-identity-card">
-            <div class="setup-grid two-col">
-              <div>
-                <label for="username">Username</label>
-                <input id="username" placeholder="Enter username" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
+          <div class="play-layout">
+            <aside class="play-rail">
+              <div class="play-rail-card is-active">
+                <span class="play-rail-step">01</span>
+                <strong>Quiz Setup</strong>
               </div>
-              <input id="theme" type="hidden" value="Arena Blue" />
-              <select id="gameMode" class="hidden" aria-hidden="true" tabindex="-1">
-                <option value="Practice" selected>Practice</option>
-              </select>
-            </div>
-          </div>
+              <div class="play-rail-card">
+                <span class="play-rail-step">02</span>
+                <strong>Match Type</strong>
+              </div>
+              <div class="play-rail-card">
+                <span class="play-rail-step">03</span>
+                <strong>Start</strong>
+              </div>
+            </aside>
 
-          <div id="quizSetupStep" class="setup-step active">
-          <div class="setup-stagebar">
-            <div class="setup-stage-chip is-active">1. Quiz Setup</div>
-            <div class="setup-stage-chip">2. Match Type</div>
-          </div>
-          <div class="setup-section compact-section lobby-stage-card">
-            <div class="section-title-row">
-              <h3>Quiz Setup</h3>
-            </div>
-            <div class="setup-grid two-col">
-              <div>
-                <label for="questionCount">Quiz Length</label>
-                <select id="questionCount">
-                  <option value="10">10</option>
-                  <option value="25" selected>25</option>
-                  <option value="50">50</option>
-                  <option value="100">100</option>
-                  <option value="all">All</option>
-                </select>
+            <div class="play-workspace">
+              <div class="setup-section compact-section lobby-identity-card">
+                <div class="setup-grid two-col">
+                  <div>
+                    <label for="username">Username</label>
+                    <input id="username" placeholder="Enter username" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
+                  </div>
+                  <input id="theme" type="hidden" value="Arena Blue" />
+                  <select id="gameMode" class="hidden" aria-hidden="true" tabindex="-1">
+                    <option value="Practice" selected>Practice</option>
+                  </select>
+                </div>
               </div>
-              <div>
-                <label for="conferenceFilter">Conference</label>
-                <select id="conferenceFilter">
-                  <option value="All">All</option>
-                </select>
-              </div>
-              <div>
-                <label for="playerPool">Player Pool</label>
-                <select id="playerPool">
-                  <option value="all">All Players</option>
-                  <option value="rotation">Rotation Players</option>
-                  <option value="starter">Starters</option>
-                  <option value="bench">Bench Players</option>
-                </select>
-              </div>
-              <div>
-                <label for="answerMode">Answer Style</label>
-                <select id="answerMode">
-                  <option value="typed">Typed</option>
-                  <option value="multiple-choice">Multiple Choice</option>
-                </select>
-              </div>
-            </div>
-            <label class="checkbox-row subtle-checkbox">
-              <input type="checkbox" id="showHeadshots" checked />
-              <span>Show headshots</span>
-            </label>
-          </div>
-          <div class="hero-actions home-primary-actions setup-next-actions">
-            <button id="continueToMatchType" type="button">Continue To Match Type</button>
-            <button id="saveProfile" type="button">Save Profile</button>
-          </div>
-          </div>
 
-          <div id="matchTypeStep" class="setup-step hidden">
-          <div class="setup-stagebar">
-            <div class="setup-stage-chip">1. Quiz Setup</div>
-            <div class="setup-stage-chip is-active">2. Match Type</div>
-          </div>
-          <div class="setup-section compact-section lobby-stage-card">
+              <div id="quizSetupStep" class="setup-step active">
+              <div class="setup-section compact-section lobby-stage-card">
+                <div class="section-title-row">
+                  <h3>Quiz Setup</h3>
+                </div>
+                <div class="setup-grid two-col">
+                  <div>
+                    <label for="questionCount">Quiz Length</label>
+                    <select id="questionCount">
+                      <option value="10">10</option>
+                      <option value="25" selected>25</option>
+                      <option value="50">50</option>
+                      <option value="100">100</option>
+                      <option value="all">All</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label for="conferenceFilter">Conference</label>
+                    <select id="conferenceFilter">
+                      <option value="All">All</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label for="playerPool">Player Pool</label>
+                    <select id="playerPool">
+                      <option value="all">All Players</option>
+                      <option value="rotation">Rotation Players</option>
+                      <option value="starter">Starters</option>
+                      <option value="bench">Bench Players</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label for="answerMode">Answer Style</label>
+                    <select id="answerMode">
+                      <option value="typed">Typed</option>
+                      <option value="multiple-choice">Multiple Choice</option>
+                    </select>
+                  </div>
+                </div>
+                <label class="checkbox-row subtle-checkbox">
+                  <input type="checkbox" id="showHeadshots" checked />
+                  <span>Show headshots</span>
+                </label>
+              </div>
+              <div class="hero-actions home-primary-actions setup-next-actions">
+                <button id="continueToMatchType" type="button">Continue To Match Type</button>
+                <button id="saveProfile" type="button">Save Profile</button>
+              </div>
+              </div>
+
+              <div id="matchTypeStep" class="setup-step hidden">
+              <div class="setup-section compact-section lobby-stage-card">
             <div class="section-title-row">
               <h3>Match Type</h3>
             </div>
@@ -309,6 +334,8 @@
             <button id="backToQuizSetup" class="step-button step-button-secondary" type="button">Back To Quiz Setup</button>
             <button id="startQuiz" class="step-button step-button-primary" type="button">Start Game</button>
           </div>
+              </div>
+            </div>
           </div>
 
           <input type="checkbox" id="dailyMode" hidden />
@@ -322,23 +349,35 @@
               <h2>Profile And Directory</h2>
             </div>
           </div>
-          <div class="hub-showcase-grid">
-            <div id="profileSummary" class="dashboard-card profile-card">Profile summary will appear here.</div>
-            <div id="directoryOutput" class="dashboard-card directory-card">
-              <div class="leaderboard-header">
-                <div>
-                  <p class="eyebrow">Player Directory</p>
+          <div class="hub-layout">
+            <div class="hub-summary-ribbon">
+              <div class="hub-summary-chip">
+                <span class="hub-summary-label">Profile</span>
+                <strong>XP, rank, and online stats</strong>
+              </div>
+              <div class="hub-summary-chip">
+                <span class="hub-summary-label">Directory</span>
+                <strong>Search any current player</strong>
+              </div>
+            </div>
+            <div class="hub-showcase-grid">
+              <div id="profileSummary" class="dashboard-card profile-card">Profile summary will appear here.</div>
+              <div id="directoryOutput" class="dashboard-card directory-card">
+                <div class="leaderboard-header">
+                  <div>
+                    <p class="eyebrow">Player Directory</p>
+                  </div>
+                  <button id="toggleDirectory" class="mobile-section-toggle secondary-button" type="button">Show</button>
                 </div>
-                <button id="toggleDirectory" class="mobile-section-toggle secondary-button" type="button">Show</button>
-              </div>
-              <div id="directoryBody" class="mobile-section-body">
-              <div class="directory-search-row">
-                <input id="directorySearch" placeholder="Search any NBA player" autocomplete="off" autocapitalize="words" autocorrect="off" spellcheck="false" />
-                <button id="directorySearchButton" class="secondary-button">Search</button>
-              </div>
-              <div id="directoryResults" class="directory-results">
-                <div class="leaderboard-empty"></div>
-              </div>
+                <div id="directoryBody" class="mobile-section-body">
+                <div class="directory-search-row">
+                  <input id="directorySearch" placeholder="Search any NBA player" autocomplete="off" autocapitalize="words" autocorrect="off" spellcheck="false" />
+                  <button id="directorySearchButton" class="secondary-button">Search</button>
+                </div>
+                <div id="directoryResults" class="directory-results">
+                  <div class="leaderboard-empty"></div>
+                </div>
+                </div>
               </div>
             </div>
           </div>
