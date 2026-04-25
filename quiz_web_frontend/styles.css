@@ -1,17 +1,17 @@
 :root {
-  --bg: #0d141b;
-  --surface: #15212c;
-  --surface-alt: #1c2a36;
-  --surface-soft: rgba(244, 239, 230, 0.035);
-  --accent: #e68a3f;
-  --gold: #d8bb84;
+  --bg: #17120d;
+  --surface: #241b14;
+  --surface-alt: #30231a;
+  --surface-soft: rgba(244, 230, 205, 0.04);
+  --accent: #d47a32;
+  --gold: #d7b07b;
   --green: #63c17a;
   --red: #ea6b5d;
-  --text: #f4efe6;
-  --muted: #b5ac9c;
-  --outline: #31404c;
-  --shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
-  --shadow-strong: 0 26px 54px rgba(0, 0, 0, 0.34);
+  --text: #f5efe5;
+  --muted: #beae99;
+  --outline: #4c3826;
+  --shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+  --shadow-strong: 0 14px 30px rgba(0, 0, 0, 0.26);
 }
 
 * {
@@ -22,9 +22,7 @@ body {
   margin: 0;
   font-family: "Avenir Next", "Trebuchet MS", sans-serif;
   background:
-    radial-gradient(circle at top, color-mix(in srgb, var(--accent) 16%, transparent), transparent 34%),
-    radial-gradient(circle at 18% 16%, color-mix(in srgb, var(--gold) 10%, transparent), transparent 22%),
-    linear-gradient(180deg, #1a2530 0%, var(--bg) 46%, #0a1016 100%);
+    linear-gradient(180deg, #2a1e14 0%, #1f1710 18%, var(--bg) 58%, #110d09 100%);
   color: var(--text);
   min-height: 100vh;
   position: relative;
@@ -42,9 +40,9 @@ body::after {
 body::before {
   inset: 0;
   background:
-    radial-gradient(circle at 50% -12%, color-mix(in srgb, var(--gold) 10%, transparent), transparent 34%),
-    linear-gradient(90deg, transparent 0%, color-mix(in srgb, white 2%, transparent) 49.5%, transparent 50.5%, transparent 100%);
-  opacity: 0.8;
+    linear-gradient(180deg, color-mix(in srgb, var(--gold) 6%, transparent), transparent 22%),
+    linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--gold) 4%, transparent) 49.6%, transparent 50.4%, transparent 100%);
+  opacity: 0.45;
 }
 
 body::after {
@@ -55,9 +53,9 @@ body::after {
   left: 50%;
   top: 160px;
   transform: translateX(-50%);
-  border: 1px solid color-mix(in srgb, var(--outline) 28%, transparent);
+  border: 1px solid color-mix(in srgb, var(--outline) 42%, transparent);
   border-radius: 50%;
-  opacity: 0.22;
+  opacity: 0.08;
 }
 
 a {
@@ -91,12 +89,10 @@ a {
 .question-panel,
 .answer-panel,
 .progress-panel {
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--surface) 96%, white 4%) 0%, color-mix(in srgb, var(--surface-alt) 92%, black 8%) 100%);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 82%, var(--surface)) 0%, var(--surface) 100%);
   border: 1px solid var(--outline);
-  border-radius: 24px;
-  box-shadow: var(--shadow-strong);
-  backdrop-filter: blur(14px);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
 }
 
 .hero-card,
@@ -115,12 +111,12 @@ a {
 
 .home-hero {
   padding: 24px 26px;
-  border-radius: 32px;
+  border-radius: 24px;
 }
 
 .game-marquee {
   background:
-    linear-gradient(135deg, color-mix(in srgb, var(--surface-alt) 92%, white 8%) 0%, color-mix(in srgb, var(--surface) 94%, black 6%) 52%, color-mix(in srgb, var(--surface-alt) 88%, var(--accent) 12%) 100%);
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 88%, var(--surface)) 0%, var(--surface) 100%);
   border-color: color-mix(in srgb, var(--outline) 86%, var(--gold));
 }
 
@@ -129,8 +125,7 @@ a {
   width: 340px;
   height: 340px;
   background:
-    radial-gradient(circle, color-mix(in srgb, var(--accent) 14%, transparent) 0%, transparent 58%),
-    radial-gradient(circle at 60% 40%, color-mix(in srgb, var(--gold) 10%, transparent), transparent 62%);
+    radial-gradient(circle, color-mix(in srgb, var(--accent) 8%, transparent) 0%, transparent 58%);
 }
 
 .hero-shell {
@@ -230,9 +225,8 @@ a {
   width: 100%;
   max-width: 370px;
   padding: 18px;
-  border-radius: 22px;
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 88%, white 4%) 0%, color-mix(in srgb, var(--surface) 94%, black 6%) 100%);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--surface-alt) 78%, var(--surface));
   border: 1px solid color-mix(in srgb, var(--outline) 88%, transparent);
   box-shadow: var(--shadow);
   position: relative;
@@ -279,8 +273,8 @@ a {
   gap: 14px;
   align-items: flex-start;
   padding: 12px;
-  border-radius: 16px;
-  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface-alt) 74%, transparent);
   border: 1px solid color-mix(in srgb, var(--outline) 74%, transparent);
 }
 
@@ -354,8 +348,8 @@ a {
   gap: 12px;
   align-items: center;
   padding: 12px;
-  border-radius: 16px;
-  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface-alt) 74%, transparent);
   border: 1px solid color-mix(in srgb, var(--outline) 74%, transparent);
 }
 
@@ -399,9 +393,9 @@ a {
   content: "";
   position: absolute;
   inset: 0 auto auto 0;
-  height: 6px;
+  height: 5px;
   width: 100%;
-  background: linear-gradient(90deg, color-mix(in srgb, var(--gold) 84%, white 16%), var(--accent));
+  background: linear-gradient(90deg, var(--gold), var(--accent));
 }
 
 .hero-card::after,
@@ -412,14 +406,14 @@ a {
   width: 260px;
   height: 260px;
   border-radius: 50%;
-  background: radial-gradient(circle, color-mix(in srgb, var(--gold) 10%, transparent), transparent 68%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--gold) 6%, transparent), transparent 68%);
   pointer-events: none;
 }
 
 .eyebrow {
   margin: 0 0 6px;
   color: var(--gold);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -640,8 +634,7 @@ label {
 .game-lobby-panel {
   position: sticky;
   top: 20px;
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 90%, white 6%) 0%, color-mix(in srgb, var(--surface) 96%, black 4%) 100%);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 84%, var(--surface)) 0%, var(--surface) 100%);
 }
 
 .simplified-play-panel,
@@ -676,8 +669,8 @@ label {
   justify-content: center;
   min-height: 40px;
   padding: 10px 12px;
-  border-radius: 16px;
-  background: color-mix(in srgb, var(--surface) 78%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface-alt) 76%, transparent);
   border: 1px solid color-mix(in srgb, var(--outline) 62%, transparent);
   color: var(--muted);
   font-size: 0.88rem;
@@ -686,10 +679,10 @@ label {
 }
 
 .setup-stage-chip.is-active {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 88%, white 12%), color-mix(in srgb, var(--accent) 90%, black 10%));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--gold) 36%, var(--accent)), var(--accent));
   color: #23160c;
   border-color: color-mix(in srgb, var(--accent) 64%, transparent);
-  box-shadow: 0 10px 22px color-mix(in srgb, var(--accent) 18%, transparent);
+  box-shadow: none;
 }
 
 .section-title-row {
@@ -709,8 +702,8 @@ label {
 .subtle-checkbox {
   margin-top: 10px;
   padding: 10px 12px;
-  border-radius: 16px;
-  background: color-mix(in srgb, var(--surface) 72%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface-alt) 72%, transparent);
   border: 1px solid color-mix(in srgb, var(--outline) 64%, transparent);
 }
 
@@ -721,10 +714,10 @@ label {
 
 .mode-card {
   padding: 12px 14px 10px;
-  border-radius: 18px;
-  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface-alt) 74%, transparent);
   border: 1px solid color-mix(in srgb, var(--outline) 70%, transparent);
-  transition: border-color 140ms ease, transform 140ms ease, background 140ms ease, box-shadow 140ms ease;
+  transition: border-color 140ms ease, transform 140ms ease, background 140ms ease;
   min-height: 78px;
 }
 
@@ -735,9 +728,8 @@ label {
 
 .mode-card:has(input:checked) {
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 88%, white 4%) 0%, color-mix(in srgb, var(--surface) 86%, var(--accent) 14%) 100%);
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 78%, var(--surface)) 0%, color-mix(in srgb, var(--surface) 88%, var(--accent) 12%) 100%);
   border-color: color-mix(in srgb, var(--accent) 44%, var(--outline));
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 16%, transparent);
 }
 
 .ranked-card {
@@ -816,7 +808,7 @@ label {
 }
 
 #saveProfile {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 90%, white 8%), color-mix(in srgb, var(--surface) 90%, black 10%));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 82%, var(--surface)), var(--surface));
   color: var(--text);
   box-shadow: none;
 }
@@ -826,15 +818,15 @@ label {
 }
 
 .step-button-secondary {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 90%, white 8%), color-mix(in srgb, var(--surface) 90%, black 10%));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 82%, var(--surface)), var(--surface));
   color: var(--text);
   box-shadow: none;
 }
 
 .step-button-primary {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--gold) 84%, white 8%), color-mix(in srgb, var(--accent) 88%, black 12%));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--gold) 34%, var(--accent)), var(--accent));
   color: #24170d;
-  box-shadow: 0 12px 24px color-mix(in srgb, var(--accent) 18%, transparent);
+  box-shadow: none;
 }
 
 .checkbox-row {
@@ -862,28 +854,27 @@ button {
 
 input,
 select {
-  background: color-mix(in srgb, var(--surface-alt) 92%, black 8%);
+  background: color-mix(in srgb, var(--surface-alt) 84%, var(--surface));
   color: var(--text);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+  box-shadow: none;
 }
 
 button {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 88%, white 12%), color-mix(in srgb, var(--accent) 90%, black 10%));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--gold) 34%, var(--accent)), var(--accent));
   color: #23160c;
   font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 10px 24px color-mix(in srgb, var(--accent) 18%, transparent);
-  transition: transform 120ms ease, filter 120ms ease, box-shadow 120ms ease;
+  box-shadow: none;
+  transition: transform 120ms ease, filter 120ms ease;
 }
 
 button:hover {
   transform: translateY(-1px);
   filter: brightness(1.05);
-  box-shadow: 0 14px 28px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
 .secondary-button {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 92%, white 8%), color-mix(in srgb, var(--surface) 90%, black 10%));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 82%, var(--surface)), var(--surface));
   color: var(--text);
   box-shadow: none;
 }
@@ -925,13 +916,11 @@ button:hover {
 
 .dashboard-card {
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 88%, white 4%) 0%, color-mix(in srgb, var(--surface) 94%, black 6%) 100%);
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 82%, var(--surface)) 0%, var(--surface) 100%);
   border: 1px solid color-mix(in srgb, var(--outline) 74%, transparent);
-  border-radius: 24px;
+  border-radius: 18px;
   padding: 18px 18px;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.04),
-    0 16px 32px rgba(0, 0, 0, 0.12);
+  box-shadow: none;
 }
 
 .directory-card {
@@ -1879,19 +1868,16 @@ button:hover {
 .progress-segment {
   height: 18px;
   border-radius: 999px;
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 96%, white 4%), color-mix(in srgb, var(--surface-alt) 88%, black 12%));
+  background: color-mix(in srgb, var(--surface-alt) 84%, var(--surface));
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--outline) 80%, transparent);
   position: relative;
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.04);
+  box-shadow: none;
 }
 
 .progress-segment.current {
   border-color: color-mix(in srgb, var(--accent) 72%, transparent);
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent),
-    0 0 14px color-mix(in srgb, var(--accent) 16%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent);
 }
 
 .progress-fill {
@@ -1950,16 +1936,14 @@ button:hover {
 
 .media-card,
 .logo-card {
-  border-radius: 24px;
-  border: 1px solid color-mix(in srgb, var(--outline) 80%, white 20%);
-  background: linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 88%, white 10%), color-mix(in srgb, var(--surface) 90%, black 10%));
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--outline) 80%, transparent);
+  background: color-mix(in srgb, var(--surface-alt) 78%, var(--surface));
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.03),
-    0 20px 34px rgba(0, 0, 0, 0.16);
+  box-shadow: none;
 }
 
 .media-card {
@@ -2029,7 +2013,7 @@ button:hover {
   flex-direction: column;
   justify-content: center;
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 82%, white 10%), color-mix(in srgb, var(--surface) 96%, black 4%));
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 80%, var(--surface)) 0%, var(--surface) 100%);
 }
 
 .quiz-layout.online-private-layout .question-panel,
