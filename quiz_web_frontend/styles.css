@@ -149,11 +149,22 @@ a {
   gap: 4px;
 }
 
+.espn-brand-lockup {
+  max-width: 560px;
+}
+
 .hero-brand-title-row {
   display: flex;
   flex-wrap: wrap;
   gap: 14px;
   align-items: flex-end;
+}
+
+.hero-subline {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 0.98rem;
+  line-height: 1.45;
 }
 
 .hero-topbar {
@@ -504,6 +515,11 @@ label,
   align-items: start;
 }
 
+.espn-home-grid {
+  grid-template-columns: minmax(0, 1.42fr) minmax(320px, 0.94fr);
+  gap: 18px;
+}
+
 .intel-panel {
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 92%, white 4%) 0%, color-mix(in srgb, var(--surface) 96%, black 4%) 100%);
@@ -635,9 +651,17 @@ label {
     linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 74%, white 4%) 0%, color-mix(in srgb, var(--surface) 94%, black 6%) 100%);
 }
 
+.espn-user-row {
+  padding: 12px 14px;
+}
+
 .lobby-stage-card {
   position: relative;
   overflow: hidden;
+}
+
+.espn-setup-card {
+  padding: 16px;
 }
 
 .lobby-stage-card::after {
@@ -655,6 +679,49 @@ label {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.espn-play-shell {
+  padding: 18px;
+}
+
+.espn-play-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.espn-play-kicker h2 {
+  margin-bottom: 0;
+}
+
+.espn-play-status {
+  display: flex;
+  align-items: center;
+}
+
+.espn-status-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.espn-status-chip.is-live {
+  background: rgba(215, 25, 32, 0.16);
+  border-color: rgba(215, 25, 32, 0.42);
 }
 
 .game-lobby-panel {
@@ -926,6 +993,19 @@ button:hover {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.espn-side-rail {
+  padding: 18px;
+}
+
+.espn-side-rail-stack {
+  display: grid;
+  gap: 14px;
+}
+
+.espn-rail-card {
+  min-height: 0;
 }
 
 .simplified-dashboard-panel .panel-heading {
@@ -1597,6 +1677,15 @@ button:hover {
   .dashboard-support-grid,
   .setup-grid.two-col {
     grid-template-columns: 1fr;
+  }
+
+  .espn-home-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .espn-play-header {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .home-hero {

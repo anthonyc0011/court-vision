@@ -17,63 +17,17 @@
       <section class="hero-card home-hero game-marquee">
         <div class="hero-shell">
           <div class="hero-nav-row">
-            <div class="hero-brand-lockup">
+            <div class="hero-brand-lockup espn-brand-lockup">
               <p class="eyebrow">NBA College Quiz</p>
               <div class="hero-brand-title-row">
                 <h1 id="siteTitle">Court Vision</h1>
               </div>
+              <p class="hero-subline">Pick your setup, choose a mode, and jump straight into the grid.</p>
             </div>
             <div class="hero-topbar">
               <button id="loginButton" class="topbar-button secondary-button">Profile</button>
               <button id="friendsButton" class="topbar-button secondary-button">Friends</button>
               <button id="shareButton" class="topbar-button secondary-button">Share</button>
-            </div>
-          </div>
-
-          <div class="hero-broadcast-strip" aria-hidden="true">
-            <span class="broadcast-pill">Solo</span>
-            <span class="broadcast-pill">Online 1v1</span>
-            <span class="broadcast-pill">Ranked</span>
-            <span class="broadcast-pill">Directory</span>
-          </div>
-
-          <div class="hero-spotlight-grid">
-            <div class="hero-sidepanels">
-              <div id="authPanel" class="auth-panel hidden compact-auth-panel">
-                <div id="authSignedOut">
-                  <p class="eyebrow">Account</p>
-                  <div class="daily-status">Sign in to lock your profile and ranked identity.</div>
-                  <div id="googleSignInButton" class="google-signin-slot"></div>
-                  <div id="authStatus" class="online-status"></div>
-                </div>
-                <div id="authSignedIn" class="hidden">
-                  <p class="eyebrow">Signed In</p>
-                  <div class="auth-user-row">
-                    <img id="authUserPicture" class="auth-avatar" alt="Profile picture" />
-                    <div>
-                      <div id="authUserName" class="daily-status"></div>
-                      <div id="authUserEmail" class="leaderboard-meta"></div>
-                    </div>
-                  </div>
-                  <div class="hero-actions compact-actions">
-                    <button id="logoutButton" class="secondary-button">Logout</button>
-                  </div>
-                </div>
-              </div>
-              <div id="friendsPanel" class="auth-panel hidden compact-auth-panel friends-panel">
-                <div class="leaderboard-header">
-                  <div>
-                    <p class="eyebrow">Friends</p>
-                    <div id="friendsStatus" class="daily-status">Sign in to build your friends list.</div>
-                  </div>
-                </div>
-                <div id="friendsContent" class="friends-panel-content">
-                  <div class="leaderboard-empty">Your friends list will appear here.</div>
-                </div>
-                <div class="hero-actions compact-actions">
-                  <button id="refreshFriends" class="secondary-button">Refresh</button>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -84,16 +38,19 @@
         <button id="mobileHubTab" class="mobile-home-tab" type="button">Hub</button>
       </div>
 
-      <section class="home-grid">
-        <article class="panel play-panel simplified-play-panel home-panel-block home-panel-play game-lobby-panel">
-          <div class="panel-heading">
-            <div>
-              <p class="eyebrow">Play</p>
+      <section class="home-grid espn-home-grid">
+        <article class="panel play-panel simplified-play-panel home-panel-block home-panel-play game-lobby-panel espn-play-shell">
+          <div class="espn-play-header">
+            <div class="espn-play-kicker">
+              <p class="eyebrow">Game Setup</p>
               <h2>Start A Game</h2>
+            </div>
+            <div class="espn-play-status">
+              <span class="espn-status-chip is-live">Ready</span>
             </div>
           </div>
 
-          <div class="setup-section compact-section lobby-identity-card">
+          <div class="setup-section compact-section lobby-identity-card espn-user-row">
             <div class="setup-grid two-col">
               <div>
                 <label for="username">Username</label>
@@ -111,7 +68,7 @@
             <div class="setup-stage-chip is-active">1. Quiz Setup</div>
             <div class="setup-stage-chip">2. Match Type</div>
           </div>
-          <div class="setup-section compact-section lobby-stage-card">
+          <div class="setup-section compact-section lobby-stage-card espn-setup-card">
                 <div class="section-title-row">
                   <h3>Quiz Setup</h3>
                 </div>
@@ -154,7 +111,7 @@
                   <span>Show headshots</span>
                 </label>
               </div>
-              <div class="hero-actions home-primary-actions setup-next-actions">
+          <div class="hero-actions home-primary-actions setup-next-actions">
                 <button id="continueToMatchType" type="button">Continue To Match Type</button>
                 <button id="saveProfile" type="button">Save Profile</button>
               </div>
@@ -165,7 +122,7 @@
             <div class="setup-stage-chip">1. Quiz Setup</div>
             <div class="setup-stage-chip is-active">2. Match Type</div>
           </div>
-          <div class="setup-section compact-section lobby-stage-card">
+          <div class="setup-section compact-section lobby-stage-card espn-setup-card">
             <div class="section-title-row">
               <h3>Match Type</h3>
             </div>
@@ -322,16 +279,47 @@
 
         </article>
 
-        <article class="panel dashboard-panel simplified-dashboard-panel home-panel-block home-panel-hub intel-panel">
-          <div class="panel-heading">
-            <div>
-              <p class="eyebrow">Hub</p>
-              <h2>Profile And Directory</h2>
+        <article class="panel dashboard-panel simplified-dashboard-panel home-panel-block home-panel-hub intel-panel espn-side-rail">
+          <div class="espn-side-rail-stack">
+            <div id="authPanel" class="auth-panel hidden compact-auth-panel">
+              <div id="authSignedOut">
+                <p class="eyebrow">Account</p>
+                <div class="daily-status">Sign in to lock your profile and ranked identity.</div>
+                <div id="googleSignInButton" class="google-signin-slot"></div>
+                <div id="authStatus" class="online-status"></div>
+              </div>
+              <div id="authSignedIn" class="hidden">
+                <p class="eyebrow">Signed In</p>
+                <div class="auth-user-row">
+                  <img id="authUserPicture" class="auth-avatar" alt="Profile picture" />
+                  <div>
+                    <div id="authUserName" class="daily-status"></div>
+                    <div id="authUserEmail" class="leaderboard-meta"></div>
+                  </div>
+                </div>
+                <div class="hero-actions compact-actions">
+                  <button id="logoutButton" class="secondary-button">Logout</button>
+                </div>
+              </div>
             </div>
-          </div>
-          <div class="hub-showcase-grid">
-            <div id="profileSummary" class="dashboard-card profile-card">Profile summary will appear here.</div>
-            <div id="directoryOutput" class="dashboard-card directory-card">
+
+            <div id="friendsPanel" class="auth-panel hidden compact-auth-panel friends-panel">
+              <div class="leaderboard-header">
+                <div>
+                  <p class="eyebrow">Friends</p>
+                  <div id="friendsStatus" class="daily-status">Sign in to build your friends list.</div>
+                </div>
+              </div>
+              <div id="friendsContent" class="friends-panel-content">
+                <div class="leaderboard-empty">Your friends list will appear here.</div>
+              </div>
+              <div class="hero-actions compact-actions">
+                <button id="refreshFriends" class="secondary-button">Refresh</button>
+              </div>
+            </div>
+
+            <div id="profileSummary" class="dashboard-card profile-card espn-rail-card">Profile summary will appear here.</div>
+            <div id="directoryOutput" class="dashboard-card directory-card espn-rail-card">
               <div class="leaderboard-header">
                 <div>
                   <p class="eyebrow">Player Directory</p>
