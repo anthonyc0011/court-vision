@@ -1,17 +1,17 @@
 :root {
-  --bg: #17120d;
-  --surface: #241b14;
-  --surface-alt: #30231a;
-  --surface-soft: rgba(244, 230, 205, 0.04);
-  --accent: #d47a32;
-  --gold: #d7b07b;
+  --bg: #09131f;
+  --surface: #102033;
+  --surface-alt: #18304a;
+  --surface-soft: rgba(255, 255, 255, 0.035);
+  --accent: #d71920;
+  --gold: #f0f3f7;
   --green: #63c17a;
-  --red: #ea6b5d;
-  --text: #f5efe5;
-  --muted: #beae99;
-  --outline: #4c3826;
-  --shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
-  --shadow-strong: 0 14px 30px rgba(0, 0, 0, 0.26);
+  --red: #f2545b;
+  --text: #f6f8fb;
+  --muted: #9bb0c7;
+  --outline: #28415c;
+  --shadow: 0 10px 26px rgba(0, 0, 0, 0.24);
+  --shadow-strong: 0 16px 36px rgba(0, 0, 0, 0.3);
 }
 
 * {
@@ -20,9 +20,9 @@
 
 body {
   margin: 0;
-  font-family: "Avenir Next", "Trebuchet MS", sans-serif;
+  font-family: "Avenir Next", "Helvetica Neue", "Arial Narrow", sans-serif;
   background:
-    linear-gradient(180deg, #2a1e14 0%, #1f1710 18%, var(--bg) 58%, #110d09 100%);
+    linear-gradient(180deg, #10233a 0%, #0c1a29 16%, var(--bg) 44%, #07101a 100%);
   color: var(--text);
   min-height: 100vh;
   position: relative;
@@ -40,9 +40,9 @@ body::after {
 body::before {
   inset: 0;
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--gold) 6%, transparent), transparent 22%),
-    linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--gold) 4%, transparent) 49.6%, transparent 50.4%, transparent 100%);
-  opacity: 0.45;
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 22%),
+    linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.03) 49.7%, transparent 50.3%, transparent 100%);
+  opacity: 0.7;
 }
 
 body::after {
@@ -53,9 +53,9 @@ body::after {
   left: 50%;
   top: 160px;
   transform: translateX(-50%);
-  border: 1px solid color-mix(in srgb, var(--outline) 42%, transparent);
+  border: 1px solid rgba(117, 147, 182, 0.12);
   border-radius: 50%;
-  opacity: 0.08;
+  opacity: 0.16;
 }
 
 a {
@@ -89,9 +89,9 @@ a {
 .question-panel,
 .answer-panel,
 .progress-panel {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 82%, var(--surface)) 0%, var(--surface) 100%);
-  border: 1px solid var(--outline);
-  border-radius: 20px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 88%, var(--surface)) 0%, var(--surface) 100%);
+  border: 1px solid color-mix(in srgb, var(--outline) 90%, transparent);
+  border-radius: 12px;
   box-shadow: var(--shadow);
 }
 
@@ -110,14 +110,14 @@ a {
 }
 
 .home-hero {
-  padding: 24px 26px;
-  border-radius: 24px;
+  padding: 18px 20px 20px;
+  border-radius: 12px;
 }
 
 .game-marquee {
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 88%, var(--surface)) 0%, var(--surface) 100%);
-  border-color: color-mix(in srgb, var(--outline) 86%, var(--gold));
+    linear-gradient(180deg, #152a42 0%, #0f2135 100%);
+  border-color: #324a65;
 }
 
 .game-marquee::after {
@@ -125,7 +125,7 @@ a {
   width: 340px;
   height: 340px;
   background:
-    radial-gradient(circle, color-mix(in srgb, var(--accent) 8%, transparent) 0%, transparent 58%);
+    radial-gradient(circle, rgba(215, 25, 32, 0.2) 0%, transparent 58%);
 }
 
 .hero-shell {
@@ -140,7 +140,7 @@ a {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 16px;
-  align-items: start;
+  align-items: center;
 }
 
 .hero-brand-lockup {
@@ -159,16 +159,39 @@ a {
 .hero-topbar {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 8px;
   position: relative;
   z-index: 1;
 }
 
 .topbar-button {
   width: auto;
-  min-width: 94px;
+  min-width: 96px;
   padding: 10px 15px;
   border-radius: 999px;
+}
+
+.hero-broadcast-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 6px;
+}
+
+.broadcast-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  font-size: 0.79rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .hero-sidepanels {
@@ -225,9 +248,9 @@ a {
   width: 100%;
   max-width: 370px;
   padding: 18px;
-  border-radius: 18px;
-  background: color-mix(in srgb, var(--surface-alt) 78%, var(--surface));
-  border: 1px solid color-mix(in srgb, var(--outline) 88%, transparent);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(20, 41, 63, 0.94), rgba(13, 27, 42, 0.98));
+  border: 1px solid rgba(76, 102, 129, 0.8);
   box-shadow: var(--shadow);
   position: relative;
   overflow: hidden;
@@ -245,7 +268,7 @@ a {
 .compact-auth-panel {
   max-width: 340px;
   padding: 16px;
-  border-radius: 20px;
+  border-radius: 12px;
 }
 
 .friends-panel {
@@ -395,7 +418,7 @@ a {
   inset: 0 auto auto 0;
   height: 5px;
   width: 100%;
-  background: linear-gradient(90deg, var(--gold), var(--accent));
+  background: linear-gradient(90deg, var(--accent), #f36b70);
 }
 
 .hero-card::after,
@@ -406,15 +429,15 @@ a {
   width: 260px;
   height: 260px;
   border-radius: 50%;
-  background: radial-gradient(circle, color-mix(in srgb, var(--gold) 6%, transparent), transparent 68%);
+  background: radial-gradient(circle, rgba(215, 25, 32, 0.12), transparent 68%);
   pointer-events: none;
 }
 
 .eyebrow {
   margin: 0 0 6px;
-  color: var(--gold);
+  color: #d3deeb;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 0.18em;
   text-transform: uppercase;
 }
@@ -426,15 +449,18 @@ p {
 }
 
 h1 {
-  font-size: clamp(2.1rem, 4vw, 3.6rem);
-  margin-bottom: 10px;
+  font-size: clamp(2.5rem, 4.8vw, 4.2rem);
+  margin-bottom: 8px;
   max-width: 10ch;
-  line-height: 0.98;
+  line-height: 0.95;
+  letter-spacing: -0.04em;
 }
 
 h2 {
-  font-size: 1.15rem;
+  font-size: 1.08rem;
   margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .subtitle,
@@ -474,7 +500,7 @@ label,
 .home-grid {
   display: grid;
   grid-template-columns: minmax(360px, 420px) minmax(0, 1fr);
-  gap: 18px;
+  gap: 16px;
   align-items: start;
 }
 
@@ -485,18 +511,18 @@ label,
 
 .postgame-card {
   padding: 28px 30px;
-  border-radius: 30px;
+  border-radius: 12px;
   background:
-    linear-gradient(160deg, color-mix(in srgb, var(--surface-alt) 90%, white 6%) 0%, color-mix(in srgb, var(--surface) 94%, black 6%) 100%);
+    linear-gradient(160deg, #172d45 0%, #102132 100%);
 }
 
 .mobile-home-nav {
   display: none;
   margin: 0 0 14px;
   padding: 6px;
-  border-radius: 18px;
-  background: color-mix(in srgb, var(--surface) 82%, transparent);
-  border: 1px solid color-mix(in srgb, var(--outline) 78%, transparent);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   gap: 8px;
 }
 
@@ -510,9 +536,9 @@ label,
 }
 
 .mobile-home-tab.is-active {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 92%, white 8%), var(--accent));
-  color: #111;
-  box-shadow: 0 10px 22px color-mix(in srgb, var(--accent) 24%, transparent);
+  background: linear-gradient(180deg, #ef2b33, var(--accent));
+  color: white;
+  box-shadow: 0 10px 22px rgba(215, 25, 32, 0.2);
 }
 
 .hero-actions,
@@ -570,9 +596,9 @@ label {
   justify-content: space-between;
   align-items: end;
   gap: 14px;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
   padding-bottom: 12px;
-  border-bottom: 1px solid color-mix(in srgb, var(--outline) 48%, transparent);
+  border-bottom: 2px solid rgba(215, 25, 32, 0.72);
 }
 
 .panel-heading h2 {
@@ -588,10 +614,10 @@ label {
 
 .setup-section {
   padding: 16px;
-  border-radius: 22px;
+  border-radius: 10px;
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 74%, white 4%) 0%, color-mix(in srgb, var(--surface) 94%, black 6%) 100%);
-  border: 1px solid color-mix(in srgb, var(--outline) 62%, transparent);
+    linear-gradient(180deg, rgba(23, 44, 67, 0.94) 0%, rgba(15, 30, 47, 0.98) 100%);
+  border: 1px solid rgba(59, 85, 112, 0.86);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.04),
     0 12px 24px rgba(0, 0, 0, 0.06);
@@ -599,9 +625,9 @@ label {
 
 .compact-section {
   padding: 14px;
-  border-radius: 18px;
+  border-radius: 10px;
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 68%, white 3%) 0%, color-mix(in srgb, var(--surface) 94%, black 6%) 100%);
+    linear-gradient(180deg, rgba(23, 44, 67, 0.94) 0%, rgba(15, 30, 47, 0.98) 100%);
 }
 
 .lobby-identity-card {
@@ -634,7 +660,7 @@ label {
 .game-lobby-panel {
   position: sticky;
   top: 20px;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 84%, var(--surface)) 0%, var(--surface) 100%);
+  background: linear-gradient(180deg, #14273d 0%, #102132 100%);
 }
 
 .simplified-play-panel,
@@ -669,9 +695,9 @@ label {
   justify-content: center;
   min-height: 40px;
   padding: 10px 12px;
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--surface-alt) 76%, transparent);
-  border: 1px solid color-mix(in srgb, var(--outline) 62%, transparent);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   color: var(--muted);
   font-size: 0.88rem;
   font-weight: 800;
@@ -679,9 +705,9 @@ label {
 }
 
 .setup-stage-chip.is-active {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--gold) 36%, var(--accent)), var(--accent));
-  color: #23160c;
-  border-color: color-mix(in srgb, var(--accent) 64%, transparent);
+  background: linear-gradient(180deg, #ef2b33, var(--accent));
+  color: white;
+  border-color: rgba(239, 43, 51, 0.65);
   box-shadow: none;
 }
 
@@ -702,9 +728,9 @@ label {
 .subtle-checkbox {
   margin-top: 10px;
   padding: 10px 12px;
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--surface-alt) 72%, transparent);
-  border: 1px solid color-mix(in srgb, var(--outline) 64%, transparent);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .mode-stack {
@@ -714,22 +740,23 @@ label {
 
 .mode-card {
   padding: 12px 14px 10px;
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--surface-alt) 74%, transparent);
-  border: 1px solid color-mix(in srgb, var(--outline) 70%, transparent);
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(16, 34, 53, 0.96), rgba(11, 23, 36, 0.98));
+  border: 1px solid rgba(58, 83, 110, 0.92);
   transition: border-color 140ms ease, transform 140ms ease, background 140ms ease;
   min-height: 78px;
 }
 
 .mode-card:hover {
   transform: translateY(-1px);
-  border-color: color-mix(in srgb, var(--accent) 38%, var(--outline));
+  border-color: rgba(215, 25, 32, 0.52);
 }
 
 .mode-card:has(input:checked) {
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 78%, var(--surface)) 0%, color-mix(in srgb, var(--surface) 88%, var(--accent) 12%) 100%);
-  border-color: color-mix(in srgb, var(--accent) 44%, var(--outline));
+    linear-gradient(180deg, rgba(33, 52, 74, 0.96) 0%, rgba(16, 31, 48, 1) 100%);
+  border-color: rgba(215, 25, 32, 0.66);
+  box-shadow: inset 4px 0 0 var(--accent);
 }
 
 .ranked-card {
@@ -774,7 +801,7 @@ label {
 .match-info-tooltip {
   width: min(260px, 72vw);
   background:
-    linear-gradient(180deg, #1a3147 0%, #112436 100%);
+    linear-gradient(180deg, #21384f 0%, #16283c 100%);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   top: auto;
@@ -804,11 +831,11 @@ label {
 .step-button {
   min-height: 56px;
   font-size: 0.98rem;
-  border-radius: 18px;
+  border-radius: 999px;
 }
 
 #saveProfile {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 82%, var(--surface)), var(--surface));
+  background: linear-gradient(180deg, #243d59, #182b42);
   color: var(--text);
   box-shadow: none;
 }
@@ -818,14 +845,14 @@ label {
 }
 
 .step-button-secondary {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 82%, var(--surface)), var(--surface));
+  background: linear-gradient(180deg, #243d59, #182b42);
   color: var(--text);
   box-shadow: none;
 }
 
 .step-button-primary {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--gold) 34%, var(--accent)), var(--accent));
-  color: #24170d;
+  background: linear-gradient(180deg, #ef2b33, var(--accent));
+  color: white;
   box-shadow: none;
 }
 
@@ -846,7 +873,7 @@ input,
 select,
 button {
   width: 100%;
-  border-radius: 18px;
+  border-radius: 10px;
   border: 1px solid var(--outline);
   padding: 13px 14px;
   font-size: 1rem;
@@ -854,15 +881,15 @@ button {
 
 input,
 select {
-  background: color-mix(in srgb, var(--surface-alt) 84%, var(--surface));
+  background: #0d1b2a;
   color: var(--text);
   box-shadow: none;
 }
 
 
 button {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--gold) 34%, var(--accent)), var(--accent));
-  color: #23160c;
+  background: linear-gradient(180deg, #ef2b33, var(--accent));
+  color: white;
   font-weight: 800;
   cursor: pointer;
   box-shadow: none;
@@ -875,7 +902,7 @@ button:hover {
 }
 
 .secondary-button {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 82%, var(--surface)), var(--surface));
+  background: linear-gradient(180deg, #233b56, #182c42);
   color: var(--text);
   box-shadow: none;
 }
@@ -917,9 +944,9 @@ button:hover {
 
 .dashboard-card {
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 82%, var(--surface)) 0%, var(--surface) 100%);
-  border: 1px solid color-mix(in srgb, var(--outline) 74%, transparent);
-  border-radius: 18px;
+    linear-gradient(180deg, #15273b 0%, #102132 100%);
+  border: 1px solid rgba(58, 83, 110, 0.82);
+  border-radius: 10px;
   padding: 18px 18px;
   box-shadow: none;
 }
@@ -982,9 +1009,9 @@ button:hover {
   justify-content: center;
   padding: 9px 14px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--gold) 16%, transparent);
-  border: 1px solid color-mix(in srgb, var(--gold) 40%, transparent);
-  color: var(--gold);
+  background: rgba(215, 25, 32, 0.16);
+  border: 1px solid rgba(215, 25, 32, 0.4);
+  color: #fff2f3;
   font-weight: 800;
   white-space: nowrap;
 }
@@ -1013,7 +1040,7 @@ button:hover {
   font-size: 0.88rem;
   font-weight: 900;
   line-height: 1;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 92%, white 8%), var(--surface-alt));
+  background: linear-gradient(180deg, #223c59, #16283c);
   color: var(--text);
   border: 1px solid color-mix(in srgb, var(--outline) 88%, transparent);
   box-shadow: none;
@@ -1031,9 +1058,9 @@ button:hover {
   right: 0;
   width: min(320px, 74vw);
   padding: 14px;
-  border-radius: 18px;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 95%, white 5%), color-mix(in srgb, var(--surface) 94%, black 6%));
-  border: 1px solid color-mix(in srgb, var(--outline) 90%, transparent);
+  border-radius: 10px;
+  background: linear-gradient(180deg, #20364c, #142537);
+  border: 1px solid rgba(67, 92, 118, 0.95);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.32);
   opacity: 0;
   visibility: hidden;
@@ -1125,9 +1152,9 @@ button:hover {
 
 .profile-stat {
   padding: 14px 15px;
-  border-radius: 18px;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 88%, white 4%), color-mix(in srgb, var(--surface) 92%, black 8%));
-  border: 1px solid color-mix(in srgb, var(--outline) 66%, transparent);
+  border-radius: 10px;
+  background: linear-gradient(180deg, #132639, #0d1c2b);
+  border: 1px solid rgba(53, 77, 102, 0.8);
 }
 
 .profile-stat strong {
@@ -1165,9 +1192,9 @@ button:hover {
   gap: 12px;
   align-items: center;
   padding: 10px 12px;
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--surface) 78%, transparent);
-  border: 1px solid color-mix(in srgb, var(--outline) 74%, transparent);
+  border-radius: 10px;
+  background: rgba(8, 19, 30, 0.45);
+  border: 1px solid rgba(53, 77, 102, 0.72);
 }
 
 .achievement-list {
@@ -1181,8 +1208,8 @@ button:hover {
   align-items: center;
   padding: 8px 12px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+  background: rgba(215, 25, 32, 0.12);
+  border: 1px solid rgba(215, 25, 32, 0.34);
   color: var(--text);
   font-size: 0.9rem;
   font-weight: 700;
@@ -1248,9 +1275,9 @@ button:hover {
   gap: 12px;
   align-items: center;
   padding: 12px;
-  border-radius: 16px;
-  background: color-mix(in srgb, var(--surface) 80%, transparent);
-  border: 1px solid color-mix(in srgb, var(--outline) 72%, transparent);
+  border-radius: 10px;
+  background: rgba(8, 19, 30, 0.45);
+  border: 1px solid rgba(53, 77, 102, 0.72);
 }
 
 .admin-profile-actions {
@@ -1272,9 +1299,9 @@ button:hover {
 
 .analytics-stat {
   padding: 14px;
-  border-radius: 18px;
-  background: color-mix(in srgb, var(--surface) 78%, transparent);
-  border: 1px solid color-mix(in srgb, var(--outline) 74%, transparent);
+  border-radius: 10px;
+  background: rgba(8, 19, 30, 0.45);
+  border: 1px solid rgba(53, 77, 102, 0.72);
 }
 
 .analytics-stat strong {
@@ -1307,9 +1334,9 @@ button:hover {
   gap: 12px;
   align-items: center;
   padding: 12px 14px;
-  border-radius: 16px;
-  background: color-mix(in srgb, var(--surface) 78%, transparent);
-  border: 1px solid color-mix(in srgb, var(--outline) 74%, transparent);
+  border-radius: 10px;
+  background: rgba(8, 19, 30, 0.45);
+  border: 1px solid rgba(53, 77, 102, 0.72);
 }
 
 .leaderboard-place {
@@ -1360,9 +1387,9 @@ button:hover {
   gap: 14px;
   align-items: center;
   padding: 12px 14px;
-  border-radius: 18px;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 84%, white 2%), color-mix(in srgb, var(--surface) 92%, black 8%));
-  border: 1px solid color-mix(in srgb, var(--outline) 68%, transparent);
+  border-radius: 10px;
+  background: linear-gradient(180deg, #132639, #0d1c2b);
+  border: 1px solid rgba(53, 77, 102, 0.8);
   width: 100%;
   text-align: left;
   cursor: pointer;
@@ -1371,15 +1398,15 @@ button:hover {
 
 .directory-row:hover {
   transform: translateY(-1px);
-  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
-  background: linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 86%, var(--accent) 8%), color-mix(in srgb, var(--surface) 92%, black 8%));
+  border-color: rgba(215, 25, 32, 0.42);
+  background: linear-gradient(180deg, #173049, #102132);
   box-shadow: 0 14px 24px rgba(0, 0, 0, 0.12);
 }
 
 .directory-headshot {
   width: 64px;
   height: 64px;
-  border-radius: 16px;
+  border-radius: 8px;
   object-fit: cover;
   border: 1px solid color-mix(in srgb, var(--outline) 80%, transparent);
   background: color-mix(in srgb, var(--surface-alt) 82%, transparent);
@@ -1406,9 +1433,9 @@ button:hover {
 .two-player-fields {
   margin-top: 10px;
   padding: 14px;
-  border-radius: 18px;
-  background: color-mix(in srgb, var(--surface-alt) 90%, black 10%);
-  border: 1px solid color-mix(in srgb, var(--outline) 74%, transparent);
+  border-radius: 10px;
+  background: rgba(8, 19, 30, 0.45);
+  border: 1px solid rgba(53, 77, 102, 0.72);
 }
 
 #homeScreen .panel-heading h2 {
@@ -1439,8 +1466,8 @@ button:hover {
   margin: 0 auto;
   padding: 16px 20px;
   border: 1px solid color-mix(in srgb, var(--outline) 76%, transparent);
-  border-radius: 22px;
-  background: color-mix(in srgb, var(--surface) 72%, transparent);
+  border-radius: 10px;
+  background: rgba(15, 31, 48, 0.88);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1510,9 +1537,9 @@ button:hover {
 
 .contact-card {
   padding: 18px;
-  border-radius: 20px;
-  background: color-mix(in srgb, var(--surface-alt) 86%, transparent);
-  border: 1px solid color-mix(in srgb, var(--outline) 82%, transparent);
+  border-radius: 10px;
+  background: rgba(15, 31, 48, 0.88);
+  border: 1px solid rgba(58, 83, 110, 0.82);
 }
 
 .contact-card h2 {
@@ -1682,9 +1709,9 @@ button:hover {
 
 .scoreboard-shell {
   padding: 22px 24px;
-  border-radius: 28px;
+  border-radius: 10px;
   background:
-    linear-gradient(160deg, color-mix(in srgb, var(--surface-alt) 90%, white 6%) 0%, color-mix(in srgb, var(--surface) 96%, black 4%) 60%, color-mix(in srgb, var(--surface-alt) 88%, var(--gold) 6%) 100%);
+    linear-gradient(90deg, #16283d 0%, #102132 58%, #192d45 100%);
 }
 
 .scoreboard-shell::after {
@@ -1715,9 +1742,9 @@ button:hover {
 
 .hud-turn {
   padding: 14px 16px;
-  border-radius: 18px;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 86%, white 3%), color-mix(in srgb, var(--surface-alt) 92%, black 8%));
-  border: 1px solid color-mix(in srgb, var(--outline) 72%, transparent);
+  border-radius: 8px;
+  background: rgba(8, 19, 30, 0.4);
+  border: 1px solid rgba(53, 77, 102, 0.72);
 }
 
 .standard-match-layout {
@@ -1752,9 +1779,9 @@ button:hover {
   flex-direction: column;
   gap: 6px;
   padding: 12px 14px;
-  border-radius: 18px;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 88%, white 3%), color-mix(in srgb, var(--surface) 96%, black 4%));
-  border: 1px solid color-mix(in srgb, var(--outline) 68%, transparent);
+  border-radius: 8px;
+  background: rgba(8, 19, 30, 0.46);
+  border: 1px solid rgba(53, 77, 102, 0.72);
 }
 
 .online-player-card strong {
@@ -1820,18 +1847,20 @@ button:hover {
   align-items: center;
   justify-content: center;
   padding: 9px 14px;
-  border-radius: 999px;
+  border-radius: 6px;
   font-size: 0.92rem;
   font-weight: 800;
-  color: #20140d;
+  color: white;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
 }
 
 .chip-blue {
-  background: var(--accent);
+  background: #234567;
 }
 
 .chip-gold {
-  background: var(--gold);
+  background: var(--accent);
 }
 
 .timer {
@@ -1846,10 +1875,10 @@ button:hover {
   justify-content: center;
   width: fit-content;
   padding: 8px 12px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--gold) 20%, transparent);
-  border: 1px solid color-mix(in srgb, var(--gold) 55%, transparent);
-  color: var(--gold);
+  border-radius: 6px;
+  background: rgba(215, 25, 32, 0.12);
+  border: 1px solid rgba(215, 25, 32, 0.42);
+  color: white;
   font-size: 0.9rem;
   font-weight: 800;
 }
@@ -1857,7 +1886,7 @@ button:hover {
 .progress-panel {
   padding: 16px;
   margin-bottom: 14px;
-  border-radius: 22px;
+  border-radius: 10px;
 }
 
 .progress-bar {
@@ -1868,23 +1897,23 @@ button:hover {
 
 .progress-segment {
   height: 18px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--surface-alt) 84%, var(--surface));
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.07);
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--outline) 80%, transparent);
+  border: 1px solid rgba(53, 77, 102, 0.7);
   position: relative;
   box-shadow: none;
 }
 
 .progress-segment.current {
-  border-color: color-mix(in srgb, var(--accent) 72%, transparent);
+  border-color: rgba(215, 25, 32, 0.72);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent);
 }
 
 .progress-fill {
   height: 100%;
   width: 0%;
-  background: linear-gradient(90deg, color-mix(in srgb, var(--gold) 55%, white 45%), var(--accent));
+  background: linear-gradient(90deg, #7d9fc2, var(--accent));
   transition: width 180ms ease, background 180ms ease, opacity 180ms ease;
   opacity: 0.14;
 }
@@ -1937,9 +1966,9 @@ button:hover {
 
 .media-card,
 .logo-card {
-  border-radius: 18px;
-  border: 1px solid color-mix(in srgb, var(--outline) 80%, transparent);
-  background: color-mix(in srgb, var(--surface-alt) 78%, var(--surface));
+  border-radius: 8px;
+  border: 1px solid rgba(58, 83, 110, 0.82);
+  background: #102132;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2014,7 +2043,7 @@ button:hover {
   flex-direction: column;
   justify-content: center;
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 80%, var(--surface)) 0%, var(--surface) 100%);
+    linear-gradient(180deg, #15273b 0%, #102132 100%);
 }
 
 .quiz-layout.online-private-layout .question-panel,
@@ -2049,11 +2078,11 @@ button:hover {
 
 .choice-button {
   min-height: 60px;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 84%, white 10%), color-mix(in srgb, var(--surface) 92%, black 8%));
+  background: linear-gradient(180deg, #223a55, #16283b);
   color: var(--text);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
-  border-radius: 20px;
-  border-color: color-mix(in srgb, var(--outline) 72%, transparent);
+  border-radius: 8px;
+  border-color: rgba(58, 83, 110, 0.82);
 }
 
 .choice-button.correct-choice {
@@ -2104,9 +2133,9 @@ button:hover {
 .chat-panel {
   margin-top: 0;
   padding: 16px;
-  border-radius: 22px;
-  background: color-mix(in srgb, var(--surface-alt) 78%, transparent);
-  border: 1px solid color-mix(in srgb, var(--outline) 80%, transparent);
+  border-radius: 10px;
+  background: linear-gradient(180deg, #15273b 0%, #102132 100%);
+  border: 1px solid rgba(58, 83, 110, 0.82);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.03),
     0 18px 34px rgba(8, 18, 34, 0.18);
@@ -2165,9 +2194,9 @@ button:hover {
 
 .chat-message {
   padding: 10px 12px;
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--surface) 82%, transparent);
-  border: 1px solid color-mix(in srgb, var(--outline) 64%, transparent);
+  border-radius: 8px;
+  background: rgba(8, 19, 30, 0.52);
+  border: 1px solid rgba(53, 77, 102, 0.68);
 }
 
 .chat-message + .chat-message {
@@ -2175,7 +2204,7 @@ button:hover {
 }
 
 .chat-message.own-message {
-  background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+  background: rgba(215, 25, 32, 0.14);
 }
 
 .chat-message-header {
@@ -2254,7 +2283,7 @@ button:hover {
 .arena-stage {
   min-height: 620px;
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 88%, white 6%) 0%, color-mix(in srgb, var(--surface) 96%, black 4%) 100%);
+    linear-gradient(180deg, #15273b 0%, #102132 100%);
 }
 
 .control-deck {
