@@ -83,6 +83,36 @@ a {
   display: block;
 }
 
+#homeScreen {
+  color: #18222d;
+}
+
+#homeScreen .eyebrow,
+#homeScreen label,
+#homeScreen .leaderboard-meta,
+#homeScreen .online-status,
+#homeScreen .leaderboard-empty,
+#homeScreen .daily-status,
+#homeScreen .rank-info-tooltip-subtitle {
+  color: #5d6c7d;
+}
+
+#homeScreen .rank-info-tooltip-title,
+#homeScreen h1,
+#homeScreen h2,
+#homeScreen h3,
+#homeScreen strong,
+#homeScreen .checkbox-row span,
+#homeScreen .home-step-tab,
+#homeScreen .rank-info-trigger {
+  color: #17212b;
+}
+
+#homeScreen .secondary-button,
+#homeScreen .home-utility-button {
+  color: #17212b;
+}
+
 .hero-card,
 .panel,
 .hud-card,
@@ -93,6 +123,13 @@ a {
   border: 1px solid color-mix(in srgb, var(--outline) 90%, transparent);
   border-radius: 12px;
   box-shadow: var(--shadow);
+}
+
+#homeScreen .hero-card,
+#homeScreen .panel {
+  background: #fbfcfe;
+  border: 1px solid #dde4ec;
+  box-shadow: 0 14px 34px rgba(18, 33, 51, 0.08);
 }
 
 .hero-card,
@@ -114,10 +151,23 @@ a {
   border-radius: 12px;
 }
 
+#homeScreen .home-hero {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  margin-bottom: 18px;
+}
+
 .game-marquee {
   background:
     linear-gradient(180deg, #152a42 0%, #0f2135 100%);
   border-color: #324a65;
+}
+
+#homeScreen .game-marquee {
+  background: transparent;
+  border: 0;
 }
 
 .game-marquee::after {
@@ -136,11 +186,21 @@ a {
   gap: 14px;
 }
 
+#homeScreen .hero-shell {
+  gap: 10px;
+}
+
 .hero-nav-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 16px;
   align-items: center;
+}
+
+#homeScreen .hero-nav-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e8ef;
 }
 
 .hero-brand-lockup {
@@ -167,6 +227,11 @@ a {
   line-height: 1.45;
 }
 
+#homeScreen .hero-subline {
+  max-width: 520px;
+  font-size: 1rem;
+}
+
 .hero-topbar {
   display: flex;
   justify-content: flex-end;
@@ -175,11 +240,25 @@ a {
   z-index: 1;
 }
 
+#homeScreen .hero-topbar {
+  align-items: center;
+}
+
 .topbar-button {
   width: auto;
   min-width: 96px;
   padding: 10px 15px;
   border-radius: 999px;
+}
+
+#homeScreen .home-utility-button,
+#homeScreen .topbar-button {
+  min-width: 0;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid #d5dde6;
+  background: white;
+  box-shadow: none;
 }
 
 .hero-broadcast-strip {
@@ -513,6 +592,186 @@ label,
   grid-template-columns: minmax(360px, 420px) minmax(0, 1fr);
   gap: 16px;
   align-items: start;
+}
+
+.home-simple-shell {
+  display: grid;
+  gap: 18px;
+}
+
+.home-simple-topbar {
+  display: none;
+}
+
+.home-simple-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.86fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.home-main-card,
+.home-mini-card {
+  background: #fbfcfe;
+  border: 1px solid #dde4ec;
+  box-shadow: 0 14px 34px rgba(18, 33, 51, 0.08);
+}
+
+.home-main-card {
+  border-radius: 22px;
+  padding: 18px;
+}
+
+.home-mini-card {
+  border-radius: 18px;
+  padding: 16px;
+}
+
+.home-main-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid #e2e8ef;
+}
+
+.home-main-header h2 {
+  margin-bottom: 0;
+  font-size: 1.25rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.home-main-body {
+  display: grid;
+  gap: 14px;
+}
+
+.home-identity-strip {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 16px;
+  background: #f5f8fb;
+  border: 1px solid #e3e8ee;
+}
+
+.home-step-tabs {
+  display: inline-flex;
+  gap: 8px;
+  padding: 4px;
+  border-radius: 999px;
+  background: #eff3f7;
+  border: 1px solid #dde4ec;
+  width: fit-content;
+}
+
+.home-step-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 16px;
+  border-radius: 999px;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.home-step-tab.is-active {
+  background: #18222d;
+  color: #ffffff;
+}
+
+.home-simple-card {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid #e3e8ee;
+}
+
+.home-simple-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.home-action-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.home-primary-action,
+.home-secondary-action {
+  min-height: 54px;
+  border-radius: 14px;
+  font-weight: 800;
+}
+
+.home-primary-action {
+  background: #18222d;
+  color: #ffffff;
+  border-color: #18222d;
+}
+
+.home-secondary-action {
+  background: #eef3f7;
+  color: #17212b;
+  border-color: #d9e1ea;
+}
+
+.home-mode-list {
+  display: grid;
+  gap: 10px;
+}
+
+.home-mode-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: #f7f9fc;
+  border: 1px solid #e3e8ee;
+}
+
+.home-side-stack {
+  display: grid;
+  gap: 14px;
+}
+
+#homeScreen input,
+#homeScreen select {
+  border-radius: 12px;
+  border: 1px solid #d6dfe8;
+  background: #ffffff;
+  color: #17212b;
+}
+
+#homeScreen .subtle-checkbox {
+  background: #f5f8fb;
+  border: 1px solid #e3e8ee;
+}
+
+#homeScreen .two-player-fields {
+  background: #f7f9fc;
+  border: 1px solid #e3e8ee;
+}
+
+#homeScreen .rank-info-trigger {
+  background: #ffffff;
+  border: 1px solid #d6dfe8;
+}
+
+#homeScreen .rank-info-tooltip {
+  background: #ffffff;
+  border: 1px solid #d6dfe8;
+  box-shadow: 0 18px 40px rgba(18, 33, 51, 0.12);
 }
 
 .espn-home-grid {
@@ -1650,6 +1909,33 @@ button:hover {
 @media (max-width: 760px) {
   .mobile-home-nav {
     display: none;
+  }
+
+  #homeScreen .hero-topbar {
+    display: none;
+  }
+
+  .home-simple-topbar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .home-simple-grid,
+  .home-simple-fields,
+  .home-action-row {
+    grid-template-columns: 1fr;
+  }
+
+  .home-main-card,
+  .home-mini-card {
+    border-radius: 16px;
+  }
+
+  .home-main-header,
+  .home-mode-row {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .hero-nav-row,
