@@ -14,336 +14,288 @@
 <body data-theme="Arena Blue">
   <main class="app-shell">
     <section id="homeScreen" class="screen active">
-      <section class="hero-card home-hero game-marquee">
-        <div class="hero-shell">
-          <div class="hero-nav-row">
-            <div class="hero-brand-lockup">
-              <p class="eyebrow">NBA College Quiz</p>
-              <div class="hero-brand-title-row">
-                <h1 id="siteTitle">Court Vision</h1>
-              </div>
+      <div class="home-v3-shell">
+        <header class="home-v3-header">
+          <div class="home-v3-brand">
+            <p class="home-v3-kicker">NBA College Quiz</p>
+            <h1 id="siteTitle">Court Vision</h1>
+          </div>
+          <div class="home-v3-actions">
+            <button id="loginButton" class="topbar-button secondary-button">Profile</button>
+            <button id="friendsButton" class="topbar-button secondary-button">Friends</button>
+            <button id="shareButton" class="topbar-button secondary-button">Share</button>
+          </div>
+        </header>
+
+        <div class="home-v3-utility-row">
+          <div id="authPanel" class="auth-panel hidden compact-auth-panel">
+            <div id="authSignedOut">
+              <p class="eyebrow">Account</p>
+              <div class="daily-status">Sign in to lock your profile and ranked identity.</div>
+              <div id="googleSignInButton" class="google-signin-slot"></div>
+              <div id="authStatus" class="online-status"></div>
             </div>
-            <div class="hero-topbar">
-              <button id="loginButton" class="topbar-button secondary-button">Profile</button>
-              <button id="friendsButton" class="topbar-button secondary-button">Friends</button>
-              <button id="shareButton" class="topbar-button secondary-button">Share</button>
+            <div id="authSignedIn" class="hidden">
+              <p class="eyebrow">Signed In</p>
+              <div class="auth-user-row">
+                <img id="authUserPicture" class="auth-avatar" alt="Profile picture" />
+                <div>
+                  <div id="authUserName" class="daily-status"></div>
+                  <div id="authUserEmail" class="leaderboard-meta"></div>
+                </div>
+              </div>
+              <div class="hero-actions compact-actions">
+                <button id="logoutButton" class="secondary-button">Logout</button>
+              </div>
             </div>
           </div>
-
-          <div class="hero-spotlight-grid">
-            <div class="hero-sidepanels">
-              <div id="authPanel" class="auth-panel hidden compact-auth-panel">
-                <div id="authSignedOut">
-                  <p class="eyebrow">Account</p>
-                  <div class="daily-status">Sign in to lock your profile and ranked identity.</div>
-                  <div id="googleSignInButton" class="google-signin-slot"></div>
-                  <div id="authStatus" class="online-status"></div>
-                </div>
-                <div id="authSignedIn" class="hidden">
-                  <p class="eyebrow">Signed In</p>
-                  <div class="auth-user-row">
-                    <img id="authUserPicture" class="auth-avatar" alt="Profile picture" />
-                    <div>
-                      <div id="authUserName" class="daily-status"></div>
-                      <div id="authUserEmail" class="leaderboard-meta"></div>
-                    </div>
-                  </div>
-                  <div class="hero-actions compact-actions">
-                    <button id="logoutButton" class="secondary-button">Logout</button>
-                  </div>
-                </div>
+          <div id="friendsPanel" class="auth-panel hidden compact-auth-panel friends-panel">
+            <div class="leaderboard-header">
+              <div>
+                <p class="eyebrow">Friends</p>
+                <div id="friendsStatus" class="daily-status">Sign in to build your friends list.</div>
               </div>
-              <div id="friendsPanel" class="auth-panel hidden compact-auth-panel friends-panel">
-                <div class="leaderboard-header">
-                  <div>
-                    <p class="eyebrow">Friends</p>
-                    <div id="friendsStatus" class="daily-status">Sign in to build your friends list.</div>
-                  </div>
-                </div>
-                <div id="friendsContent" class="friends-panel-content">
-                  <div class="leaderboard-empty">Your friends list will appear here.</div>
-                </div>
-                <div class="hero-actions compact-actions">
-                  <button id="refreshFriends" class="secondary-button">Refresh</button>
-                </div>
-              </div>
+            </div>
+            <div id="friendsContent" class="friends-panel-content">
+              <div class="leaderboard-empty">Your friends list will appear here.</div>
+            </div>
+            <div class="hero-actions compact-actions">
+              <button id="refreshFriends" class="secondary-button">Refresh</button>
             </div>
           </div>
         </div>
-      </section>
 
-      <div class="mobile-home-nav" aria-label="Home sections">
-        <button id="mobilePlayTab" class="mobile-home-tab is-active" type="button">Play</button>
-        <button id="mobileHubTab" class="mobile-home-tab" type="button">Hub</button>
-      </div>
+        <div class="mobile-home-nav" aria-label="Home sections">
+          <button id="mobilePlayTab" class="mobile-home-tab is-active" type="button">Play</button>
+          <button id="mobileHubTab" class="mobile-home-tab" type="button">Hub</button>
+        </div>
 
-      <section class="home-grid">
-        <article class="panel play-panel simplified-play-panel home-panel-block home-panel-play game-lobby-panel">
-          <div class="panel-heading">
-            <div>
-              <p class="eyebrow">Play</p>
-              <h2>Start A Game</h2>
-            </div>
-          </div>
-
-          <div class="setup-section compact-section lobby-identity-card">
-            <div class="setup-grid two-col">
-              <div>
-                <label for="username">Username</label>
-                <input id="username" placeholder="Enter username" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
-              </div>
-              <input id="theme" type="hidden" value="Arena Blue" />
-              <select id="gameMode" class="hidden" aria-hidden="true" tabindex="-1">
-                <option value="Practice" selected>Practice</option>
-              </select>
-            </div>
-          </div>
-
-          <div id="quizSetupStep" class="setup-step active">
-          <div class="setup-stagebar">
-            <div class="setup-stage-chip is-active">1. Quiz Setup</div>
-            <div class="setup-stage-chip">2. Match Type</div>
-          </div>
-          <div class="setup-section compact-section lobby-stage-card">
-            <div class="section-title-row">
-              <h3>Quiz Setup</h3>
-            </div>
-            <div class="setup-grid two-col">
-              <div>
-                <label for="questionCount">Quiz Length</label>
-                <select id="questionCount">
-                  <option value="10">10</option>
-                  <option value="25" selected>25</option>
-                  <option value="50">50</option>
-                  <option value="100">100</option>
-                  <option value="all">All</option>
-                </select>
-              </div>
-              <div>
-                <label for="conferenceFilter">Conference</label>
-                <select id="conferenceFilter">
-                  <option value="All">All</option>
-                </select>
-              </div>
-              <div>
-                <label for="playerPool">Player Pool</label>
-                <select id="playerPool">
-                  <option value="all">All Players</option>
-                  <option value="rotation">Rotation Players</option>
-                  <option value="starter">Starters</option>
-                  <option value="bench">Bench Players</option>
-                </select>
-              </div>
-              <div>
-                <label for="answerMode">Answer Style</label>
-                <select id="answerMode">
-                  <option value="typed">Typed</option>
-                  <option value="multiple-choice">Multiple Choice</option>
-                </select>
-              </div>
-            </div>
-            <label class="checkbox-row subtle-checkbox">
-              <input type="checkbox" id="showHeadshots" checked />
-              <span>Show headshots</span>
-            </label>
-          </div>
-          <div class="hero-actions home-primary-actions setup-next-actions">
-            <button id="continueToMatchType" type="button">Continue To Match Type</button>
-            <button id="saveProfile" type="button">Save Profile</button>
-          </div>
-          </div>
-
-          <div id="matchTypeStep" class="setup-step hidden">
-          <div class="setup-stagebar">
-            <div class="setup-stage-chip">1. Quiz Setup</div>
-            <div class="setup-stage-chip is-active">2. Match Type</div>
-          </div>
-          <div class="setup-section compact-section lobby-stage-card">
-            <div class="section-title-row">
-              <h3>Match Type</h3>
+        <section class="home-grid home-v3-grid">
+          <article class="panel play-panel simplified-play-panel home-panel-block home-panel-play game-lobby-panel">
+            <div class="home-v3-panel-header">
+              <h2>Game Setup</h2>
             </div>
 
-            <div class="mode-stack">
-              <div class="mode-card">
-                <label class="checkbox-row">
-                  <input type="checkbox" id="soloMode" />
-                  <span>Solo Run</span>
-                </label>
-                <div class="mode-card-info">
-                  <div class="mode-card-meta-row">
-                    <div class="rank-info match-info">
-                      <button
-                        class="rank-info-trigger"
-                        type="button"
-                        aria-label="Solo Run information"
-                        title="Solo Run information"
-                      >i</button>
-                      <div class="rank-info-tooltip match-info-tooltip" role="tooltip">
-                        <div class="rank-info-tooltip-title">Solo Run</div>
-                        <div class="rank-info-tooltip-subtitle">Play by yourself, build XP, and post your best score.</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div class="mode-card">
-                <label class="checkbox-row">
-                  <input type="checkbox" id="twoPlayerMode" />
-                  <span>2-Player Local</span>
-                </label>
-                <div class="mode-card-info">
-                  <div class="mode-card-meta-row">
-                    <div class="rank-info match-info">
-                      <button
-                        class="rank-info-trigger"
-                        type="button"
-                        aria-label="2-Player Local information"
-                        title="2-Player Local information"
-                      >i</button>
-                      <div class="rank-info-tooltip match-info-tooltip" role="tooltip">
-                        <div class="rank-info-tooltip-title">2-Player Local</div>
-                        <div class="rank-info-tooltip-subtitle">Two players share one device and alternate through the same quiz.</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div id="twoPlayerFields" class="two-player-fields hidden">
-                  <label for="playerOneName">Player 1 Name</label>
-                  <input id="playerOneName" placeholder="Player 1" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
-                  <label for="playerTwoName">Player 2 Name</label>
-                  <input id="playerTwoName" placeholder="Player 2" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
-                </div>
-              </div>
-
-              <div class="mode-card">
-                <label class="checkbox-row">
-                  <input type="checkbox" id="onlineMode" />
-                  <span>Private Online 1v1</span>
-                </label>
-                <div class="mode-card-info">
-                  <div class="mode-card-meta-row">
-                    <div class="rank-info match-info">
-                      <button
-                        class="rank-info-trigger"
-                        type="button"
-                        aria-label="Private Online 1v1 information"
-                        title="Private Online 1v1 information"
-                      >i</button>
-                      <div class="rank-info-tooltip match-info-tooltip" role="tooltip">
-                        <div class="rank-info-tooltip-title">Private Online 1v1</div>
-                        <div class="rank-info-tooltip-subtitle">Create a private room, invite one opponent, and play live online.</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div id="onlineFields" class="two-player-fields hidden">
-                  <label for="onlineAction">Online Match</label>
-                  <select id="onlineAction">
-                    <option value="create">Create Match</option>
-                    <option value="join">Join Match</option>
-                  </select>
-                  <label for="onlineCode">Match Code</label>
-                  <input id="onlineCode" placeholder="Enter code to join" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" />
-                  <div id="onlineStatus" class="online-status">Create a room or join one with a match code.</div>
-                </div>
-              </div>
-
-              <div class="mode-card ranked-card">
-                <label class="checkbox-row">
-                  <input type="checkbox" id="rankedMode" />
-                  <span>True Ranked Online</span>
-                </label>
-                <div class="mode-card-info">
-                  <div class="mode-card-meta-row">
-                    <div class="rank-info match-info">
-                      <button
-                        class="rank-info-trigger"
-                        type="button"
-                        aria-label="True Ranked Online information"
-                        title="True Ranked Online information"
-                      >i</button>
-                      <div class="rank-info-tooltip match-info-tooltip" role="tooltip">
-                        <div class="rank-info-tooltip-title">True Ranked Online</div>
-                        <div class="rank-info-tooltip-subtitle">Enter the ranked queue and compete under the standard competitive ruleset.</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div id="rankedFields" class="two-player-fields hidden">
-                  <div class="online-status">Ranked is always 25 questions, multiple choice, no hints, and a 15-second timer. Google sign-in is required.</div>
-                </div>
-              </div>
-
-              <div class="mode-card cpu-mode-card">
-                <label class="checkbox-row">
-                  <input type="checkbox" id="cpuMode" />
-                  <span>Play Vs CPU</span>
-                </label>
-                <div class="mode-card-info">
-                  <div class="mode-card-meta-row">
-                    <div class="rank-info match-info">
-                      <button
-                        class="rank-info-trigger"
-                        type="button"
-                        aria-label="Play Vs CPU information"
-                        title="Play Vs CPU information"
-                      >i</button>
-                      <div class="rank-info-tooltip match-info-tooltip" role="tooltip">
-                        <div class="rank-info-tooltip-title">Play Vs CPU</div>
-                        <div class="rank-info-tooltip-subtitle">Face a computer opponent locally. Easy gives the CPU a softer accuracy curve, while hard is much tougher.</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div id="cpuFields" class="two-player-fields hidden">
-                  <label for="cpuDifficulty">CPU Difficulty</label>
-                  <select id="cpuDifficulty">
-                    <option value="easy">Easy</option>
-                    <option value="hard">Hard</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="hero-actions home-primary-actions setup-next-actions match-step-actions">
-            <button id="backToQuizSetup" class="step-button step-button-secondary" type="button">Back To Quiz Setup</button>
-            <button id="startQuiz" class="step-button step-button-primary" type="button">Start Game</button>
-          </div>
-          </div>
-
-          <input type="checkbox" id="dailyMode" hidden />
-
-        </article>
-
-        <article class="panel dashboard-panel simplified-dashboard-panel home-panel-block home-panel-hub intel-panel">
-          <div class="panel-heading">
-            <div>
-              <p class="eyebrow">Hub</p>
-              <h2>Profile And Directory</h2>
-            </div>
-          </div>
-          <div class="hub-showcase-grid">
-            <div id="profileSummary" class="dashboard-card profile-card">Profile summary will appear here.</div>
-            <div id="directoryOutput" class="dashboard-card directory-card">
-              <div class="leaderboard-header">
+            <div class="home-v3-section home-v3-identity">
+              <div class="setup-grid two-col">
                 <div>
-                  <p class="eyebrow">Player Directory</p>
+                  <label for="username">Username</label>
+                  <input id="username" placeholder="Enter username" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
                 </div>
-                <button id="toggleDirectory" class="mobile-section-toggle secondary-button" type="button">Show</button>
-              </div>
-              <div id="directoryBody" class="mobile-section-body">
-              <div class="directory-search-row">
-                <input id="directorySearch" placeholder="Search any NBA player" autocomplete="off" autocapitalize="words" autocorrect="off" spellcheck="false" />
-                <button id="directorySearchButton" class="secondary-button">Search</button>
-              </div>
-              <div id="directoryResults" class="directory-results">
-                <div class="leaderboard-empty"></div>
-              </div>
+                <input id="theme" type="hidden" value="Arena Blue" />
+                <select id="gameMode" class="hidden" aria-hidden="true" tabindex="-1">
+                  <option value="Practice" selected>Practice</option>
+                </select>
               </div>
             </div>
-          </div>
-        </article>
-      </section>
+
+            <div id="quizSetupStep" class="setup-step active">
+              <div class="setup-stagebar">
+                <div class="setup-stage-chip is-active">1. Quiz Setup</div>
+                <div class="setup-stage-chip">2. Match Type</div>
+              </div>
+              <div class="home-v3-section">
+                <div class="section-title-row">
+                  <h3>Quiz Setup</h3>
+                </div>
+                <div class="setup-grid two-col">
+                  <div>
+                    <label for="questionCount">Quiz Length</label>
+                    <select id="questionCount">
+                      <option value="10">10</option>
+                      <option value="25" selected>25</option>
+                      <option value="50">50</option>
+                      <option value="100">100</option>
+                      <option value="all">All</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label for="conferenceFilter">Conference</label>
+                    <select id="conferenceFilter">
+                      <option value="All">All</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label for="playerPool">Player Pool</label>
+                    <select id="playerPool">
+                      <option value="all">All Players</option>
+                      <option value="rotation">Rotation Players</option>
+                      <option value="starter">Starters</option>
+                      <option value="bench">Bench Players</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label for="answerMode">Answer Style</label>
+                    <select id="answerMode">
+                      <option value="typed">Typed</option>
+                      <option value="multiple-choice">Multiple Choice</option>
+                    </select>
+                  </div>
+                </div>
+                <label class="checkbox-row subtle-checkbox">
+                  <input type="checkbox" id="showHeadshots" checked />
+                  <span>Show headshots</span>
+                </label>
+              </div>
+              <div class="hero-actions home-primary-actions setup-next-actions">
+                <button id="continueToMatchType" type="button">Continue To Match Type</button>
+                <button id="saveProfile" type="button">Save Profile</button>
+              </div>
+            </div>
+
+            <div id="matchTypeStep" class="setup-step hidden">
+              <div class="setup-stagebar">
+                <div class="setup-stage-chip">1. Quiz Setup</div>
+                <div class="setup-stage-chip is-active">2. Match Type</div>
+              </div>
+              <div class="home-v3-section">
+                <div class="section-title-row">
+                  <h3>Match Type</h3>
+                </div>
+                <div class="mode-stack mode-stack-v3">
+                  <div class="mode-card">
+                    <label class="checkbox-row">
+                      <input type="checkbox" id="soloMode" />
+                      <span>Solo Run</span>
+                    </label>
+                    <div class="mode-card-meta-row">
+                      <div class="rank-info match-info">
+                        <button class="rank-info-trigger" type="button" aria-label="Solo Run information" title="Solo Run information">i</button>
+                        <div class="rank-info-tooltip match-info-tooltip" role="tooltip">
+                          <div class="rank-info-tooltip-title">Solo Run</div>
+                          <div class="rank-info-tooltip-subtitle">Play by yourself, build XP, and post your best score.</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="mode-card">
+                    <label class="checkbox-row">
+                      <input type="checkbox" id="twoPlayerMode" />
+                      <span>2-Player Local</span>
+                    </label>
+                    <div class="mode-card-meta-row">
+                      <div class="rank-info match-info">
+                        <button class="rank-info-trigger" type="button" aria-label="2-Player Local information" title="2-Player Local information">i</button>
+                        <div class="rank-info-tooltip match-info-tooltip" role="tooltip">
+                          <div class="rank-info-tooltip-title">2-Player Local</div>
+                          <div class="rank-info-tooltip-subtitle">Two players share one device and alternate through the same quiz.</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div id="twoPlayerFields" class="two-player-fields hidden">
+                      <label for="playerOneName">Player 1 Name</label>
+                      <input id="playerOneName" placeholder="Player 1" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
+                      <label for="playerTwoName">Player 2 Name</label>
+                      <input id="playerTwoName" placeholder="Player 2" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
+                    </div>
+                  </div>
+
+                  <div class="mode-card">
+                    <label class="checkbox-row">
+                      <input type="checkbox" id="onlineMode" />
+                      <span>Private Online 1v1</span>
+                    </label>
+                    <div class="mode-card-meta-row">
+                      <div class="rank-info match-info">
+                        <button class="rank-info-trigger" type="button" aria-label="Private Online 1v1 information" title="Private Online 1v1 information">i</button>
+                        <div class="rank-info-tooltip match-info-tooltip" role="tooltip">
+                          <div class="rank-info-tooltip-title">Private Online 1v1</div>
+                          <div class="rank-info-tooltip-subtitle">Create a private room, invite one opponent, and play live online.</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div id="onlineFields" class="two-player-fields hidden">
+                      <label for="onlineAction">Online Match</label>
+                      <select id="onlineAction">
+                        <option value="create">Create Match</option>
+                        <option value="join">Join Match</option>
+                      </select>
+                      <label for="onlineCode">Match Code</label>
+                      <input id="onlineCode" placeholder="Enter code to join" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" />
+                      <div id="onlineStatus" class="online-status">Create a room or join one with a match code.</div>
+                    </div>
+                  </div>
+
+                  <div class="mode-card ranked-card">
+                    <label class="checkbox-row">
+                      <input type="checkbox" id="rankedMode" />
+                      <span>True Ranked Online</span>
+                    </label>
+                    <div class="mode-card-meta-row">
+                      <div class="rank-info match-info">
+                        <button class="rank-info-trigger" type="button" aria-label="True Ranked Online information" title="True Ranked Online information">i</button>
+                        <div class="rank-info-tooltip match-info-tooltip" role="tooltip">
+                          <div class="rank-info-tooltip-title">True Ranked Online</div>
+                          <div class="rank-info-tooltip-subtitle">Enter the ranked queue and compete under the standard competitive ruleset.</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div id="rankedFields" class="two-player-fields hidden">
+                      <div class="online-status">Ranked is always 25 questions, multiple choice, no hints, and a 15-second timer. Google sign-in is required.</div>
+                    </div>
+                  </div>
+
+                  <div class="mode-card cpu-mode-card">
+                    <label class="checkbox-row">
+                      <input type="checkbox" id="cpuMode" />
+                      <span>Play Vs CPU</span>
+                    </label>
+                    <div class="mode-card-meta-row">
+                      <div class="rank-info match-info">
+                        <button class="rank-info-trigger" type="button" aria-label="Play Vs CPU information" title="Play Vs CPU information">i</button>
+                        <div class="rank-info-tooltip match-info-tooltip" role="tooltip">
+                          <div class="rank-info-tooltip-title">Play Vs CPU</div>
+                          <div class="rank-info-tooltip-subtitle">Face a computer opponent locally. Easy gives the CPU a softer accuracy curve, while hard is much tougher.</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div id="cpuFields" class="two-player-fields hidden">
+                      <label for="cpuDifficulty">CPU Difficulty</label>
+                      <select id="cpuDifficulty">
+                        <option value="easy">Easy</option>
+                        <option value="hard">Hard</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="hero-actions home-primary-actions setup-next-actions match-step-actions">
+                <button id="backToQuizSetup" class="step-button step-button-secondary" type="button">Back To Quiz Setup</button>
+                <button id="startQuiz" class="step-button step-button-primary" type="button">Start Game</button>
+              </div>
+            </div>
+
+            <input type="checkbox" id="dailyMode" hidden />
+          </article>
+
+          <article class="panel dashboard-panel simplified-dashboard-panel home-panel-block home-panel-hub intel-panel">
+            <div class="home-v3-panel-header">
+              <h2>Player Hub</h2>
+            </div>
+            <div class="hub-showcase-grid home-v3-hub-grid">
+              <div id="profileSummary" class="dashboard-card profile-card">Profile summary will appear here.</div>
+              <div id="directoryOutput" class="dashboard-card directory-card">
+                <div class="leaderboard-header">
+                  <div>
+                    <p class="eyebrow">Player Directory</p>
+                  </div>
+                  <button id="toggleDirectory" class="mobile-section-toggle secondary-button" type="button">Show</button>
+                </div>
+                <div id="directoryBody" class="mobile-section-body">
+                  <div class="directory-search-row">
+                    <input id="directorySearch" placeholder="Search any NBA player" autocomplete="off" autocapitalize="words" autocorrect="off" spellcheck="false" />
+                    <button id="directorySearchButton" class="secondary-button">Search</button>
+                  </div>
+                  <div id="directoryResults" class="directory-results">
+                    <div class="leaderboard-empty"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+        </section>
+      </div>
     </section>
 
     <section id="quizScreen" class="screen">
