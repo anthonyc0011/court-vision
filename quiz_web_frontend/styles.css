@@ -3016,7 +3016,7 @@ button:hover {
    Simplified Home Layout
    ============================================= */
 
-/* Remove inner section boxes — flat layout */
+/* Flatten inner quiz-setup section boxes */
 #homeScreen .home-v3-section {
   background: none;
   border: none;
@@ -3024,7 +3024,7 @@ button:hover {
   border-radius: 0;
 }
 
-/* Stage bar: subtle text tabs instead of heavy pill chips */
+/* Stage bar: subtle text tabs */
 #homeScreen .setup-stagebar {
   border-bottom: 1px solid color-mix(in srgb, var(--outline) 50%, transparent);
   padding-bottom: 10px;
@@ -3065,22 +3065,22 @@ button:hover {
   padding: 6px 0;
 }
 
-/* Hub: single column — no side-by-side cards */
+/* Hub: single column */
 #homeScreen .home-v3-hub-grid {
   grid-template-columns: 1fr;
-  gap: 16px;
+  gap: 14px;
 }
 
-/* Remove inner card boxes from hub */
+/* Profile + directory: subtle contained cards */
 #homeScreen .dashboard-card {
-  background: none;
-  border: none;
+  background: color-mix(in srgb, var(--surface-alt) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--outline) 50%, transparent);
+  border-radius: 14px;
   box-shadow: none;
-  padding: 0;
-  border-radius: 0;
+  padding: 16px;
 }
 
-/* Profile stats: clean label/value rows instead of individual boxes */
+/* Profile stats: clean label/value rows */
 #homeScreen .profile-stat-grid {
   gap: 0;
   border-top: 1px solid color-mix(in srgb, var(--outline) 36%, transparent);
@@ -3091,7 +3091,7 @@ button:hover {
 #homeScreen .profile-stat {
   background: none;
   border: none;
-  border-bottom: 1px solid color-mix(in srgb, var(--outline) 30%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--outline) 28%, transparent);
   border-radius: 0;
   padding: 9px 2px;
   display: flex;
@@ -3109,24 +3109,17 @@ button:hover {
   margin-top: 0;
 }
 
-/* Profile section divider */
 #homeScreen .profile-hero {
   margin-bottom: 2px;
 }
 
-/* Ranked CTA: flat */
+/* Ranked CTA: flat inside card */
 #homeScreen .profile-ranked-cta {
   background: none;
   border: none;
   border-top: 1px solid color-mix(in srgb, var(--outline) 36%, transparent);
   border-radius: 0;
   padding: 12px 2px 4px;
-}
-
-/* Directory: subtle separator from profile above */
-#homeScreen .directory-card {
-  border-top: 1px solid color-mix(in srgb, var(--outline) 40%, transparent);
-  padding-top: 14px;
 }
 
 /* Action buttons row: tighter */
