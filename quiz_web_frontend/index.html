@@ -23,43 +23,7 @@
           </div>
         </header>
 
-        <div class="home-v3-utility-row">
-          <div id="authPanel" class="auth-panel hidden compact-auth-panel">
-            <div id="authSignedOut">
-              <p class="eyebrow">Account</p>
-              <div class="daily-status">Sign in to lock your profile and ranked identity.</div>
-              <div id="googleSignInButton" class="google-signin-slot"></div>
-              <div id="authStatus" class="online-status"></div>
-            </div>
-            <div id="authSignedIn" class="hidden">
-              <p class="eyebrow">Signed In</p>
-              <div class="auth-user-row">
-                <img id="authUserPicture" class="auth-avatar" alt="Profile picture" />
-                <div>
-                  <div id="authUserName" class="daily-status"></div>
-                  <div id="authUserEmail" class="leaderboard-meta"></div>
-                </div>
-              </div>
-              <div class="hero-actions compact-actions">
-                <button id="logoutButton" class="secondary-button">Logout</button>
-              </div>
-            </div>
-          </div>
-          <div id="friendsPanel" class="auth-panel hidden compact-auth-panel friends-panel">
-            <div class="leaderboard-header">
-              <div>
-                <p class="eyebrow">Friends</p>
-                <div id="friendsStatus" class="daily-status">Sign in to build your friends list.</div>
-              </div>
-            </div>
-            <div id="friendsContent" class="friends-panel-content">
-              <div class="leaderboard-empty">Your friends list will appear here.</div>
-            </div>
-            <div class="hero-actions compact-actions">
-              <button id="refreshFriends" class="secondary-button">Refresh</button>
-            </div>
-          </div>
-        </div>
+        <div class="home-v3-utility-row"></div>
 
         <div class="mobile-home-nav" aria-label="Home sections">
           <button id="mobilePlayTab" class="mobile-home-tab is-active" type="button">Play</button>
@@ -272,6 +236,41 @@
             <div class="hub-showcase-grid home-v3-hub-grid">
               <div id="profileSummary" class="dashboard-card profile-card">Profile summary will appear here.</div>
               <div id="directoryOutput" class="dashboard-card directory-card">
+                <div id="authPanel" class="auth-panel hidden compact-auth-panel hub-inline-panel">
+                  <div id="authSignedOut">
+                    <p class="eyebrow">Account</p>
+                    <div class="daily-status">Sign in to lock your profile and ranked identity.</div>
+                    <div id="googleSignInButton" class="google-signin-slot"></div>
+                    <div id="authStatus" class="online-status"></div>
+                  </div>
+                  <div id="authSignedIn" class="hidden">
+                    <p class="eyebrow">Signed In</p>
+                    <div class="auth-user-row">
+                      <img id="authUserPicture" class="auth-avatar" alt="Profile picture" />
+                      <div>
+                        <div id="authUserName" class="daily-status"></div>
+                        <div id="authUserEmail" class="leaderboard-meta"></div>
+                      </div>
+                    </div>
+                    <div class="hero-actions compact-actions">
+                      <button id="logoutButton" class="secondary-button">Logout</button>
+                    </div>
+                  </div>
+                </div>
+                <div id="friendsPanel" class="auth-panel hidden compact-auth-panel friends-panel hub-inline-panel">
+                  <div class="leaderboard-header">
+                    <div>
+                      <p class="eyebrow">Friends</p>
+                      <div id="friendsStatus" class="daily-status">Sign in to build your friends list.</div>
+                    </div>
+                  </div>
+                  <div id="friendsContent" class="friends-panel-content">
+                    <div class="leaderboard-empty">Your friends list will appear here.</div>
+                  </div>
+                  <div class="hero-actions compact-actions">
+                    <button id="refreshFriends" class="secondary-button">Refresh</button>
+                  </div>
+                </div>
                 <div class="home-v3-actions home-v3-directory-actions">
                   <button id="loginButton" class="topbar-button secondary-button">Profile</button>
                   <button id="friendsButton" class="topbar-button secondary-button">Friends</button>

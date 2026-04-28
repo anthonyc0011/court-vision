@@ -3133,3 +3133,15 @@ button:hover {
   background: color-mix(in srgb, var(--surface) 60%, transparent);
   border-color: color-mix(in srgb, var(--outline) 55%, transparent);
 }
+
+/* Auth/friends panels inline inside the hub card */
+#homeScreen .hub-inline-panel {
+  background: none;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+  padding: 0 0 12px;
+  margin: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--outline) 36%, transparent);
+  margin-bottom: 12px;
+}
