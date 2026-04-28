@@ -4,7 +4,9 @@ function getApiBase() {
       ? window.COURT_VISION_API_BASE.trim()
       : "";
 
-  if (configuredBase) {
+  const isLocalConfiguredBase = /127\.0\.0\.1|localhost/i.test(configuredBase);
+
+  if (configuredBase && !isLocalConfiguredBase) {
     return configuredBase.replace(/\/$/, "");
   }
 
@@ -12,6 +14,12 @@ function getApiBase() {
     const { hostname, origin } = window.location;
     if (hostname === "127.0.0.1" || hostname === "localhost") {
       return "http://127.0.0.1:8000/api";
+    }
+    if (hostname === "courtvision.cc" || hostname === "www.courtvision.cc") {
+      return "https://api.courtvision.cc/api";
+    }
+    if (isLocalConfiguredBase) {
+      return `${origin}/api`;
     }
     return `${origin}/api`;
   }
@@ -778,7 +786,7 @@ function renderAuthPanel() {
     const usernameLocked = isGoogleUsernameLocked();
     const canRename = canChangeGoogleUsernameOnce();
     const lockedUsername = getLockedUsername();
-    els.loginButton.textContent = usernameLocked ? lockedUsername : "Account";
+    els.loginButton.textContent = usernameLocked ? "👤 " + lockedUsername : "Account";
     els.authUserName.textContent = usernameLocked ? lockedUsername : getGoogleDisplayName();
     els.authUserEmail.textContent = usernameLocked && !canRename
       ? state.auth.user.email || ""
@@ -2212,24 +2220,34 @@ function updateProfileSummary() {
         <strong>${state.profile.onlineWins}</strong>
       </div>
     </div>
-    <div class="profile-stat-grid">
+    ${(() => {
+      const hasRankedActivity = rankedProfile && (rankedProfile.wins > 0 || rankedProfile.losses > 0 || rankedProfile.elo > 0);
+      if (hasRankedActivity) {
+        return `<div class="profile-stat-grid">
       <div class="profile-stat">
         <span class="dashboard-label">Ranked Division</span>
-        <strong>${escapeHtml(rankedProfile?.division || "Unranked")}</strong>
+        <strong>${escapeHtml(rankedProfile.division || "Unranked")}</strong>
       </div>
       <div class="profile-stat">
         <span class="dashboard-label">Ranked Elo</span>
-        <strong>${rankedProfile?.elo ?? 0}</strong>
+        <strong>${rankedProfile.elo ?? 0}</strong>
       </div>
       <div class="profile-stat">
         <span class="dashboard-label">Ranked Record</span>
-        <strong>${rankedProfile ? `${rankedProfile.wins}-${rankedProfile.losses}` : "0-0"}</strong>
+        <strong>${rankedProfile.wins}-${rankedProfile.losses}</strong>
       </div>
       <div class="profile-stat">
         <span class="dashboard-label">Win Streak</span>
-        <strong>${rankedProfile?.win_streak ?? 0}</strong>
+        <strong>${rankedProfile.win_streak ?? 0}</strong>
       </div>
-    </div>
+    </div>`;
+      } else {
+        return `<div class="profile-ranked-cta">
+      <span class="dashboard-label">Ranked</span>
+      <p>Play True Ranked to start climbing the divisions and earning your Elo.</p>
+    </div>`;
+      }
+    })()}
   `;
   if (state.online.enabled) {
     els.rankText.textContent = `Room ${state.online.roomCode || "----"} | Online 1v1`;
