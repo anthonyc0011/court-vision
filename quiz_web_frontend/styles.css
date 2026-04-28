@@ -2584,7 +2584,7 @@ button:hover {
 
 /* Home Mockup Refresh */
 #homeScreen {
-  color: #18283f;
+  color: var(--text);
 }
 
 #homeScreen .home-v3-shell {
@@ -2595,14 +2595,15 @@ button:hover {
 
 #homeScreen .home-v3-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: flex-start;
   gap: 16px;
   padding: 22px 24px;
-  background: #ffffff;
-  border: 1px solid #d5deea;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 92%, white 5%) 0%, color-mix(in srgb, var(--surface) 94%, black 6%) 100%);
+  border: 1px solid color-mix(in srgb, var(--outline) 82%, var(--gold));
   border-radius: 22px;
-  box-shadow: 0 10px 30px rgba(20, 34, 54, 0.08);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.26);
 }
 
 #homeScreen .home-v3-brand {
@@ -2617,14 +2618,14 @@ button:hover {
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #7f91ad;
+  color: var(--gold);
 }
 
 #homeScreen #siteTitle {
   margin: 0;
   max-width: none;
   font-size: clamp(2rem, 4vw, 3.2rem);
-  color: #13243b;
+  color: var(--text);
   line-height: 0.94;
 }
 
@@ -2642,6 +2643,11 @@ button:hover {
   font-size: 0.92rem;
 }
 
+#homeScreen .home-v3-directory-actions {
+  margin-bottom: 12px;
+  justify-content: flex-end;
+}
+
 #homeScreen .home-v3-utility-row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2657,12 +2663,13 @@ button:hover {
 
 #homeScreen .hero-card,
 #homeScreen .panel {
-  background: #ffffff;
-  border: 1px solid #d5deea;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface) 96%, white 4%) 0%, color-mix(in srgb, var(--surface-alt) 92%, black 8%) 100%);
+  border: 1px solid var(--outline);
   border-radius: 22px;
-  box-shadow: 0 10px 30px rgba(20, 34, 54, 0.08);
-  backdrop-filter: none;
-  color: #16253a;
+  box-shadow: var(--shadow-strong);
+  backdrop-filter: blur(12px);
+  color: var(--text);
 }
 
 #homeScreen .play-panel,
@@ -2679,25 +2686,27 @@ button:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid #e7edf5;
+  border-bottom: 1px solid color-mix(in srgb, var(--outline) 52%, transparent);
   padding-bottom: 12px;
 }
 
 #homeScreen .home-v3-panel-header h2 {
   margin: 0;
   font-size: 1.26rem;
-  color: #122338;
+  color: var(--text);
 }
 
 #homeScreen .home-v3-section {
   padding: 14px;
   border-radius: 16px;
-  border: 1px solid #e2e9f2;
-  background: #f8fbff;
+  border: 1px solid color-mix(in srgb, var(--outline) 68%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 74%, white 4%) 0%, color-mix(in srgb, var(--surface) 94%, black 6%) 100%);
 }
 
 #homeScreen .home-v3-identity {
-  background: #f5f9ff;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 78%, white 5%) 0%, color-mix(in srgb, var(--surface) 94%, black 6%) 100%);
 }
 
 #homeScreen .setup-stagebar {
@@ -2707,18 +2716,18 @@ button:hover {
 #homeScreen .setup-stage-chip {
   min-height: 38px;
   border-radius: 11px;
-  border-color: #dbe4f0;
-  background: #f4f8fd;
-  color: #6e7f99;
+  border-color: color-mix(in srgb, var(--outline) 76%, transparent);
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  color: var(--muted);
   font-size: 0.83rem;
   font-weight: 700;
 }
 
 #homeScreen .setup-stage-chip.is-active {
-  background: #244e86;
-  border-color: #244e86;
-  color: #ffffff;
-  box-shadow: none;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 88%, white 12%), color-mix(in srgb, var(--accent) 90%, black 10%));
+  border-color: color-mix(in srgb, var(--accent) 64%, transparent);
+  color: #23160c;
+  box-shadow: 0 10px 22px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 #homeScreen .setup-grid {
@@ -2728,21 +2737,21 @@ button:hover {
 #homeScreen label {
   margin: 9px 0 5px;
   font-size: 0.84rem;
-  color: #576981;
+  color: var(--muted);
 }
 
 #homeScreen input,
 #homeScreen select {
   border-radius: 10px;
-  border: 1px solid #ced9e8;
-  background: #ffffff;
-  color: #172a43;
-  box-shadow: none;
+  border: 1px solid color-mix(in srgb, var(--outline) 82%, transparent);
+  background: color-mix(in srgb, var(--surface-alt) 92%, black 8%);
+  color: var(--text);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
   padding: 11px 12px;
 }
 
 #homeScreen input::placeholder {
-  color: #8194af;
+  color: color-mix(in srgb, var(--muted) 82%, white 18%);
 }
 
 #homeScreen button {
@@ -2762,30 +2771,30 @@ button:hover {
 #homeScreen #saveProfile,
 #homeScreen .step-button-secondary,
 #homeScreen #directorySearchButton {
-  background: #eef3fa;
-  border-color: #d5dfec;
-  color: #20344d;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 92%, white 8%), color-mix(in srgb, var(--surface) 90%, black 10%));
+  border-color: color-mix(in srgb, var(--outline) 84%, transparent);
+  color: var(--text);
 }
 
 #homeScreen .secondary-button:hover,
 #homeScreen #saveProfile:hover,
 #homeScreen .step-button-secondary:hover,
 #homeScreen #directorySearchButton:hover {
-  background: #e6edf7;
-  border-color: #c7d3e5;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 96%, white 8%), color-mix(in srgb, var(--surface) 88%, black 12%));
+  border-color: color-mix(in srgb, var(--gold) 32%, var(--outline));
 }
 
 #homeScreen #continueToMatchType,
 #homeScreen .step-button-primary {
-  background: #2f5f9c;
-  border-color: #2f5f9c;
-  color: #ffffff;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 88%, white 12%), color-mix(in srgb, var(--accent) 90%, black 10%));
+  border-color: color-mix(in srgb, var(--accent) 64%, transparent);
+  color: #23160c;
 }
 
 #homeScreen #continueToMatchType:hover,
 #homeScreen .step-button-primary:hover {
-  background: #295386;
-  border-color: #295386;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 94%, white 10%), color-mix(in srgb, var(--accent) 88%, black 12%));
+  border-color: color-mix(in srgb, var(--gold) 34%, var(--accent));
 }
 
 #homeScreen .home-primary-actions {
@@ -2801,25 +2810,26 @@ button:hover {
   min-height: 0;
   padding: 10px 12px;
   border-radius: 12px;
-  border-color: #dce5f1;
-  background: #ffffff;
+  border-color: color-mix(in srgb, var(--outline) 74%, transparent);
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
 }
 
 #homeScreen .mode-card:hover {
   transform: none;
-  border-color: #b7c5d9;
+  border-color: color-mix(in srgb, var(--accent) 38%, var(--outline));
 }
 
 #homeScreen .mode-card:has(input:checked) {
-  background: #e8f0fb;
-  border-color: #8ca6c6;
-  box-shadow: none;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 88%, white 4%) 0%, color-mix(in srgb, var(--surface) 86%, var(--accent) 14%) 100%);
+  border-color: color-mix(in srgb, var(--accent) 44%, var(--outline));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 16%, transparent);
 }
 
 #homeScreen .mode-card .checkbox-row span {
   font-size: 0.98rem;
   font-weight: 600;
-  color: #112236;
+  color: var(--text);
 }
 
 #homeScreen .mode-card .checkbox-row input {
@@ -2835,9 +2845,9 @@ button:hover {
   min-width: 26px;
   height: 26px;
   border-radius: 999px;
-  background: #edf4fd;
-  border: 1px solid #cfdbeb;
-  color: #27466c;
+  background: color-mix(in srgb, var(--surface-alt) 88%, white 6%);
+  border: 1px solid color-mix(in srgb, var(--outline) 80%, transparent);
+  color: var(--text);
   font-size: 0.78rem;
   font-weight: 700;
 }
@@ -2845,35 +2855,37 @@ button:hover {
 #homeScreen .match-info-tooltip {
   width: min(260px, 74vw);
   right: -6px;
-  border: 1px solid #d5dfeb;
-  background: #ffffff;
-  color: #1c2c43;
-  box-shadow: 0 10px 28px rgba(18, 33, 52, 0.15);
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
+  border: 1px solid color-mix(in srgb, var(--outline) 86%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 94%, white 4%) 0%, color-mix(in srgb, var(--surface) 92%, black 8%) 100%);
+  color: var(--text);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 #homeScreen .match-info-tooltip .rank-info-tooltip-title {
-  color: #13253e;
+  color: var(--text);
 }
 
 #homeScreen .match-info-tooltip .rank-info-tooltip-subtitle {
-  color: #52617b;
+  color: var(--muted);
 }
 
 #homeScreen .subtle-checkbox {
   margin-top: 10px;
   border-radius: 10px;
-  border-color: #dbe4f1;
-  background: #ffffff;
+  border-color: color-mix(in srgb, var(--outline) 72%, transparent);
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
 }
 
 #homeScreen .auth-panel,
 #homeScreen .dashboard-card {
   border-radius: 16px;
-  border-color: #dce6f2;
-  background: #ffffff;
-  box-shadow: 0 8px 22px rgba(16, 31, 49, 0.08);
+  border-color: color-mix(in srgb, var(--outline) 74%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-alt) 88%, white 4%) 0%, color-mix(in srgb, var(--surface) 94%, black 6%) 100%);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.16);
 }
 
 #homeScreen .auth-panel::before,
@@ -2899,21 +2911,21 @@ button:hover {
   margin: 0;
   padding: 4px;
   border-radius: 12px;
-  background: #f1f5fb;
-  border: 1px solid #d5deea;
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  border: 1px solid color-mix(in srgb, var(--outline) 78%, transparent);
 }
 
 #homeScreen .mobile-home-tab {
   border-radius: 9px;
   padding: 9px 12px;
-  color: #61738f;
+  color: var(--muted);
   background: transparent;
   border: 1px solid transparent;
 }
 
 #homeScreen .mobile-home-tab.is-active {
-  background: #2f5f9c;
-  color: #ffffff;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 92%, white 8%), var(--accent));
+  color: #111;
 }
 
 #homeScreen .hidden-mobile-panel {
