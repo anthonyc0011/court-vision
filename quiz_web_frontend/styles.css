@@ -3082,6 +3082,7 @@ button:hover {
 
 /* Profile stats: clean label/value rows */
 #homeScreen .profile-stat-grid {
+  grid-template-columns: 1fr;
   gap: 0;
   border-top: 1px solid color-mix(in srgb, var(--outline) 36%, transparent);
   margin-top: 10px;
