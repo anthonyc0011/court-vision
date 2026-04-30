@@ -2761,8 +2761,7 @@ button:hover {
 }
 
 #homeScreen .game-lobby-panel {
-  position: sticky;
-  top: 20px;
+  position: relative;
 }
 
 #homeScreen .home-v3-panel-header {
@@ -3448,6 +3447,8 @@ button:hover {
   flex-direction: column;
   gap: 6px;
   margin-bottom: 20px;
+  flex: 1;
+  overflow-y: auto;
 }
 
 .mode-row {
@@ -3457,7 +3458,7 @@ button:hover {
   background: color-mix(in srgb, var(--surface-alt) 50%, transparent);
   cursor: pointer;
   transition: border-color 0.13s, background 0.13s;
-  overflow: hidden;
+  position: relative;
 }
 .mode-row:hover {
   border-color: color-mix(in srgb, var(--accent) 40%, transparent);
