@@ -2728,7 +2728,7 @@ button:hover {
   display: grid;
   grid-template-columns: minmax(340px, 440px) minmax(0, 1fr);
   gap: 14px;
-  align-items: start;
+  align-items: stretch;
 }
 
 #homeScreen .hero-card,
@@ -2745,6 +2745,19 @@ button:hover {
 #homeScreen .play-panel,
 #homeScreen .dashboard-panel {
   gap: 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+#homeScreen .play-panel .setup-step {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+#homeScreen .play-panel .setup-actions {
+  margin-top: auto;
+  padding-top: 12px;
 }
 
 #homeScreen .game-lobby-panel {
@@ -3532,8 +3545,8 @@ button:hover {
 
 /* ── Boxed pill groups (Questions, Player Pool) ── */
 .pill-group-boxed .pill-btn {
-  background: color-mix(in srgb, var(--bg) 60%, var(--surface));
-  border-color: color-mix(in srgb, var(--outline) 50%, transparent);
+  background: color-mix(in srgb, var(--bg) 22%, var(--surface));
+  border-color: color-mix(in srgb, var(--outline) 45%, transparent);
 }
 
 /* ── Setup clarity: label subs + field hints ── */
