@@ -45,14 +45,13 @@
 
               <!-- Questions pills -->
               <div class="setup-field">
-                <label class="setup-label">Questions <span class="setup-label-sub">per game</span></label>
-                <div class="pill-group" id="questionCountPills">
-                  <button type="button" class="pill-btn" data-value="10" data-hint="~5 min · quick warm-up">10</button>
-                  <button type="button" class="pill-btn pill-btn-active" data-value="25" data-hint="~12 min · standard game">25</button>
-                  <button type="button" class="pill-btn" data-value="50" data-hint="~25 min · long session">50</button>
-                  <button type="button" class="pill-btn" data-value="100" data-hint="~50 min · marathon run">100</button>
+                <label class="setup-label">Questions</label>
+                <div class="pill-group pill-group-boxed" id="questionCountPills">
+                  <button type="button" class="pill-btn" data-value="10">10</button>
+                  <button type="button" class="pill-btn pill-btn-active" data-value="25">25</button>
+                  <button type="button" class="pill-btn" data-value="50">50</button>
+                  <button type="button" class="pill-btn" data-value="100">100</button>
                 </div>
-                <p class="setup-field-hint" id="questionCountHint">~12 min · standard game</p>
                 <select id="questionCount" class="setup-hidden-select">
                   <option value="10">10</option>
                   <option value="25" selected>25</option>
@@ -63,12 +62,11 @@
 
               <!-- Answer Style toggle -->
               <div class="setup-field">
-                <label class="setup-label">Answer Style <span class="setup-label-sub">how you answer</span></label>
+                <label class="setup-label">Answer Style</label>
                 <div class="segmented-control" id="answerModePills">
-                  <button type="button" class="seg-btn seg-btn-active" data-value="typed" data-hint="Type the college name from memory — no hints given">✏️ Typed</button>
-                  <button type="button" class="seg-btn" data-value="multiple-choice" data-hint="Pick from 4 options — great for beginners">📋 Multiple Choice</button>
+                  <button type="button" class="seg-btn seg-btn-active" data-value="typed">Typed</button>
+                  <button type="button" class="seg-btn" data-value="multiple-choice">Multiple Choice</button>
                 </div>
-                <p class="setup-field-hint" id="answerStyleHint">Type the college name from memory — no hints given</p>
                 <select id="answerMode" class="setup-hidden-select">
                   <option value="typed">Typed</option>
                   <option value="multiple-choice">Multiple Choice</option>
@@ -77,14 +75,13 @@
 
               <!-- Player Pool pills -->
               <div class="setup-field">
-                <label class="setup-label">Player Pool <span class="setup-label-sub">who shows up</span></label>
-                <div class="pill-group pill-group-wrap" id="playerPoolPills">
-                  <button type="button" class="pill-btn pill-btn-active" data-value="all" data-hint="Every active NBA player — widest variety">All Players</button>
-                  <button type="button" class="pill-btn" data-value="starter" data-hint="Top 5–7 per team — recognizable names, easier">Starters</button>
-                  <button type="button" class="pill-btn" data-value="rotation" data-hint="Regular contributors — moderate difficulty">Rotation</button>
-                  <button type="button" class="pill-btn" data-value="bench" data-hint="Deep cuts &amp; seldom-used players — hardest">Bench</button>
+                <label class="setup-label">Player Pool</label>
+                <div class="pill-group pill-group-wrap pill-group-boxed" id="playerPoolPills">
+                  <button type="button" class="pill-btn pill-btn-active" data-value="all">All Players</button>
+                  <button type="button" class="pill-btn" data-value="starter">Starters</button>
+                  <button type="button" class="pill-btn" data-value="rotation">Rotation</button>
+                  <button type="button" class="pill-btn" data-value="bench">Bench</button>
                 </div>
-                <p class="setup-field-hint" id="playerPoolHint">Every active NBA player — widest variety</p>
                 <select id="playerPool" class="setup-hidden-select">
                   <option value="all">All Players</option>
                   <option value="rotation">Rotation Players</option>
@@ -95,7 +92,7 @@
 
               <!-- Conference -->
               <div class="setup-field">
-                <label class="setup-label" for="conferenceFilter">Conference <span class="setup-label-sub">optional filter</span></label>
+                <label class="setup-label" for="conferenceFilter">Conference</label>
                 <div class="setup-select-wrap">
                   <select id="conferenceFilter" class="setup-select">
                     <option value="All">All</option>
@@ -105,7 +102,7 @@
 
               <!-- Show headshots toggle -->
               <label class="setup-toggle-row">
-                <span class="setup-toggle-label">Show headshots <span class="setup-label-sub">see player photos during the quiz</span></span>
+                <span class="setup-toggle-label">Show headshots</span>
                 <span class="setup-toggle-track">
                   <input type="checkbox" id="showHeadshots" checked class="setup-toggle-input" />
                   <span class="setup-toggle-thumb"></span>

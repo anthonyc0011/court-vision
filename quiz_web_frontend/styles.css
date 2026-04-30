@@ -3530,6 +3530,12 @@ button:hover {
   font-family: inherit;
 }
 
+/* ── Boxed pill groups (Questions, Player Pool) ── */
+.pill-group-boxed .pill-btn {
+  background: color-mix(in srgb, var(--bg) 60%, var(--surface));
+  border-color: color-mix(in srgb, var(--outline) 50%, transparent);
+}
+
 /* ── Setup clarity: label subs + field hints ── */
 .setup-label-sub {
   display: inline;
