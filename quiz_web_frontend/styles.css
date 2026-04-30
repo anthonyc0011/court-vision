@@ -3438,8 +3438,8 @@ button:hover {
   white-space: nowrap;
 }
 .setup-ghost-btn:hover { color: var(--text); border-color: var(--outline); }
-.setup-actions-split .setup-ghost-btn { flex-shrink: 0; }
-.setup-actions-split .setup-cta-btn { flex: 1; }
+.setup-actions-split .setup-ghost-btn { flex-shrink: 0; width: auto; }
+.setup-actions-split .setup-cta-btn { flex: 1; width: auto; }
 
 /* Mode list (Match Type step) */
 .mode-list {
