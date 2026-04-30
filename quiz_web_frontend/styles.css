@@ -3193,3 +3193,339 @@ button:hover {
   border-bottom: 1px solid color-mix(in srgb, var(--outline) 36%, transparent);
   margin-bottom: 12px;
 }
+
+/* =============================================
+   Game Setup Redesign
+   ============================================= */
+
+.setup-panel-title {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--text);
+  margin: 0 0 20px;
+  letter-spacing: -0.01em;
+}
+
+.setup-hidden-select {
+  display: none !important;
+}
+
+/* Field rows */
+.setup-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.setup-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted);
+}
+
+.setup-input {
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--surface-alt) 80%, transparent);
+  border: 1px solid color-mix(in srgb, var(--outline) 70%, transparent);
+  color: var(--text);
+  font-size: 0.95rem;
+  font-family: inherit;
+  transition: border-color 0.15s;
+}
+.setup-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* Pill groups */
+.pill-group {
+  display: flex;
+  gap: 6px;
+}
+.pill-group-wrap {
+  flex-wrap: wrap;
+}
+
+.pill-btn {
+  flex: 1;
+  padding: 9px 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface-alt) 60%, transparent);
+  border: 1px solid color-mix(in srgb, var(--outline) 60%, transparent);
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.13s;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.pill-btn:hover {
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  color: var(--text);
+}
+.pill-btn-active {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  color: var(--accent);
+}
+
+/* Segmented control (Answer Style) */
+.segmented-control {
+  display: flex;
+  background: color-mix(in srgb, var(--surface-alt) 50%, transparent);
+  border: 1px solid color-mix(in srgb, var(--outline) 60%, transparent);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 3px;
+}
+.seg-btn {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.13s;
+  font-family: inherit;
+}
+.seg-btn:hover { color: var(--text); }
+.seg-btn-active {
+  background: color-mix(in srgb, var(--accent) 20%, var(--surface));
+  color: var(--accent);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+}
+
+/* Conference select */
+.setup-select-wrap {
+  position: relative;
+}
+.setup-select-wrap::after {
+  content: "▾";
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+  font-size: 0.9rem;
+}
+.setup-select {
+  width: 100%;
+  padding: 11px 34px 11px 14px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--surface-alt) 80%, transparent);
+  border: 1px solid color-mix(in srgb, var(--outline) 70%, transparent);
+  color: var(--text);
+  font-size: 0.95rem;
+  font-family: inherit;
+  appearance: none;
+  cursor: pointer;
+}
+.setup-select:focus { outline: none; border-color: var(--accent); }
+
+/* Toggle switch */
+.setup-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  cursor: pointer;
+  user-select: none;
+}
+.setup-toggle-label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.setup-toggle-track {
+  position: relative;
+  width: 42px;
+  height: 24px;
+  flex-shrink: 0;
+}
+.setup-toggle-input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+.setup-toggle-thumb {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--outline) 80%, transparent);
+  border-radius: 999px;
+  transition: background 0.2s;
+}
+.setup-toggle-thumb::after {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  top: 3px;
+  left: 3px;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+.setup-toggle-input:checked ~ .setup-toggle-thumb {
+  background: var(--accent);
+}
+.setup-toggle-input:checked ~ .setup-toggle-thumb::after {
+  transform: translateX(18px);
+}
+
+/* Actions */
+.setup-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+}
+.setup-actions-split {
+  flex-direction: row;
+  gap: 10px;
+}
+.setup-cta-btn {
+  width: 100%;
+  padding: 14px 20px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 80%, var(--gold)));
+  border: none;
+  color: #111;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  transition: opacity 0.15s, transform 0.1s;
+  font-family: inherit;
+}
+.setup-cta-btn:hover { opacity: 0.92; transform: translateY(-1px); }
+.setup-cta-btn:active { transform: translateY(0); }
+
+.setup-ghost-btn {
+  padding: 13px 20px;
+  border-radius: 12px;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--outline) 70%, transparent);
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: color 0.13s, border-color 0.13s;
+  white-space: nowrap;
+}
+.setup-ghost-btn:hover { color: var(--text); border-color: var(--outline); }
+.setup-actions-split .setup-ghost-btn { flex-shrink: 0; }
+.setup-actions-split .setup-cta-btn { flex: 1; }
+
+/* Mode list (Match Type step) */
+.mode-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+.mode-row {
+  display: block;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--outline) 55%, transparent);
+  background: color-mix(in srgb, var(--surface-alt) 50%, transparent);
+  cursor: pointer;
+  transition: border-color 0.13s, background 0.13s;
+  overflow: hidden;
+}
+.mode-row:hover {
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+.mode-row-input {
+  display: none;
+}
+.mode-row-body {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 14px;
+}
+.mode-row-icon {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+  width: 28px;
+  text-align: center;
+}
+.mode-row-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.mode-row-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.mode-row-desc {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.mode-info-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--outline) 60%, transparent);
+  border: none;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-family: serif;
+  font-style: italic;
+}
+/* Selected mode row */
+.mode-row:has(.mode-row-input:checked) {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.mode-row:has(.mode-row-input:checked) .mode-row-name {
+  color: var(--accent);
+}
+/* Ranked highlight */
+.mode-row-ranked:has(.mode-row-input:checked) {
+  border-color: var(--gold);
+  background: color-mix(in srgb, var(--gold) 10%, transparent);
+}
+.mode-row-ranked:has(.mode-row-input:checked) .mode-row-name {
+  color: var(--gold);
+}
+
+.mode-extra-fields {
+  padding: 0 14px 14px 54px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mode-extra-fields input,
+.mode-extra-fields select {
+  padding: 9px 12px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  border: 1px solid color-mix(in srgb, var(--outline) 60%, transparent);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-family: inherit;
+}

@@ -32,201 +32,223 @@
 
         <section class="home-grid home-v3-grid">
           <article class="panel play-panel simplified-play-panel home-panel-block home-panel-play game-lobby-panel">
-            <div class="home-v3-panel-header">
-              <h2>Game Setup</h2>
-            </div>
 
-            <div class="home-v3-section home-v3-identity">
-              <div class="setup-grid two-col">
-                <div>
-                  <label for="username">Username</label>
-                  <input id="username" placeholder="Enter username" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
+            <!-- STEP 1: Quiz Setup -->
+            <div id="quizSetupStep" class="setup-step active">
+              <h2 class="setup-panel-title">Game Setup</h2>
+
+              <!-- Username -->
+              <div class="setup-field">
+                <label class="setup-label" for="username">Username</label>
+                <input id="username" class="setup-input" placeholder="Enter username" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
+              </div>
+
+              <!-- Questions pills -->
+              <div class="setup-field">
+                <label class="setup-label">Questions</label>
+                <div class="pill-group" id="questionCountPills">
+                  <button type="button" class="pill-btn" data-value="10">10</button>
+                  <button type="button" class="pill-btn pill-btn-active" data-value="25">25</button>
+                  <button type="button" class="pill-btn" data-value="50">50</button>
+                  <button type="button" class="pill-btn" data-value="100">100</button>
                 </div>
-                <input id="theme" type="hidden" value="Arena Blue" />
-                <select id="gameMode" class="hidden" aria-hidden="true" tabindex="-1">
-                  <option value="Practice" selected>Practice</option>
+                <select id="questionCount" class="setup-hidden-select">
+                  <option value="10">10</option>
+                  <option value="25" selected>25</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
                 </select>
               </div>
+
+              <!-- Answer Style toggle -->
+              <div class="setup-field">
+                <label class="setup-label">Answer Style</label>
+                <div class="segmented-control" id="answerModePills">
+                  <button type="button" class="seg-btn seg-btn-active" data-value="typed">Typed</button>
+                  <button type="button" class="seg-btn" data-value="multiple-choice">Multiple Choice</button>
+                </div>
+                <select id="answerMode" class="setup-hidden-select">
+                  <option value="typed">Typed</option>
+                  <option value="multiple-choice">Multiple Choice</option>
+                </select>
+              </div>
+
+              <!-- Player Pool pills -->
+              <div class="setup-field">
+                <label class="setup-label">Player Pool</label>
+                <div class="pill-group pill-group-wrap" id="playerPoolPills">
+                  <button type="button" class="pill-btn pill-btn-active" data-value="all">All Players</button>
+                  <button type="button" class="pill-btn" data-value="starter">Starters</button>
+                  <button type="button" class="pill-btn" data-value="rotation">Rotation</button>
+                  <button type="button" class="pill-btn" data-value="bench">Bench</button>
+                </div>
+                <select id="playerPool" class="setup-hidden-select">
+                  <option value="all">All Players</option>
+                  <option value="rotation">Rotation Players</option>
+                  <option value="starter">Starters</option>
+                  <option value="bench">Bench Players</option>
+                </select>
+              </div>
+
+              <!-- Conference -->
+              <div class="setup-field">
+                <label class="setup-label" for="conferenceFilter">Conference</label>
+                <div class="setup-select-wrap">
+                  <select id="conferenceFilter" class="setup-select">
+                    <option value="All">All</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Show headshots toggle -->
+              <label class="setup-toggle-row">
+                <span class="setup-toggle-label">Show headshots</span>
+                <span class="setup-toggle-track">
+                  <input type="checkbox" id="showHeadshots" checked class="setup-toggle-input" />
+                  <span class="setup-toggle-thumb"></span>
+                </span>
+              </label>
+
+              <!-- Hidden fields carried over -->
+              <input id="theme" type="hidden" value="Arena Blue" />
+              <select id="gameMode" class="setup-hidden-select" aria-hidden="true" tabindex="-1">
+                <option value="Practice" selected>Practice</option>
+              </select>
+
+              <!-- Actions -->
+              <div class="setup-actions">
+                <button id="continueToMatchType" type="button" class="setup-cta-btn">Choose Mode →</button>
+                <button id="saveProfile" type="button" class="setup-ghost-btn">Save Profile</button>
+              </div>
             </div>
 
-            <div id="quizSetupStep" class="setup-step active">
-              <div class="setup-stagebar">
-                <div class="setup-stage-chip is-active">1. Quiz Setup</div>
-                <div class="setup-stage-chip">2. Match Type</div>
-              </div>
-              <div class="home-v3-section">
-                <div class="section-title-row">
-                  <h3>Quiz Setup</h3>
-                </div>
-                <div class="setup-grid two-col">
-                  <div>
-                    <label for="questionCount">Quiz Length</label>
-                    <select id="questionCount">
-                      <option value="10">10</option>
-                      <option value="25" selected>25</option>
-                      <option value="50">50</option>
-                      <option value="100">100</option>
-                      <option value="all">All</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label for="conferenceFilter">Conference</label>
-                    <select id="conferenceFilter">
-                      <option value="All">All</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label for="playerPool">Player Pool</label>
-                    <select id="playerPool">
-                      <option value="all">All Players</option>
-                      <option value="rotation">Rotation Players</option>
-                      <option value="starter">Starters</option>
-                      <option value="bench">Bench Players</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label for="answerMode">Answer Style</label>
-                    <select id="answerMode">
-                      <option value="typed">Typed</option>
-                      <option value="multiple-choice">Multiple Choice</option>
-                    </select>
-                  </div>
-                </div>
-                <label class="checkbox-row subtle-checkbox">
-                  <input type="checkbox" id="showHeadshots" checked />
-                  <span>Show headshots</span>
-                </label>
-              </div>
-              <div class="hero-actions home-primary-actions setup-next-actions">
-                <button id="continueToMatchType" type="button">Match Type →</button>
-                <button id="saveProfile" type="button">Save Profile</button>
-              </div>
-            </div>
-
+            <!-- STEP 2: Match Type -->
             <div id="matchTypeStep" class="setup-step hidden">
-              <div class="setup-stagebar">
-                <div class="setup-stage-chip">1. Quiz Setup</div>
-                <div class="setup-stage-chip is-active">2. Match Type</div>
+              <h2 class="setup-panel-title">Pick a Mode</h2>
+
+              <div class="mode-list">
+
+                <label class="mode-row">
+                  <input type="checkbox" id="soloMode" class="mode-row-input" />
+                  <div class="mode-row-body">
+                    <span class="mode-row-icon">🏀</span>
+                    <div class="mode-row-text">
+                      <span class="mode-row-name">Solo Run</span>
+                      <span class="mode-row-desc">Play solo and build your XP</span>
+                    </div>
+                    <div class="rank-info match-info">
+                      <button class="rank-info-trigger mode-info-btn" type="button" aria-label="Solo Run information" title="Solo Run information">i</button>
+                      <div class="rank-info-tooltip match-info-tooltip" role="tooltip">
+                        <div class="rank-info-tooltip-title">Solo Run</div>
+                        <div class="rank-info-tooltip-subtitle">Play by yourself, build XP, and post your best score.</div>
+                      </div>
+                    </div>
+                  </div>
+                </label>
+
+                <label class="mode-row">
+                  <input type="checkbox" id="twoPlayerMode" class="mode-row-input" />
+                  <div class="mode-row-body">
+                    <span class="mode-row-icon">👥</span>
+                    <div class="mode-row-text">
+                      <span class="mode-row-name">2-Player Local</span>
+                      <span class="mode-row-desc">Share one device, take turns</span>
+                    </div>
+                    <div class="rank-info match-info">
+                      <button class="rank-info-trigger mode-info-btn" type="button" aria-label="2-Player Local information" title="2-Player Local information">i</button>
+                      <div class="rank-info-tooltip match-info-tooltip" role="tooltip">
+                        <div class="rank-info-tooltip-title">2-Player Local</div>
+                        <div class="rank-info-tooltip-subtitle">Two players share one device and alternate through the same quiz.</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div id="twoPlayerFields" class="mode-extra-fields hidden">
+                    <input id="playerOneName" placeholder="Player 1 name" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
+                    <input id="playerTwoName" placeholder="Player 2 name" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
+                  </div>
+                </label>
+
+                <label class="mode-row">
+                  <input type="checkbox" id="onlineMode" class="mode-row-input" />
+                  <div class="mode-row-body">
+                    <span class="mode-row-icon">🌐</span>
+                    <div class="mode-row-text">
+                      <span class="mode-row-name">Private Online 1v1</span>
+                      <span class="mode-row-desc">Invite a friend to play live</span>
+                    </div>
+                    <div class="rank-info match-info">
+                      <button class="rank-info-trigger mode-info-btn" type="button" aria-label="Private Online 1v1 information" title="Private Online 1v1 information">i</button>
+                      <div class="rank-info-tooltip match-info-tooltip" role="tooltip">
+                        <div class="rank-info-tooltip-title">Private Online 1v1</div>
+                        <div class="rank-info-tooltip-subtitle">Create a private room, invite one opponent, and play live online.</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div id="onlineFields" class="mode-extra-fields hidden">
+                    <select id="onlineAction">
+                      <option value="create">Create Match</option>
+                      <option value="join">Join Match</option>
+                    </select>
+                    <input id="onlineCode" placeholder="Enter code to join" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" />
+                    <div id="onlineStatus" class="online-status">Create a room or join one with a match code.</div>
+                  </div>
+                </label>
+
+                <label class="mode-row mode-row-ranked">
+                  <input type="checkbox" id="rankedMode" class="mode-row-input" />
+                  <div class="mode-row-body">
+                    <span class="mode-row-icon">🏆</span>
+                    <div class="mode-row-text">
+                      <span class="mode-row-name">True Ranked Online</span>
+                      <span class="mode-row-desc">Competitive ladder — earn Elo</span>
+                    </div>
+                    <div class="rank-info match-info">
+                      <button class="rank-info-trigger mode-info-btn" type="button" aria-label="True Ranked Online information" title="True Ranked Online information">i</button>
+                      <div class="rank-info-tooltip match-info-tooltip" role="tooltip">
+                        <div class="rank-info-tooltip-title">True Ranked Online</div>
+                        <div class="rank-info-tooltip-subtitle">Enter the ranked queue and compete under the standard competitive ruleset.</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div id="rankedFields" class="mode-extra-fields hidden">
+                    <div class="online-status">Ranked is always 25 questions, multiple choice, no hints, and a 15-second timer. Google sign-in is required.</div>
+                  </div>
+                </label>
+
+                <label class="mode-row">
+                  <input type="checkbox" id="cpuMode" class="mode-row-input" />
+                  <div class="mode-row-body">
+                    <span class="mode-row-icon">🤖</span>
+                    <div class="mode-row-text">
+                      <span class="mode-row-name">Play vs CPU</span>
+                      <span class="mode-row-desc">Challenge a computer opponent</span>
+                    </div>
+                    <div class="rank-info match-info">
+                      <button class="rank-info-trigger mode-info-btn" type="button" aria-label="Play Vs CPU information" title="Play Vs CPU information">i</button>
+                      <div class="rank-info-tooltip match-info-tooltip" role="tooltip">
+                        <div class="rank-info-tooltip-title">Play Vs CPU</div>
+                        <div class="rank-info-tooltip-subtitle">Face a computer opponent locally. Easy gives the CPU a softer accuracy curve, while hard is much tougher.</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div id="cpuFields" class="mode-extra-fields hidden">
+                    <select id="cpuDifficulty">
+                      <option value="easy">Easy</option>
+                      <option value="hard">Hard</option>
+                    </select>
+                  </div>
+                </label>
+
               </div>
-              <div class="home-v3-section">
-                <div class="section-title-row">
-                  <h3>Match Type</h3>
-                </div>
-                <div class="mode-stack mode-stack-v3">
-                  <div class="mode-card">
-                    <label class="checkbox-row">
-                      <input type="checkbox" id="soloMode" />
-                      <span>Solo Run</span>
-                    </label>
-                    <div class="mode-card-meta-row">
-                      <div class="rank-info match-info">
-                        <button class="rank-info-trigger" type="button" aria-label="Solo Run information" title="Solo Run information">i</button>
-                        <div class="rank-info-tooltip match-info-tooltip" role="tooltip">
-                          <div class="rank-info-tooltip-title">Solo Run</div>
-                          <div class="rank-info-tooltip-subtitle">Play by yourself, build XP, and post your best score.</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
 
-                  <div class="mode-card">
-                    <label class="checkbox-row">
-                      <input type="checkbox" id="twoPlayerMode" />
-                      <span>2-Player Local</span>
-                    </label>
-                    <div class="mode-card-meta-row">
-                      <div class="rank-info match-info">
-                        <button class="rank-info-trigger" type="button" aria-label="2-Player Local information" title="2-Player Local information">i</button>
-                        <div class="rank-info-tooltip match-info-tooltip" role="tooltip">
-                          <div class="rank-info-tooltip-title">2-Player Local</div>
-                          <div class="rank-info-tooltip-subtitle">Two players share one device and alternate through the same quiz.</div>
-                        </div>
-                      </div>
-                    </div>
-                    <div id="twoPlayerFields" class="two-player-fields hidden">
-                      <label for="playerOneName">Player 1 Name</label>
-                      <input id="playerOneName" placeholder="Player 1" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
-                      <label for="playerTwoName">Player 2 Name</label>
-                      <input id="playerTwoName" placeholder="Player 2" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
-                    </div>
-                  </div>
-
-                  <div class="mode-card">
-                    <label class="checkbox-row">
-                      <input type="checkbox" id="onlineMode" />
-                      <span>Private Online 1v1</span>
-                    </label>
-                    <div class="mode-card-meta-row">
-                      <div class="rank-info match-info">
-                        <button class="rank-info-trigger" type="button" aria-label="Private Online 1v1 information" title="Private Online 1v1 information">i</button>
-                        <div class="rank-info-tooltip match-info-tooltip" role="tooltip">
-                          <div class="rank-info-tooltip-title">Private Online 1v1</div>
-                          <div class="rank-info-tooltip-subtitle">Create a private room, invite one opponent, and play live online.</div>
-                        </div>
-                      </div>
-                    </div>
-                    <div id="onlineFields" class="two-player-fields hidden">
-                      <label for="onlineAction">Online Match</label>
-                      <select id="onlineAction">
-                        <option value="create">Create Match</option>
-                        <option value="join">Join Match</option>
-                      </select>
-                      <label for="onlineCode">Match Code</label>
-                      <input id="onlineCode" placeholder="Enter code to join" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" />
-                      <div id="onlineStatus" class="online-status">Create a room or join one with a match code.</div>
-                    </div>
-                  </div>
-
-                  <div class="mode-card ranked-card">
-                    <label class="checkbox-row">
-                      <input type="checkbox" id="rankedMode" />
-                      <span>True Ranked Online</span>
-                    </label>
-                    <div class="mode-card-meta-row">
-                      <div class="rank-info match-info">
-                        <button class="rank-info-trigger" type="button" aria-label="True Ranked Online information" title="True Ranked Online information">i</button>
-                        <div class="rank-info-tooltip match-info-tooltip" role="tooltip">
-                          <div class="rank-info-tooltip-title">True Ranked Online</div>
-                          <div class="rank-info-tooltip-subtitle">Enter the ranked queue and compete under the standard competitive ruleset.</div>
-                        </div>
-                      </div>
-                    </div>
-                    <div id="rankedFields" class="two-player-fields hidden">
-                      <div class="online-status">Ranked is always 25 questions, multiple choice, no hints, and a 15-second timer. Google sign-in is required.</div>
-                    </div>
-                  </div>
-
-                  <div class="mode-card cpu-mode-card">
-                    <label class="checkbox-row">
-                      <input type="checkbox" id="cpuMode" />
-                      <span>Play Vs CPU</span>
-                    </label>
-                    <div class="mode-card-meta-row">
-                      <div class="rank-info match-info">
-                        <button class="rank-info-trigger" type="button" aria-label="Play Vs CPU information" title="Play Vs CPU information">i</button>
-                        <div class="rank-info-tooltip match-info-tooltip" role="tooltip">
-                          <div class="rank-info-tooltip-title">Play Vs CPU</div>
-                          <div class="rank-info-tooltip-subtitle">Face a computer opponent locally. Easy gives the CPU a softer accuracy curve, while hard is much tougher.</div>
-                        </div>
-                      </div>
-                    </div>
-                    <div id="cpuFields" class="two-player-fields hidden">
-                      <label for="cpuDifficulty">CPU Difficulty</label>
-                      <select id="cpuDifficulty">
-                        <option value="easy">Easy</option>
-                        <option value="hard">Hard</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
+              <div class="setup-actions setup-actions-split">
+                <button id="backToQuizSetup" type="button" class="setup-ghost-btn">← Back</button>
+                <button id="startQuiz" type="button" class="setup-cta-btn">Start Game →</button>
               </div>
-              <div class="hero-actions home-primary-actions setup-next-actions match-step-actions">
-                <button id="backToQuizSetup" class="step-button step-button-secondary" type="button">Back To Quiz Setup</button>
-                <button id="startQuiz" class="step-button step-button-primary" type="button">Start Game</button>
-              </div>
+
+              <input type="checkbox" id="dailyMode" hidden />
             </div>
 
-            <input type="checkbox" id="dailyMode" hidden />
           </article>
 
           <article class="panel dashboard-panel simplified-dashboard-panel home-panel-block home-panel-hub intel-panel">

@@ -1235,6 +1235,7 @@ function applyProfilePayload(profile) {
   els.playerPool.value = settings.playerPool || els.playerPool.value;
   els.answerMode.value = settings.answerMode || els.answerMode.value;
   els.showHeadshots.checked = settings.showHeadshots !== false;
+  syncPillsFromSelects();
   els.soloMode.checked = Boolean(settings.soloMode);
   els.twoPlayerMode.checked = Boolean(settings.twoPlayerMode);
   els.cpuMode.checked = Boolean(settings.cpuMode);
@@ -1459,6 +1460,7 @@ function loadLocalState() {
   }
   els.questionCount.value = savedSettings.questionCount || "25";
   els.playerPool.value = savedSettings.playerPool || "all";
+  syncPillsFromSelects();
   els.answerMode.value = savedSettings.answerMode || "typed";
   els.showHeadshots.checked = savedSettings.showHeadshots !== false;
   els.soloMode.checked = Boolean(savedSettings.soloMode);
@@ -4177,6 +4179,48 @@ document.getElementById("loadLeaderboard")?.addEventListener("click", () => {
     .then(() => showToast("Rankings refreshed."))
     .catch((error) => showToast(error?.message || "Could not refresh rankings."));
 });
+// Pill/segmented control sync with hidden selects
+function initPillGroups() {
+  [
+    { pillsId: "questionCountPills", selectId: "questionCount" },
+    { pillsId: "playerPoolPills",    selectId: "playerPool" },
+    { pillsId: "answerModePills",    selectId: "answerMode", segmented: true },
+  ].forEach(({ pillsId, selectId, segmented }) => {
+    const group = document.getElementById(pillsId);
+    const select = document.getElementById(selectId);
+    if (!group || !select) return;
+    const btnClass = segmented ? "seg-btn" : "pill-btn";
+    const activeClass = segmented ? "seg-btn-active" : "pill-btn-active";
+    group.querySelectorAll(`.${btnClass}`).forEach((btn) => {
+      btn.addEventListener("click", () => {
+        group.querySelectorAll(`.${btnClass}`).forEach((b) => b.classList.remove(activeClass));
+        btn.classList.add(activeClass);
+        select.value = btn.dataset.value;
+        select.dispatchEvent(new Event("change"));
+      });
+    });
+  });
+}
+initPillGroups();
+
+function syncPillsFromSelects() {
+  [
+    { pillsId: "questionCountPills", selectId: "questionCount", segmented: false },
+    { pillsId: "playerPoolPills",    selectId: "playerPool",    segmented: false },
+    { pillsId: "answerModePills",    selectId: "answerMode",    segmented: true },
+  ].forEach(({ pillsId, selectId, segmented }) => {
+    const group = document.getElementById(pillsId);
+    const select = document.getElementById(selectId);
+    if (!group || !select) return;
+    const btnClass = segmented ? "seg-btn" : "pill-btn";
+    const activeClass = segmented ? "seg-btn-active" : "pill-btn-active";
+    const val = select.value;
+    group.querySelectorAll(`.${btnClass}`).forEach((btn) => {
+      btn.classList.toggle(activeClass, btn.dataset.value === val);
+    });
+  });
+}
+
 els.loginButton?.addEventListener("click", () => {
   state.auth.panelOpen = !state.auth.panelOpen;
   state.friends.panelOpen = false;
