@@ -4182,12 +4182,13 @@ document.getElementById("loadLeaderboard")?.addEventListener("click", () => {
 // Pill/segmented control sync with hidden selects
 function initPillGroups() {
   [
-    { pillsId: "questionCountPills", selectId: "questionCount" },
-    { pillsId: "playerPoolPills",    selectId: "playerPool" },
-    { pillsId: "answerModePills",    selectId: "answerMode", segmented: true },
-  ].forEach(({ pillsId, selectId, segmented }) => {
+    { pillsId: "questionCountPills", selectId: "questionCount", hintId: "questionCountHint" },
+    { pillsId: "playerPoolPills",    selectId: "playerPool",    hintId: "playerPoolHint" },
+    { pillsId: "answerModePills",    selectId: "answerMode",    hintId: "answerStyleHint", segmented: true },
+  ].forEach(({ pillsId, selectId, hintId, segmented }) => {
     const group = document.getElementById(pillsId);
     const select = document.getElementById(selectId);
+    const hintEl = hintId ? document.getElementById(hintId) : null;
     if (!group || !select) return;
     const btnClass = segmented ? "seg-btn" : "pill-btn";
     const activeClass = segmented ? "seg-btn-active" : "pill-btn-active";
@@ -4197,6 +4198,7 @@ function initPillGroups() {
         btn.classList.add(activeClass);
         select.value = btn.dataset.value;
         select.dispatchEvent(new Event("change"));
+        if (hintEl && btn.dataset.hint) hintEl.textContent = btn.dataset.hint;
       });
     });
   });
