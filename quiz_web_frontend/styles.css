@@ -467,10 +467,59 @@ label,
   border-radius: 999px;
   background: color-mix(in srgb, var(--surface-alt) 72%, transparent);
   border: 1px solid color-mix(in srgb, var(--outline) 80%, transparent);
-  color: var(--text);
+  color: var(--muted);
   font-size: 0.84rem;
   font-weight: 700;
+  pointer-events: none;
+  cursor: default;
 }
+
+/* Results recap rows */
+.recap-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 2px;
+  border-bottom: 1px solid color-mix(in srgb, var(--outline) 30%, transparent);
+}
+.recap-row:last-of-type { border-bottom: none; }
+.recap-label { color: var(--muted); font-size: 0.9rem; }
+.recap-xp { color: var(--accent); font-size: 1.05rem; }
+.recap-val { font-size: 0.95rem; }
+.recap-note { font-size: 0.8rem; color: var(--muted); font-weight: 400; }
+.recap-section-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 12px 0 4px;
+}
+.recap-promotion {
+  padding: 8px 10px;
+  background: color-mix(in srgb, var(--gold) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gold) 30%, transparent);
+  border-radius: 8px;
+  color: var(--gold);
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin: 6px 0;
+}
+.recap-empty {
+  color: var(--muted);
+  font-size: 0.9rem;
+  padding: 6px 2px;
+}
+.recap-missed-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 2px;
+  border-bottom: 1px solid color-mix(in srgb, var(--outline) 25%, transparent);
+}
+.recap-missed-row:last-of-type { border-bottom: none; }
+.recap-player { color: var(--text); font-size: 0.9rem; }
+.recap-college { color: var(--accent); font-size: 0.9rem; font-weight: 600; }
 
 .large-copy {
   font-size: 1.1rem;
@@ -891,11 +940,10 @@ button:hover {
 .scroll-box {
   min-height: 180px;
   overflow: auto;
-  white-space: pre-wrap;
   background: var(--surface-alt);
   border-radius: 18px;
   border: 1px solid var(--outline);
-  padding: 14px;
+  padding: 14px 16px;
 }
 
 .compact-box {

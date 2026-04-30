@@ -1894,38 +1894,41 @@ def auth_bootstrap(authorization: str | None = Header(default=None)):
 
 @app.post("/api/analytics")
 def post_analytics_event(payload: AnalyticsEventPayload):
-    visitor_id = re.sub(r"[^a-zA-Z0-9_-]", "", payload.visitor_id.strip())[:64]
-    if not visitor_id:
-        raise HTTPException(status_code=400, detail="Missing visitor ID.")
+    try:
+        visitor_id = re.sub(r"[^a-zA-Z0-9_-]", "", payload.visitor_id.strip())[:64]
+        if not visitor_id:
+            return {"saved": False}
 
-    event_type = payload.event_type.strip().lower() or "page_view"
-    if event_type not in {"page_view", "quiz_start"}:
-        event_type = "page_view"
+        event_type = payload.event_type.strip().lower() or "page_view"
+        if event_type not in {"page_view", "quiz_start"}:
+            event_type = "page_view"
 
-    path = str(payload.path or "/").strip()[:255] or "/"
-    username = (payload.username or "").strip()[:80] or None
-    referrer = (payload.referrer or "").strip()[:500] or None
-    created_at = int(time.time())
+        path = str(payload.path or "/").strip()[:255] or "/"
+        username = (payload.username or "").strip()[:80] or None
+        referrer = (payload.referrer or "").strip()[:500] or None
+        created_at = int(time.time())
 
-    with get_conn() as conn:
-        if USING_POSTGRES:
-            conn.execute(
-                """
-                INSERT INTO analytics_events (visitor_id, event_type, path, username, referrer, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s)
-                """,
-                (visitor_id, event_type, path, username, referrer, created_at),
-            )
-        else:
-            conn.execute(
-                """
-                INSERT INTO analytics_events (visitor_id, event_type, path, username, referrer, created_at)
-                VALUES (?, ?, ?, ?, ?, ?)
-                """,
-                (visitor_id, event_type, path, username, referrer, created_at),
-            )
-        conn.commit()
-    return {"saved": True}
+        with get_conn() as conn:
+            if USING_POSTGRES:
+                conn.execute(
+                    """
+                    INSERT INTO analytics_events (visitor_id, event_type, path, username, referrer, created_at)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                    """,
+                    (visitor_id, event_type, path, username, referrer, created_at),
+                )
+            else:
+                conn.execute(
+                    """
+                    INSERT INTO analytics_events (visitor_id, event_type, path, username, referrer, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    (visitor_id, event_type, path, username, referrer, created_at),
+                )
+            conn.commit()
+        return {"saved": True}
+    except Exception:
+        return {"saved": False}
 
 
 @app.get("/api/analytics/summary")

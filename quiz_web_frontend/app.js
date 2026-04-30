@@ -3270,23 +3270,28 @@ function finishQuiz() {
     }
   } else {
     els.endSummary.textContent = `${summary.correct}/${summary.total} correct | Accuracy ${summary.accuracy}% | Wrong ${summary.wrong} | Skipped ${summary.skipped}`;
-    const breakdownLines = reward.breakdown?.length
-      ? reward.breakdown.map((item) => `${item.label}: +${item.value}${item.note ? ` (${item.note})` : ""}`).join("\n")
-      : "No bonus XP this run.";
-    const promotionLines = reward.promotions?.length
-      ? `Rank Ups: ${reward.promotions.map((item) => item.rank).join(", ")}\n`
+    const breakdownRows = reward.breakdown?.length
+      ? reward.breakdown.map((item) =>
+          `<div class="recap-row"><span class="recap-label">${escapeHtml(item.label)}</span><strong class="recap-val">+${item.value}${item.note ? ` <span class="recap-note">(${escapeHtml(item.note)})</span>` : ""}</strong></div>`
+        ).join("")
+      : `<div class="recap-empty">No bonus XP this run.</div>`;
+    const promotionHTML = reward.promotions?.length
+      ? `<div class="recap-promotion">🏆 Rank Up: ${reward.promotions.map((p) => escapeHtml(p.rank)).join(", ")}</div>`
       : "";
-    els.rewardSummary.textContent =
-      `XP Gained: ${reward.xpGain}\n` +
-      `Current Rank: ${state.profile.rank}\n` +
-      `${promotionLines}` +
-      `XP Breakdown:\n${breakdownLines}`;
+    els.rewardSummary.innerHTML =
+      `<div class="recap-row"><span class="recap-label">XP Gained</span><strong class="recap-xp">+${reward.xpGain}</strong></div>` +
+      `<div class="recap-row"><span class="recap-label">Current Rank</span><strong>${escapeHtml(state.profile.rank)}</strong></div>` +
+      promotionHTML +
+      `<div class="recap-section-label">XP Breakdown</div>` +
+      breakdownRows;
   }
   if (!state.online.enabled) {
-    const missed = state.missedQuestions
-      .map((question) => `${question.player_name} — ${question.correct_answer || "Unavailable"}`)
-      .join("\n");
-    els.missedSummary.textContent = missed || "Perfect run. No missed questions.";
+    const missedRows = state.missedQuestions
+      .map((q) =>
+        `<div class="recap-missed-row"><span class="recap-player">${escapeHtml(q.player_name)}</span><span class="recap-college">${escapeHtml(q.correct_answer || "Unavailable")}</span></div>`
+      )
+      .join("");
+    els.missedSummary.innerHTML = missedRows || `<div class="recap-empty">Perfect run! No missed questions.</div>`;
   }
   if (submitLeaderboardButton) submitLeaderboardButton.classList.add("hidden");
   updateProfileSummary();
